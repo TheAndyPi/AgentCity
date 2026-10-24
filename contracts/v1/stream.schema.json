@@ -665,7 +665,8 @@
                 "information": "#/$defs/InformationEffect",
                 "infrastructure": "#/$defs/InfrastructureEffect",
                 "policy": "#/$defs/PolicyEffect",
-                "resource_multiplier": "#/$defs/ResourceEffect"
+                "resource_multiplier": "#/$defs/ResourceEffect",
+                "wellbeing": "#/$defs/WellbeingEffect"
               },
               "propertyName": "type"
             },
@@ -687,6 +688,9 @@
               },
               {
                 "$ref": "#/$defs/PolicyEffect"
+              },
+              {
+                "$ref": "#/$defs/WellbeingEffect"
               }
             ]
           },
@@ -701,6 +705,14 @@
           ],
           "title": "Success Condition",
           "type": "string"
+        },
+        "scene": {
+          "items": {
+            "$ref": "#/$defs/SceneObject"
+          },
+          "maxItems": 24,
+          "title": "Scene",
+          "type": "array"
         }
       },
       "required": [
@@ -814,6 +826,14 @@
           "maxLength": 2000,
           "title": "Summary",
           "type": "string"
+        },
+        "scene": {
+          "items": {
+            "$ref": "#/$defs/SceneObject"
+          },
+          "maxItems": 24,
+          "title": "Scene",
+          "type": "array"
         }
       },
       "required": [
@@ -1593,6 +1613,179 @@
       "title": "ScenarioPreview",
       "type": "object"
     },
+    "SceneObject": {
+      "additionalProperties": false,
+      "description": "Bounded procedural props: no external assets or executable model output.",
+      "properties": {
+        "model": {
+          "enum": [
+            "flood",
+            "fire",
+            "cloud",
+            "crates",
+            "generator",
+            "broadcast",
+            "stage",
+            "stall",
+            "tree",
+            "dinosaur",
+            "spacecraft",
+            "robot",
+            "barrier",
+            "clinic",
+            "snow",
+            "heat",
+            "meteor",
+            "monument",
+            "portal",
+            "visitor",
+            "deer",
+            "generated"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Label",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "scale": {
+          "maximum": 4,
+          "minimum": 0.5,
+          "title": "Scale",
+          "type": "number"
+        },
+        "rotation": {
+          "maximum": 6.284,
+          "minimum": 0,
+          "title": "Rotation",
+          "type": "number"
+        },
+        "color": {
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Color",
+          "type": "string"
+        },
+        "parts": {
+          "items": {
+            "$ref": "#/$defs/ScenePart"
+          },
+          "maxItems": 8,
+          "title": "Parts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "label",
+        "position",
+        "scale",
+        "rotation",
+        "color"
+      ],
+      "title": "SceneObject",
+      "type": "object"
+    },
+    "SceneOffset": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 8,
+          "minimum": -8,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        },
+        "z": {
+          "maximum": 8,
+          "minimum": -8,
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "title": "SceneOffset",
+      "type": "object"
+    },
+    "ScenePart": {
+      "additionalProperties": false,
+      "properties": {
+        "shape": {
+          "enum": [
+            "box",
+            "sphere",
+            "cone",
+            "cylinder"
+          ],
+          "title": "Shape",
+          "type": "string"
+        },
+        "offset": {
+          "$ref": "#/$defs/SceneOffset"
+        },
+        "size": {
+          "$ref": "#/$defs/SceneSize"
+        },
+        "color": {
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Color",
+          "type": "string"
+        }
+      },
+      "required": [
+        "shape",
+        "offset",
+        "size",
+        "color"
+      ],
+      "title": "ScenePart",
+      "type": "object"
+    },
+    "SceneSize": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 8,
+          "minimum": 0.1,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 8,
+          "minimum": 0.1,
+          "title": "Y",
+          "type": "number"
+        },
+        "z": {
+          "maximum": 8,
+          "minimum": 0.1,
+          "title": "Z",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "title": "SceneSize",
+      "type": "object"
+    },
     "Simulation": {
       "additionalProperties": false,
       "properties": {
@@ -1913,6 +2106,42 @@
       "title": "Vec2",
       "type": "object"
     },
+    "WellbeingEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wellbeing",
+          "title": "Type",
+          "type": "string"
+        },
+        "happiness_delta": {
+          "maximum": 2,
+          "minimum": -2,
+          "title": "Happiness Delta",
+          "type": "number"
+        },
+        "stress_delta": {
+          "maximum": 2,
+          "minimum": -2,
+          "title": "Stress Delta",
+          "type": "number"
+        },
+        "health_delta": {
+          "maximum": 2,
+          "minimum": -2,
+          "title": "Health Delta",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "happiness_delta",
+        "stress_delta",
+        "health_delta"
+      ],
+      "title": "WellbeingEffect",
+      "type": "object"
+    },
     "WorldFrame": {
       "additionalProperties": false,
       "properties": {
@@ -2050,5 +2279,6 @@
     }
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "x-contract-version": "1.0.0"
+  "x-contract-version": "1.0.0",
+  "x-contract-revision": 2
 }

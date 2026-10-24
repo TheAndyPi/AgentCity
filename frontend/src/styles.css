@@ -6286,3 +6286,72 @@ input[type="range"] {
     right: 60px;
   }
 }
+
+/* A small model-making table for each scenario. */
+.scenario-diorama {
+  height: 230px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid #52665f;
+  border-radius: 8px;
+  background: #202931;
+  touch-action: pan-y;
+}
+.scenario-diorama canvas {
+  cursor: grab;
+}
+.scenario-diorama canvas:active {
+  cursor: grabbing;
+}
+.scenario-diorama-caption {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #e0dfc7;
+  font: 9px monospace;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+.scenario-diorama-caption > span {
+  color: #a9b7b4;
+  letter-spacing: 0;
+}
+.scenario-prop-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.scenario-prop-list > span {
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.scenario-world-label {
+  display: block;
+  max-width: 180px;
+  padding: 5px 9px;
+  border: 1px solid #728b81;
+  border-radius: 4px;
+  background: #202931e8;
+  color: #f0e7d0;
+  font-size: 10px;
+  text-align: center;
+}
+.scenario-scene-fallback {
+  padding: 65px 25px;
+  color: #e0dfc7;
+  text-align: center;
+}
+@media (max-width: 600px) {
+  .scenario-diorama {
+    height: 190px;
+  }
+}

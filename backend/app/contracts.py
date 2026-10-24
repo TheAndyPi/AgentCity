@@ -500,10 +500,77 @@ class PolicyEffect(Model):
     aid_multiplier: Multiplier
 
 
+class WellbeingEffect(Model):
+    type: Literal["wellbeing"]
+    happiness_delta: Annotated[float, Field(ge=-2, le=2)]
+    stress_delta: Annotated[float, Field(ge=-2, le=2)]
+    health_delta: Annotated[float, Field(ge=-2, le=2)]
+
+
 EffectSpec = Annotated[
-    HazardEffect | ResourceEffect | InfrastructureEffect | InformationEffect | CommunityEffect | PolicyEffect,
+    HazardEffect
+    | ResourceEffect
+    | InfrastructureEffect
+    | InformationEffect
+    | CommunityEffect
+    | PolicyEffect
+    | WellbeingEffect,
     Field(discriminator="type"),
 ]
+
+
+class SceneOffset(Model):
+    x: Annotated[float, Field(ge=-8, le=8)]
+    y: Annotated[float, Field(ge=0, le=10)]
+    z: Annotated[float, Field(ge=-8, le=8)]
+
+
+class SceneSize(Model):
+    x: Annotated[float, Field(ge=0.1, le=8)]
+    y: Annotated[float, Field(ge=0.1, le=8)]
+    z: Annotated[float, Field(ge=0.1, le=8)]
+
+
+class ScenePart(Model):
+    shape: Literal["box", "sphere", "cone", "cylinder"]
+    offset: SceneOffset
+    size: SceneSize
+    color: Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
+
+
+class SceneObject(Model):
+    """Bounded procedural props: no external assets or executable model output."""
+
+    model: Literal[
+        "flood",
+        "fire",
+        "cloud",
+        "crates",
+        "generator",
+        "broadcast",
+        "stage",
+        "stall",
+        "tree",
+        "dinosaur",
+        "spacecraft",
+        "robot",
+        "barrier",
+        "clinic",
+        "snow",
+        "heat",
+        "meteor",
+        "monument",
+        "portal",
+        "visitor",
+        "deer",
+        "generated",
+    ]
+    label: Name
+    position: Vec2
+    scale: Annotated[float, Field(ge=0.5, le=4)]
+    rotation: Annotated[float, Field(ge=0, le=6.284)]
+    color: Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
+    parts: Annotated[list[ScenePart], Field(max_length=8)] = Field(default_factory=list)
 
 
 class EventSpec(Model):
@@ -516,6 +583,7 @@ class EventSpec(Model):
     duration_ticks: Annotated[int, Field(ge=1, le=1000), BeforeValidator(integer_number)]
     effects: Annotated[list[EffectSpec], Field(max_length=20)]
     success_condition: Literal["duration_elapsed", "all_safe_or_duration"]
+    scene: Annotated[list[SceneObject], Field(max_length=24)] = Field(default_factory=list)
 
 
 class ScenarioPreview(Model):
@@ -546,6 +614,7 @@ class EventSummary(Model):
     affected_polygon: Polygon
     pre_event_snapshot_id: ID
     summary: Text
+    scene: Annotated[list[SceneObject], Field(max_length=24)] = Field(default_factory=list)
 
 
 class Consequence(Model):

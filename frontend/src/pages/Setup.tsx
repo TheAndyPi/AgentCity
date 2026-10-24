@@ -363,7 +363,7 @@ export default function Setup() {
           >
             <Field
               label="Your opening scenario"
-              hint="You’ll review the interpreted effects before anything changes."
+              hint="Describe people, creatures, weather or an event. Review its generated 3D scene and effects before it begins."
               error={errors.scenario_description}
             >
               <textarea
@@ -376,9 +376,10 @@ export default function Setup() {
             </Field>
             <div className="suggestion-chips">
               {[
-                "A neighborhood festival",
-                "A sudden flood",
-                "A supply shortage",
+                "Dinosaurs in the town square",
+                "An alien arrival during a festival",
+                "A farmers market and garden",
+                "Robots deliver aid after a storm",
               ].map((s) => (
                 <button
                   type="button"

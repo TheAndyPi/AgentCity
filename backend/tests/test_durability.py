@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from app.data.repository import Repository
 from app.infrastructure.config import AppConfig
 from app.main import create_app
+from app.simulation.navigation import polygon_contains
 
 
 def csrf(client):
@@ -217,6 +218,7 @@ def test_pending_and_active_event_restore_without_reapplying(client, ticks):
     resources = [
         resource
         for resource in before.map.resources
-        if resource.kind == "food" and resource.position.x <= 64 and resource.position.y <= 72
+        if resource.kind == "food"
+        and polygon_contains(resource.position, before.events[event["id"]].spec.affected_polygon)
     ]
     assert len(applied) == len(resources)

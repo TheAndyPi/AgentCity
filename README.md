@@ -21,6 +21,30 @@ Fresh setup defaults to 80 citizens in an urban neighborhood. New maps contain t
 
 The setup command creates `backend/.venv`, installs the pinned Python dependencies and runs `npm ci` in `frontend/`. On Windows, `python` must be on PATH; set `PYTHON` if another executable is needed when creating the environment. `AGENTCITY_PYTHON` can select an existing compatible Python environment.
 
+## Scenarios and procedural scenes
+
+Opening scenarios and interventions share 27 composable recipe families, including
+visitors, wildlife, dinosaurs, alien arrivals, robots, markets, concerts, gardens,
+protests, construction, clinics, illness, weather, discoveries and portals, plus
+the original hazards and policies. Try “2 red robots deliver community aid during
+a snowstorm in the east for 20 ticks” or “Dinosaurs arrive during a festival”.
+Prompts support cardinal regions, severity, tick duration, prop counts and colors.
+Without a region, social and resource effects cover the city; hazards use a
+bounded district so citizens can still seek safety outside it. Request “citywide”
+to deliberately affect the whole map.
+
+Review the orbitable low-poly scene and the listed simulation effects before
+confirming. Scene props appear during active events and are preserved in saves,
+reports, repeats and replay. Each scene uses at most 24 simple props, without
+external model downloads. Rules mode builds these locally. When Gemini is enabled,
+it can additionally compose an unfamiliar subject from up to eight basic shapes,
+using the existing provider timeout, rate limit and token budget. Malformed or
+unavailable provider output falls back to the local scene. The shared recipe and color files
+live in `contracts/scenario-catalog.json` and `contracts/scenario-palette.json`.
+Without a generated model, an unfamiliar premise gets an explicitly labeled
+abstract landmark and a citizen memory effect; the preview explains this approximation. Props illustrate events;
+they do not add autonomous creatures, new citizens or collision obstacles.
+
 ## Configuration
 
 Defaults need no `.env` file. For server configuration, copy `backend/.env.example` to `backend/.env` and edit it. Root launchers load this file; environment variables take precedence. Relative server paths resolve from `backend/`. Secrets stay on the server. Never place provider keys in a `VITE_` variable.

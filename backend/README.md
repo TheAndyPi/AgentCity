@@ -159,9 +159,11 @@ Restart the backend after configuration changes.
 The gateway uses structured JSON and semantic Game Master
 checks. Physical ticks never await the provider. Timeout, rate limit, malformed,
 obsolete, budget-limited and circuit-open responses fall back to labeled rules.
-Only persona/decision generation calls the provider in this build; deterministic
-planning, social updates, speech and batched reflection implement the remaining
-core behavior. The other role templates are validated proposal interfaces for
+Citizen decisions and optional free-form scenario geometry call the provider in
+this build. Scenario geometry uses a bounded SceneDesign schema and is generated
+outside simulation commit locks; preview retries reuse the original result.
+Deterministic planning, social updates, speech and batched reflection implement
+the remaining core behavior. The other role templates are validated proposal interfaces for
 future optional enrichment, not evidence of live model execution.
 
 No live Gemini request was made without user credentials. Tests use explicit

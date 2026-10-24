@@ -4915,6 +4915,7 @@ components:
             - $ref: '#/components/schemas/InformationEffect'
             - $ref: '#/components/schemas/CommunityEffect'
             - $ref: '#/components/schemas/PolicyEffect'
+            - $ref: '#/components/schemas/WellbeingEffect'
             discriminator:
               propertyName: type
               mapping:
@@ -4924,6 +4925,7 @@ components:
                 infrastructure: '#/components/schemas/InfrastructureEffect'
                 policy: '#/components/schemas/PolicyEffect'
                 resource_multiplier: '#/components/schemas/ResourceEffect'
+                wellbeing: '#/components/schemas/WellbeingEffect'
           type: array
           maxItems: 20
           title: Effects
@@ -4933,6 +4935,12 @@ components:
           - duration_elapsed
           - all_safe_or_duration
           title: Success Condition
+        scene:
+          items:
+            $ref: '#/components/schemas/SceneObject'
+          type: array
+          maxItems: 24
+          title: Scene
       additionalProperties: false
       type: object
       required:
@@ -5019,6 +5027,12 @@ components:
           type: string
           maxLength: 2000
           title: Summary
+        scene:
+          items:
+            $ref: '#/components/schemas/SceneObject'
+          type: array
+          maxItems: 24
+          title: Scene
       additionalProperties: false
       type: object
       required:
@@ -6670,6 +6684,148 @@ components:
       - event
       - snapshot
       title: ScenarioResult
+    SceneObject:
+      properties:
+        model:
+          type: string
+          enum:
+          - flood
+          - fire
+          - cloud
+          - crates
+          - generator
+          - broadcast
+          - stage
+          - stall
+          - tree
+          - dinosaur
+          - spacecraft
+          - robot
+          - barrier
+          - clinic
+          - snow
+          - heat
+          - meteor
+          - monument
+          - portal
+          - visitor
+          - deer
+          - generated
+          title: Model
+        label:
+          type: string
+          maxLength: 80
+          minLength: 1
+          pattern: ^\S(?:[\s\S]*\S)?$
+          title: Label
+        position:
+          $ref: '#/components/schemas/Vec2'
+        scale:
+          type: number
+          maximum: 4.0
+          minimum: 0.5
+          title: Scale
+        rotation:
+          type: number
+          maximum: 6.284
+          minimum: 0.0
+          title: Rotation
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          title: Color
+        parts:
+          items:
+            $ref: '#/components/schemas/ScenePart'
+          type: array
+          maxItems: 8
+          title: Parts
+      additionalProperties: false
+      type: object
+      required:
+      - model
+      - label
+      - position
+      - scale
+      - rotation
+      - color
+      title: SceneObject
+      description: 'Bounded procedural props: no external assets or executable model
+        output.'
+    SceneOffset:
+      properties:
+        x:
+          type: number
+          maximum: 8.0
+          minimum: -8.0
+          title: X
+        y:
+          type: number
+          maximum: 10.0
+          minimum: 0.0
+          title: Y
+        z:
+          type: number
+          maximum: 8.0
+          minimum: -8.0
+          title: Z
+      additionalProperties: false
+      type: object
+      required:
+      - x
+      - y
+      - z
+      title: SceneOffset
+    ScenePart:
+      properties:
+        shape:
+          type: string
+          enum:
+          - box
+          - sphere
+          - cone
+          - cylinder
+          title: Shape
+        offset:
+          $ref: '#/components/schemas/SceneOffset'
+        size:
+          $ref: '#/components/schemas/SceneSize'
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          title: Color
+      additionalProperties: false
+      type: object
+      required:
+      - shape
+      - offset
+      - size
+      - color
+      title: ScenePart
+    SceneSize:
+      properties:
+        x:
+          type: number
+          maximum: 8.0
+          minimum: 0.1
+          title: X
+        y:
+          type: number
+          maximum: 8.0
+          minimum: 0.1
+          title: Y
+        z:
+          type: number
+          maximum: 8.0
+          minimum: 0.1
+          title: Z
+      additionalProperties: false
+      type: object
+      required:
+      - x
+      - y
+      - z
+      title: SceneSize
     SessionInfo:
       properties:
         authenticated:
@@ -7923,6 +8079,35 @@ components:
       - x
       - y
       title: Vec2
+    WellbeingEffect:
+      properties:
+        type:
+          type: string
+          const: wellbeing
+          title: Type
+        happiness_delta:
+          type: number
+          maximum: 2.0
+          minimum: -2.0
+          title: Happiness Delta
+        stress_delta:
+          type: number
+          maximum: 2.0
+          minimum: -2.0
+          title: Stress Delta
+        health_delta:
+          type: number
+          maximum: 2.0
+          minimum: -2.0
+          title: Health Delta
+      additionalProperties: false
+      type: object
+      required:
+      - type
+      - happiness_delta
+      - stress_delta
+      - health_delta
+      title: WellbeingEffect
     WholeSource:
       properties:
         kind:

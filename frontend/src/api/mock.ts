@@ -924,6 +924,7 @@ export class MockTransport implements Transport {
         affected_polygon: p.spec.affected_polygon,
         pre_event_snapshot_id: snapshot.id,
         summary: p.interpretation,
+        scene: copy(p.spec.scene ?? []),
       };
       r.frame.events.push(e);
       r.reports[e.id] = {

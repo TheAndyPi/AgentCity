@@ -1,0 +1,587 @@
+[
+  {
+    "id": "flood",
+    "terms": [
+      "flood",
+      "flooding"
+    ],
+    "model": "flood",
+    "color": "#69b9de",
+    "effects": [
+      {
+        "type": "hazard",
+        "hazard": "flood",
+        "severity": 50
+      }
+    ],
+    "kind": "flood",
+    "count": 5
+  },
+  {
+    "id": "fire",
+    "terms": [
+      "fire",
+      "wildfire",
+      "blaze",
+      "burning"
+    ],
+    "model": "fire",
+    "color": "#f69b53",
+    "effects": [
+      {
+        "type": "hazard",
+        "hazard": "fire",
+        "severity": 50
+      }
+    ],
+    "kind": "fire",
+    "count": 5
+  },
+  {
+    "id": "storm",
+    "terms": [
+      "storm",
+      "hurricane",
+      "tornado",
+      "thunderstorm",
+      "snowstorm"
+    ],
+    "model": "cloud",
+    "color": "#96a9bc",
+    "effects": [
+      {
+        "type": "hazard",
+        "hazard": "storm",
+        "severity": 50
+      }
+    ],
+    "kind": "storm",
+    "count": 4
+  },
+  {
+    "id": "shortage",
+    "terms": [
+      "shortage",
+      "scarcity",
+      "famine"
+    ],
+    "model": "crates",
+    "color": "#d4ab73",
+    "effects": [
+      {
+        "type": "resource_multiplier",
+        "resource": "food",
+        "multiplier": 0.4
+      }
+    ],
+    "kind": "shortage",
+    "count": 3
+  },
+  {
+    "id": "drought",
+    "terms": [
+      "drought",
+      "water shortage"
+    ],
+    "model": "heat",
+    "color": "#efb96e",
+    "effects": [
+      {
+        "type": "resource_multiplier",
+        "resource": "water",
+        "multiplier": 0.35
+      },
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": 0.5,
+        "health_delta": 0
+      }
+    ],
+    "kind": "shortage",
+    "count": 3
+  },
+  {
+    "id": "outage",
+    "terms": [
+      "outage",
+      "blackout",
+      "power failure"
+    ],
+    "model": "generator",
+    "color": "#e9c957",
+    "effects": [
+      {
+        "type": "infrastructure",
+        "functional": false,
+        "capacity_multiplier": 0
+      }
+    ],
+    "kind": "outage",
+    "count": 3
+  },
+  {
+    "id": "misinformation",
+    "terms": [
+      "rumor",
+      "rumour",
+      "misinformation",
+      "unverified warning"
+    ],
+    "model": "broadcast",
+    "color": "#c7a4df",
+    "effects": [],
+    "kind": "misinformation",
+    "count": 3
+  },
+  {
+    "id": "festival",
+    "terms": [
+      "festival",
+      "celebration",
+      "party",
+      "parade"
+    ],
+    "model": "stage",
+    "color": "#f096b5",
+    "effects": [
+      {
+        "type": "community",
+        "activity": "festival",
+        "capacity": 0
+      }
+    ],
+    "kind": "festival",
+    "count": 3
+  },
+  {
+    "id": "aid",
+    "terms": [
+      "community aid",
+      "aid drive",
+      "relief",
+      "food bank"
+    ],
+    "model": "clinic",
+    "color": "#86d4b2",
+    "effects": [
+      {
+        "type": "community",
+        "activity": "aid",
+        "capacity": 0
+      }
+    ],
+    "kind": "festival",
+    "count": 3
+  },
+  {
+    "id": "policy",
+    "terms": [
+      "ration",
+      "rationing",
+      "evacuation order",
+      "policy"
+    ],
+    "model": "broadcast",
+    "color": "#b2c6e4",
+    "effects": [
+      {
+        "type": "policy",
+        "evacuation_order": true,
+        "ration_units_per_agent": 2,
+        "aid_multiplier": 1.5
+      }
+    ],
+    "kind": "policy",
+    "count": 1
+  },
+  {
+    "id": "dinosaurs",
+    "terms": [
+      "dinosaur",
+      "dinosaurs",
+      "t-rex",
+      "triceratops",
+      "jurassic"
+    ],
+    "model": "dinosaur",
+    "color": "#92bd73",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.3,
+        "stress_delta": 0.7,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "aliens",
+    "terms": [
+      "alien",
+      "aliens",
+      "ufo",
+      "spaceship",
+      "spacecraft"
+    ],
+    "model": "spacecraft",
+    "color": "#8edbd0",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.3,
+        "stress_delta": 0.6,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 1
+  },
+  {
+    "id": "robots",
+    "terms": [
+      "robot",
+      "robots",
+      "android",
+      "androids"
+    ],
+    "model": "robot",
+    "color": "#a5c6df",
+    "effects": [
+      {
+        "type": "community",
+        "activity": "aid",
+        "capacity": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "market",
+    "terms": [
+      "market",
+      "farmers market",
+      "bazaar",
+      "fair",
+      "food truck"
+    ],
+    "model": "stall",
+    "color": "#e8ac79",
+    "effects": [
+      {
+        "type": "resource_multiplier",
+        "resource": "food",
+        "multiplier": 1.5
+      },
+      {
+        "type": "community",
+        "activity": "festival",
+        "capacity": 0
+      }
+    ],
+    "kind": "festival",
+    "count": 4
+  },
+  {
+    "id": "concert",
+    "terms": [
+      "concert",
+      "music",
+      "band",
+      "performance",
+      "theater",
+      "theatre"
+    ],
+    "model": "stage",
+    "color": "#d5a0d5",
+    "effects": [
+      {
+        "type": "community",
+        "activity": "festival",
+        "capacity": 0
+      }
+    ],
+    "kind": "festival",
+    "count": 1
+  },
+  {
+    "id": "garden",
+    "terms": [
+      "garden",
+      "gardens",
+      "reforestation",
+      "orchard",
+      "planting"
+    ],
+    "model": "tree",
+    "color": "#81b878",
+    "effects": [
+      {
+        "type": "resource_multiplier",
+        "resource": "food",
+        "multiplier": 1.2
+      },
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.4,
+        "stress_delta": -0.4,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 5
+  },
+  {
+    "id": "protest",
+    "terms": [
+      "protest",
+      "protests",
+      "strike",
+      "demonstration"
+    ],
+    "model": "barrier",
+    "color": "#e1ac6b",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": -0.3,
+        "stress_delta": 0.8,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "construction",
+    "terms": [
+      "construction",
+      "roadworks",
+      "rebuild",
+      "building site"
+    ],
+    "model": "barrier",
+    "color": "#efbe62",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": 0.4,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "clinic",
+    "terms": [
+      "clinic",
+      "vaccination",
+      "medical",
+      "hospital camp",
+      "health camp"
+    ],
+    "model": "clinic",
+    "color": "#8fd4c4",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": -0.3,
+        "health_delta": 0.6
+      },
+      {
+        "type": "community",
+        "activity": "aid",
+        "capacity": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 2
+  },
+  {
+    "id": "illness",
+    "terms": [
+      "illness",
+      "epidemic",
+      "pandemic",
+      "disease",
+      "outbreak"
+    ],
+    "model": "clinic",
+    "color": "#ce9c97",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": -0.4,
+        "stress_delta": 0.6,
+        "health_delta": -0.5
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "snow",
+    "terms": [
+      "snow",
+      "snowfall",
+      "blizzard",
+      "winter",
+      "snowstorm"
+    ],
+    "model": "snow",
+    "color": "#c8e4f1",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": 0.3,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 5
+  },
+  {
+    "id": "heatwave",
+    "terms": [
+      "heatwave",
+      "heat wave",
+      "extreme heat"
+    ],
+    "model": "heat",
+    "color": "#f3bd64",
+    "effects": [
+      {
+        "type": "resource_multiplier",
+        "resource": "water",
+        "multiplier": 0.6
+      },
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": 0.5,
+        "health_delta": -0.2
+      }
+    ],
+    "kind": "custom",
+    "count": 2
+  },
+  {
+    "id": "meteor",
+    "terms": [
+      "meteor",
+      "meteorite",
+      "asteroid",
+      "comet"
+    ],
+    "model": "meteor",
+    "color": "#dc9978",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0,
+        "stress_delta": 0.7,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 2
+  },
+  {
+    "id": "discovery",
+    "terms": [
+      "discovery",
+      "treasure",
+      "artifact",
+      "artefact",
+      "excavation"
+    ],
+    "model": "monument",
+    "color": "#e5c87e",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.6,
+        "stress_delta": -0.2,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 1
+  },
+  {
+    "id": "portal",
+    "terms": [
+      "portal",
+      "time travel",
+      "wormhole",
+      "magic"
+    ],
+    "model": "portal",
+    "color": "#bba6ed",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.4,
+        "stress_delta": 0.4,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 1
+  },
+  {
+    "id": "visitors",
+    "terms": [
+      "visitor",
+      "visitors",
+      "tourist",
+      "tourists",
+      "newcomer",
+      "newcomers",
+      "sibling",
+      "siblings",
+      "reunion"
+    ],
+    "model": "visitor",
+    "color": "#e6a893",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.5,
+        "stress_delta": -0.2,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  },
+  {
+    "id": "wildlife",
+    "terms": [
+      "wildlife",
+      "deer",
+      "animals",
+      "zoo",
+      "safari"
+    ],
+    "model": "deer",
+    "color": "#c6ab86",
+    "effects": [
+      {
+        "type": "wellbeing",
+        "happiness_delta": 0.5,
+        "stress_delta": 0.2,
+        "health_delta": 0
+      }
+    ],
+    "kind": "custom",
+    "count": 3
+  }
+]

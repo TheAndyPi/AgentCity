@@ -23,6 +23,7 @@ from app.contracts import (
 from app.infrastructure.errors import require
 from app.simulation.agents import clamp, evidence, hazard_severity, metric_delta, remember
 from app.simulation.navigation import polygon_contains, simple_polygon
+from app.simulation.scenario_scene import CATALOG, build_scene, matches
 from app.simulation.state import EventRuntime, expiry
 
 
@@ -178,11 +179,24 @@ def validate_spec(state, spec):
             400,
         )
     require(bool(spec.effects), "INVALID_REQUEST", "Event has no supported effects", 400)
+    for prop in spec.scene:
+        require(
+            0 <= prop.position.x <= state.map.width_m
+            and 0 <= prop.position.y <= state.map.height_m
+            and polygon_contains(prop.position, spec.affected_polygon),
+            "INVALID_REQUEST",
+            "Scene object must be inside the affected map region",
+            400,
+        )
 
 
 def preset(state, kind, policy=None, prompt=""):
     text = prompt.lower()
-    polygon = rectangle(0, 0, 64, 72)
+    polygon = rectangle(0, 0, state.map.width_m, state.map.height_m)
+    if kind in {"flood", "fire", "storm"}:
+        # Leave safe facilities outside a default hazard's reach. An explicit
+        # citywide prompt can still deliberately test a citywide emergency.
+        polygon = rectangle(0, 0, state.map.width_m / 2, state.map.height_m * 0.5625)
     if "north" in text:
         polygon = rectangle(0, 64, 128, 128)
     elif "east" in text:
@@ -246,9 +260,10 @@ def preset(state, kind, policy=None, prompt=""):
     )
 
 
-def compile_preview(state, source, prompt=None, source_event_id=None, policy=None):
+def compile_preview(state, source, prompt=None, source_event_id=None, policy=None, design=None):
     unsupported = []
     warnings = []
+    recipes = []
     if source == "repeat":
         runtime = state.events.get(source_event_id)
         require(
@@ -262,57 +277,72 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         spec = preset(state, "policy", policy)
     elif source == "random":
         # Context keyed: preview creation never advances the world's physical RNG.
-        rng = random.Random(f"{state.simulation.config.seed}:{state.simulation.revision}")
-        spec = preset(
-            state, rng.choice(["flood", "fire", "storm", "shortage", "outage", "misinformation", "festival"])
+        rng = random.Random(
+            f"{state.simulation.config.seed}:{state.simulation.revision}:{state.entity_sequence}"
         )
+        recipe = rng.choice([r for r in CATALOG if r["id"] != "policy"])
+        prompt = f"Unexpected {recipe['terms'][0]} in the neighborhood"
+        recipes = [recipe]
+        spec = preset(state, recipe["kind"], prompt=prompt)
+        spec.title = prompt[:80]
     else:
         text = (prompt or "").lower()
-        aliases = {
-            "flood": ["flood"],
-            "fire": ["fire", "wildfire"],
-            "storm": ["storm", "hurricane", "tornado"],
-            "shortage": ["shortage", "scarcity", "drought"],
-            "outage": ["outage", "blackout"],
-            "misinformation": ["rumor", "rumour", "misinformation", "unverified warning"],
-            "festival": ["festival", "celebration", "community aid", "aid drive"],
-            "policy": ["ration", "evacuation order", "policy"],
-        }
-        kinds = [
-            kind
-            for kind, words in aliases.items()
-            if any(re.search(r"\b" + re.escape(word) + r"\b", text) for word in words)
-        ]
+        recipes = matches(text)
+        kinds = [r["kind"] for r in recipes]
         spec = preset(state, kinds[0] if kinds else "custom", prompt=prompt or "")
-        for kind in kinds[1:]:
-            spec.effects.extend(preset(state, kind, prompt=prompt or "").effects)
         # Keep every custom premise as citizen-visible world context. Familiar
         # mechanics can accompany it, but a keyword list never gates an event.
         premise = (prompt or "").strip()
         require(bool(premise), "INVALID_REQUEST", "Describe an event first", 400)
-        if "misinformation" not in kinds:
-            spec.effects.append(
-                InformationEffect(
-                    type="information", message=premise[:2000], reliability=100, delivery="local"
-                )
-            )
         spec.title = " ".join(premise.split())[:80].strip()
         if not kinds and not any(word in text for word in ("north", "east", "west", "south")):
             spec.affected_polygon = rectangle(0, 0, state.map.width_m, state.map.height_m)
             spec.origin = Vec2(x=state.map.width_m / 2, y=state.map.height_m / 2)
-        warnings.append(
-            "Citizens observe this event, remember it and can discuss it. "
-            "Physical changes are limited to the additional effects shown below."
+        if not recipes and not (design and design.parts):
+            warnings.append(
+                "This premise is represented by a labeled abstract landmark. Citizens can remember and "
+                "discuss it; add details such as a market, visitors, wildlife or weather for specific effects."
+            )
+    if source not in {"repeat", "policy"}:
+        # Compose recipes without multiplying duplicate effects from overlapping phrases.
+        effects = []
+        for recipe in recipes:
+            for raw in recipe["effects"]:
+                effect = dict(raw)
+                if effect["type"] == "hazard":
+                    effect["severity"] = spec.severity
+                if effect["type"] == "community":
+                    effect["capacity"] = state.simulation.agent_count
+                if effect not in effects:
+                    effects.append(effect)
+        effects = effects[:19]
+        effects.append(
+            InformationEffect(
+                type="information",
+                message=spec.description,
+                reliability=25 if any(r["id"] == "misinformation" for r in recipes) else 100,
+                delivery="local",
+            ).model_dump()
         )
-        if "community aid" in text or "aid drive" in text:
-            spec.effects = [
-                effect.model_copy(update={"activity": "aid", "capacity": state.simulation.agent_count})
-                if getattr(effect, "type", None) == "community"
-                else effect
-                for effect in spec.effects
+        spec = EventSpec.model_validate({**spec.model_dump(), "effects": effects[:20]})
+    if not spec.scene:
+        if design and design.parts:
+            recipes = [
+                dict(
+                    model="generated",
+                    label=design.label,
+                    id=design.label,
+                    count=1,
+                    color=design.parts[0].color,
+                    parts=design.parts,
+                ),
+                *recipes,
             ]
-            spec = EventSpec.model_validate(spec.model_dump())
-            spec.title = "Community aid intervention"
+            warnings.append(
+                "The custom object is an AI-composed illustration made from simple shapes. "
+                "Its simulation effects are limited to the effects listed below."
+            )
+        spec.scene = build_scene(state, spec, recipes or matches(spec.description) or matches(spec.kind))
     can_commit = bool(spec.effects)
     if can_commit:
         validate_spec(state, spec)
@@ -354,6 +384,7 @@ def queue_event(state, preview, snapshot_id, resume_allowed):
         affected_polygon=spec.affected_polygon,
         pre_event_snapshot_id=snapshot_id,
         summary="Event will begin on the next simulation tick",
+        scene=spec.scene,
     )
     values = state.metric_points[-1].values.model_copy(deep=True)
     state.events[event.id] = EventRuntime(
@@ -501,6 +532,10 @@ def apply_effects(state):
                                 )
                             )
                             state.counters["cooperation_count"] += 1
+                elif effect.type == "wellbeing":
+                    metric_delta(citizen, "happiness", effect.happiness_delta, proof)
+                    metric_delta(citizen, "stress", effect.stress_delta, proof)
+                    citizen.needs.health = clamp(citizen.needs.health + effect.health_delta)
 
 
 def finish_events(state):
