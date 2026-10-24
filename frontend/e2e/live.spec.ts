@@ -758,14 +758,14 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .getByRole("textbox", { name: "Name", exact: true })
     .fill("Aster integration");
   await page
-    .getByRole("button", { name: "Save citizen profile", exact: true })
+    .getByRole("button", { name: "Save custom agent", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: "2D map", exact: true }).click();
-  await page.getByRole("button", { name: /Daydream/ }).click();
-  await page.getByRole("checkbox", { name: /Reduced motion/ }).check();
+  await page.getByRole("button", { name: /Light pastel/ }).click();
+  await page.getByRole("checkbox", { name: /Reduce motion/ }).check();
   await page
-    .getByRole("button", { name: "Save and continue", exact: true })
+    .getByRole("button", { name: "Save and create a new simulation", exact: true })
     .click();
   await expect(page.getByLabel("Simulation name")).toHaveValue(name);
   await expect(
@@ -804,7 +804,7 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .getByRole("textbox", { name: "Name", exact: true })
     .fill("Aster revised template");
   await page
-    .getByRole("button", { name: "Save citizen profile", exact: true })
+    .getByRole("button", { name: "Save custom agent", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const detail = await api<{ profile: { name: string } }>(
@@ -820,7 +820,7 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .getByRole("button", { name: "Delete profile", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("link", { name: "Your worlds", exact: true }).click();
+  await page.getByRole("link", { name: "Previous simulations", exact: true }).click();
   await page
     .getByRole("button", { name: `Archive ${name}`, exact: true })
     .click();

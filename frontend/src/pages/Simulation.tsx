@@ -49,6 +49,7 @@ import type {
 import { colors, metricLabels, pretty, simTime } from "../api/defaults";
 import World, { type CameraAction, type Overlay } from "../world/World";
 import { Brand, Button, Busy, ErrorBox, Modal } from "../components/ui";
+import { formatChord } from "../platform";
 import Drawer, { type DrawerNode } from "../components/Drawer";
 import ScenarioDialog, {
   InitialScenarioDialog,
@@ -479,6 +480,7 @@ export default function Simulation() {
           follow={follow}
           onUnfollow={unfollow}
           reducedMotion={settings.reduce_motion}
+          theme={settings.theme}
           onCameraReady={onCameraReady}
           onFallback={onFallback}
         />
@@ -874,24 +876,14 @@ export default function Simulation() {
         </div>
       )}
       <div className="world-caption">
-        <span className="eyebrow">
-          {readOnly
-            ? "A MOMENT IN YOUR CITY’S STORY"
-            : "LIFE, IN ALL ITS LITTLE DETAILS"}
-        </span>
-        <h1>
-          {readOnly
-            ? "Look back. See it differently."
-            : s.status === "running"
-              ? "A little world, living its own life."
-              : "A whole world of possibility."}
-        </h1>
+        <span className="eyebrow">{readOnly ? "Replay" : "Live"}</span>
+        <h1>{s.name}</h1>
         <p>
           {readOnly
-            ? "Explore a recorded revision, or start an alternate timeline."
+            ? "Viewing a recorded revision. Branch from it to try another outcome."
             : s.status === "running"
-              ? "Watch the connections. Follow the stories."
-              : "Press Play and let your citizens find their way."}
+              ? "Simulation running."
+              : "Simulation paused. Press Play to continue."}
         </p>
       </div>
       <div className="city-bottom-left">
@@ -1090,8 +1082,7 @@ export default function Simulation() {
       )}
       {help && (
         <Modal
-          title="Find your way around"
-          eyebrow="VIEWPORT SHORTCUTS"
+          title="Keyboard shortcuts"
           onClose={() => setHelp(false)}
         >
           <p className="muted">
@@ -1102,7 +1093,7 @@ export default function Simulation() {
             {Object.entries(settings.shortcuts).map(([k, v]) => (
               <div key={k}>
                 <span>{pretty(k)}</span>
-                <kbd>{v.replace("Mod", "⌘ / Ctrl")}</kbd>
+                <kbd>{formatChord(v)}</kbd>
               </div>
             ))}
           </div>

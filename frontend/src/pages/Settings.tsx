@@ -32,15 +32,47 @@ import type {
   Settings as Preferences,
 } from "../api/types";
 import { defaultProfile, pretty } from "../api/defaults";
+import { formatChord, isMac, shortcutChoices } from "../platform";
 import * as S from "../api/schemas";
+type Shortcuts = Preferences["shortcuts"];
+type ShortcutAction = keyof Shortcuts;
 export default function Settings() {
   const { client, settings, setSettings, notice } = useApp();
-  const [draft, setDraft] = useState<Preferences>(settings),
+  const [shortcuts, setShortcuts] = useState<Shortcuts>(settings.shortcuts),
+    [shortcutsDirty, setShortcutsDirty] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [editing, setEditing] = useState<CustomAgent | "new" | null>(null),
     [deleting, setDeleting] = useState<CustomAgent | null>(null);
-  useEffect(() => setDraft(settings), [settings]);
+  useEffect(() => {
+    if (!shortcutsDirty) setShortcuts(settings.shortcuts);
+  }, [settings.shortcuts, shortcutsDirty]);
+  const latest = useRef(settings);
+  latest.current = settings;
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const persist = (patch: Partial<Preferences>) => {
+    const previous = latest.current;
+    const optimistic = { ...previous, ...patch };
+    latest.current = optimistic;
+    setSettings(optimistic);
+    setError("");
+    queue.current = queue.current
+      .then(() =>
+        client.saveSettings(
+          S.settings.parse({ ...latest.current, ...patch }),
+          crypto.randomUUID(),
+        ),
+      )
+      .then((saved) => {
+        latest.current = saved;
+        setSettings(saved);
+      })
+      .catch((e) => {
+        latest.current = previous;
+        setSettings(previous);
+        setError(messageOf(e));
+      });
+  };
   const profiles = useQuery(() => client.profiles(), [client]);
   const usage = useQuery(() => client.usage(), [client]);
   const totalTokens = usage.data
@@ -51,25 +83,24 @@ export default function Settings() {
     : 0;
   const location = useLocation(),
     navigate = useNavigate();
-  const settingsKey = useRef(crypto.randomUUID());
-  const update = <K extends keyof Preferences>(
-    key: K,
-    value: Preferences[K],
-  ) => {
-    settingsKey.current = crypto.randomUUID();
-    setDraft((d) => ({ ...d, [key]: value }));
-  };
+  const shortcutsKey = useRef(crypto.randomUUID());
+  const shortcutOwner = (chord: string, except: ShortcutAction) =>
+    (Object.keys(shortcuts) as ShortcutAction[]).find(
+      (k) => k !== except && shortcuts[k] === chord,
+    );
   const save = async (next = false) => {
     setBusy(true);
     setError("");
     try {
+      await queue.current;
       const s = await client.saveSettings(
-        S.settings.parse({ ...draft, version: settings.version }),
-        settingsKey.current,
+        S.settings.parse({ ...latest.current, shortcuts }),
+        shortcutsKey.current,
       );
+      latest.current = s;
       setSettings(s);
-      setDraft(s);
-      notice("Preferences saved.");
+      setShortcutsDirty(false);
+      notice("Settings saved.");
       if (next) navigate("/simulations/new");
     } catch (e) {
       setError(messageOf(e));
@@ -79,22 +110,19 @@ export default function Settings() {
   };
   return (
     <Page
-      eyebrow="MAKE YOURSELF AT HOME"
-      title="Your way to see the world."
-      description="A few personal touches. A little more possibility."
+      title="Settings"
+      description="Changes to appearance, view, and motion apply right away."
+      ambient="settings"
     >
       <div className="settings-layout">
         <div>
-          <Section
-            number="01"
-            title="Look & feel"
-            description="Settle into a perspective that feels right."
-          >
-            <span className="field-caption">APPEARANCE</span>
+          <Section number="01" title="Appearance">
+            <span className="field-caption">Color theme</span>
             <div className="appearance-options">
               <button
-                className={draft.theme === "dark" ? "selected" : ""}
-                onClick={() => update("theme", "dark")}
+                className={settings.theme === "dark" ? "selected" : ""}
+                aria-pressed={settings.theme === "dark"}
+                onClick={() => persist({ theme: "dark" })}
               >
                 <div className="theme-preview dark-preview">
                   <i />
@@ -103,12 +131,13 @@ export default function Settings() {
                 </div>
                 <span>
                   <Moon size={16} />
-                  After hours{draft.theme === "dark" && <Check size={16} />}
+                  Dark{settings.theme === "dark" && <Check size={16} />}
                 </span>
               </button>
               <button
-                className={draft.theme === "light" ? "selected" : ""}
-                onClick={() => update("theme", "light")}
+                className={settings.theme === "light" ? "selected" : ""}
+                aria-pressed={settings.theme === "light"}
+                onClick={() => persist({ theme: "light" })}
               >
                 <div className="theme-preview light-preview">
                   <i />
@@ -117,22 +146,25 @@ export default function Settings() {
                 </div>
                 <span>
                   <Sun size={16} />
-                  Daydream{draft.theme === "light" && <Check size={16} />}
+                  Light pastel
+                  {settings.theme === "light" && <Check size={16} />}
                 </span>
               </button>
             </div>
-            <span className="field-caption">WORLD VIEW</span>
+            <span className="field-caption">City view</span>
             <div className="segmented">
               <button
-                className={draft.view_mode === "3d" ? "active" : ""}
-                onClick={() => update("view_mode", "3d")}
+                className={settings.view_mode === "3d" ? "active" : ""}
+                aria-pressed={settings.view_mode === "3d"}
+                onClick={() => persist({ view_mode: "3d" })}
               >
                 <Box size={17} />
                 3D city
               </button>
               <button
-                className={draft.view_mode === "2d" ? "active" : ""}
-                onClick={() => update("view_mode", "2d")}
+                className={settings.view_mode === "2d" ? "active" : ""}
+                aria-pressed={settings.view_mode === "2d"}
+                onClick={() => persist({ view_mode: "2d" })}
               >
                 <Map size={17} />
                 2D map
@@ -140,37 +172,41 @@ export default function Settings() {
             </div>
             <label className="setting-toggle">
               <span>
-                <strong>Reduced motion</strong>
-                <small>Keep ambient animation and camera movement quiet.</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={draft.reduce_motion}
-                onChange={(e) => update("reduce_motion", e.target.checked)}
-              />
-            </label>
-            <label className="setting-toggle">
-              <span>
-                <strong>Periodic autosave</strong>
+                <strong>Reduce motion</strong>
                 <small>
-                  Save regular checkpoints. Navigation and event snapshots
-                  always remain required.
+                  Moves the camera without easing, removes button glow, turns
+                  off the mouse trail, and stops background animation.
                 </small>
               </span>
               <input
                 type="checkbox"
-                checked={draft.autosave}
-                onChange={(e) => update("autosave", e.target.checked)}
+                checked={settings.reduce_motion}
+                onChange={(e) => persist({ reduce_motion: e.target.checked })}
+              />
+            </label>
+            <label className="setting-toggle">
+              <span>
+                <strong>Autosave</strong>
+                <small>
+                  Save simulations automatically at regular checkpoints.
+                  Snapshots before events and when leaving a simulation are
+                  always saved.
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.autosave}
+                onChange={(e) => persist({ autosave: e.target.checked })}
               />
             </label>
           </Section>
           <Section
             number="02"
-            title="Familiar faces"
-            description="Create citizens you can bring into future worlds."
+            title="Custom agents"
+            description="Create citizens you can add to any simulation."
           >
             <div className="section-toolbar">
-              <p>Editing a template affects future citizens only.</p>
+              <p>Edits apply to simulations created afterward.</p>
               <Button kind="secondary" onClick={() => setEditing("new")}>
                 <Plus size={16} />
                 Create custom agent
@@ -215,68 +251,80 @@ export default function Settings() {
               </div>
             ) : (
               <Empty title="No custom agents created">
-                <Users size={14} /> Start with a personality. Give them a story.
+                <Users size={14} /> Create one to add it to a simulation.
               </Empty>
             )}
           </Section>
           <Section
             number="03"
-            title="At your fingertips"
-            description="Shortcuts work only when the city viewport has focus."
+            title="Keyboard shortcuts"
+            description="Shortcuts work when the city map has focus."
           >
             <div className="shortcut-editor">
-              {Object.entries(draft.shortcuts).map(([k, v]) => (
-                <Field key={k} label={pretty(k)}>
-                  <input
-                    aria-label={`${pretty(k)} shortcut`}
-                    value={v}
-                    onChange={(e) =>
-                      update("shortcuts", {
-                        ...draft.shortcuts,
-                        [k]: e.target.value,
-                      })
-                    }
-                  />
-                </Field>
-              ))}
+              {(Object.keys(shortcuts) as ShortcutAction[]).map((k) => {
+                const choices = shortcutChoices[k].includes(shortcuts[k])
+                  ? shortcutChoices[k]
+                  : [shortcuts[k], ...shortcutChoices[k]];
+                return (
+                  <Field key={k} label={pretty(k)}>
+                    <select
+                      aria-label={`${pretty(k)} shortcut`}
+                      value={shortcuts[k]}
+                      onChange={(e) => {
+                        shortcutsKey.current = crypto.randomUUID();
+                        setShortcutsDirty(true);
+                        setShortcuts((s) => ({ ...s, [k]: e.target.value }));
+                      }}
+                    >
+                      {choices.map((chord) => {
+                        const owner = shortcutOwner(chord, k);
+                        return (
+                          <option key={chord} value={chord} disabled={!!owner}>
+                            {formatChord(chord)}
+                            {owner ? ` (used by ${pretty(owner)})` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </Field>
+                );
+              })}
             </div>
             <p className="helper-text">
               <Keyboard size={14} />
-              Use KeyboardEvent.code chords such as Mod+Equal or Shift+KeyR. Mod
-              means Cmd on macOS and Ctrl elsewhere. Every shortcut must be
-              unique.
+              Showing {isMac ? "Mac (⌘ Command)" : "Windows (Ctrl)"} keys for
+              this device. Each key can only be used for one action.
             </p>
           </Section>
           {error && <ErrorBox error={error} />}
           <div className="form-footer">
             <Button
               kind="secondary"
-              disabled={busy}
+              disabled={busy || !shortcutsDirty}
               onClick={() => void save()}
             >
-              Save preferences
+              Save shortcuts
               <Check size={16} />
             </Button>
             <Button disabled={busy} onClick={() => void save(true)}>
-              Save and continue
+              Save and create a new simulation
               <ArrowRight size={16} />
             </Button>
           </div>
           {location.state?.from?.startsWith("/simulations/") && (
             <Link className="back-link" to={location.state.from}>
               <ArrowRight size={14} />
-              Return to your paused city
+              Return to your paused simulation
             </Link>
           )}
         </div>
         <aside className="settings-aside">
-          <div className="eyebrow">
-            <Activity size={13} /> MODEL USAGE
-          </div>
-          <h2>A little transparency.</h2>
+          <h2>
+            <Activity size={18} /> Token usage
+          </h2>
           <p>
-            Actual usage across your worlds. Historical playback makes no model
-            calls.
+            Model usage across all your simulations. Replaying history makes no
+            model calls.
           </p>
           {usage.error ? (
             <ErrorBox error={usage.error} retry={usage.reload} />
@@ -285,7 +333,7 @@ export default function Settings() {
           ) : (
             <>
               <div className="token-meter">
-                <span className="field-caption">TOTAL TOKENS · ALL WORLDS</span>
+                <span className="field-caption">Total tokens</span>
                 <strong className="token-meter-total">
                   {totalTokens.toLocaleString()}
                 </strong>
@@ -368,13 +416,12 @@ export default function Settings() {
       {deleting && (
         <Modal
           title={`Delete ${deleting.profile.name}?`}
-          eyebrow="CUSTOM PROFILE"
           onClose={() => setDeleting(null)}
           busy={busy}
         >
           <p>
-            This removes the saved template. Citizens already in a city keep
-            their copied profile.
+            This removes the saved custom agent. Citizens already in a
+            simulation keep their copy.
           </p>
           {error && <ErrorBox error={error} />}
           <div className="modal-actions">
@@ -450,12 +497,7 @@ export function ProfileEditor({
   };
   return (
     <Modal
-      title={
-        existing
-          ? "A new chapter for a familiar face."
-          : "Every citizen starts with a story."
-      }
-      eyebrow="CUSTOM AGENT TEMPLATE"
+      title={existing ? `Edit ${existing.profile.name}` : "New custom agent"}
       onClose={onClose}
       busy={busy}
       wide
@@ -537,7 +579,7 @@ export function ProfileEditor({
         </Field>
         <details className="advanced">
           <summary>
-            More of their story <ChevronDownIcon />
+            More traits <ChevronDownIcon />
           </summary>
           {(["secondary_goals", "skills", "desires", "fears"] as const).map(
             (k) => (
@@ -582,7 +624,7 @@ export function ProfileEditor({
             Cancel
           </Button>
           <Button type="submit" disabled={busy}>
-            {busy ? "Saving…" : "Save citizen profile"}
+            {busy ? "Saving…" : "Save custom agent"}
             <Check size={16} />
           </Button>
         </div>

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -22,6 +22,12 @@ import {
   Field,
 } from "../components/ui";
 import { pretty, simTime } from "../api/defaults";
+import {
+  nameKey,
+  simulationNames,
+  takenMessage,
+  uniqueName,
+} from "../api/names";
 import type { Simulation, WorldFrame } from "../api/types";
 import { ComparePanel } from "../components/Drawer";
 export default function History() {
@@ -157,7 +163,7 @@ export default function History() {
               )
             }
           >
-            Open world
+            Open simulation
             <ArrowRight size={15} />
           </Button>
           <button
@@ -197,13 +203,12 @@ export default function History() {
   );
   return (
     <Page
-      eyebrow="YOUR COLLECTION OF POSSIBILITIES"
-      title="Every world has a story."
-      description="Return to familiar streets, revisit a turning point, or follow a different path."
+      title="Previous simulations"
+      description="Open, duplicate, compare, archive, or delete the simulations you have created."
       action={
         <Link className="button primary" to="/simulations/new">
           <Plus size={16} />
-          Create a world
+          New simulation
         </Link>
       }
     >
@@ -216,25 +221,23 @@ export default function History() {
         <>
           <div className="history-section-heading">
             <h2>
-              Active worlds <span>{worlds.data.active.length}</span>
+              Active simulations <span>{worlds.data.active.length}</span>
             </h2>
-            <p>Pick up where curiosity left off.</p>
           </div>
           {worlds.data.active.length ? (
             <div className="world-grid">
               {worlds.data.active.map((s) => card(s))}
             </div>
           ) : (
-            <Empty title="A fresh start is waiting">
-              Create your first world and see where it leads.
+            <Empty title="No simulations yet">
+              Create a simulation and it will appear here.
             </Empty>
           )}
           <div className="history-section-heading archived-heading">
             <div>
               <h2>
-                Archived worlds <span>{worlds.data.archived.length}</span>
+                Archived simulations <span>{worlds.data.archived.length}</span>
               </h2>
-              <p>Past experiments, ready to revisit.</p>
             </div>
             {worlds.data.archived.length > 0 && (
               <Button
@@ -253,7 +256,7 @@ export default function History() {
                 <Trash2 size={15} />
                 {selected.length
                   ? `Delete selected (${selected.length})`
-                  : "Delete all archived"}
+                  : "Permanently delete all"}
               </Button>
             )}
           </div>
@@ -262,20 +265,19 @@ export default function History() {
               {worlds.data.archived.map((s) => card(s, true))}
             </div>
           ) : (
-            <p className="muted">No archived worlds.</p>
+            <p className="muted">No archived simulations.</p>
           )}
         </>
       )}
       {deleting && (
         <Modal
-          title={`Permanently delete ${deleting.length} ${deleting.length === 1 ? "world" : "worlds"}?`}
-          eyebrow="EXACT TARGET CONFIRMATION"
+          title={`Permanently delete ${deleting.length} ${deleting.length === 1 ? "simulation" : "simulations"}?`}
           onClose={() => setDeleting(null)}
           busy={busy}
         >
           <p>
-            Type each world’s exact name to confirm removal of its stored
-            history. These are the only selected targets.
+            Type each simulation’s exact name to confirm. Its stored history
+            will be removed and cannot be recovered.
           </p>
           {deleting.map((s) => (
             <Field key={s.id} label={s.name}>
@@ -318,8 +320,7 @@ export default function History() {
       )}{" "}
       {compare && (
         <Modal
-          title="Explore two possibilities"
-          eyebrow="BRANCH COMPARISON"
+          title="Compare branches"
           onClose={() => setCompare(null)}
           wide
         >
@@ -362,12 +363,20 @@ function DuplicateDialog({
   onCreated: (id: string) => void;
 }) {
   const { client } = useApp();
-  const [name, setName] = useState(`${s.name.slice(0, 60)} · copy`),
+  const names = useQuery(() => simulationNames(client), [client]);
+  const [name, setName] = useState(`${s.name.slice(0, 60)} copy`),
     [source, setSource] = useState("whole"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const key = useRef(crypto.randomUUID());
   const snapshots = useQuery(() => client.snapshots(s.id), [s.id]);
+  const deduped = useRef(false);
+  useEffect(() => {
+    if (!names.data || deduped.current) return;
+    deduped.current = true;
+    setName((n) => uniqueName(n, names.data!));
+  }, [names.data]);
+  const nameTaken = !!names.data?.has(nameKey(name));
   const submit = async () => {
     setBusy(true);
     try {
@@ -387,16 +396,15 @@ function DuplicateDialog({
   };
   return (
     <Modal
-      title="Follow another path."
-      eyebrow="NEW PAUSED BRANCH"
+      title="Duplicate simulation"
       onClose={onClose}
       busy={busy}
     >
       <p>
-        Copy the whole committed history or begin at a saved point. The original
-        stays available.
+        Duplicate the whole simulation or start the copy from a saved point.
+        The original stays unchanged.
       </p>
-      <Field label="New world name">
+      <Field label="Name" error={nameTaken ? takenMessage : undefined}>
         <input
           maxLength={80}
           value={name}
@@ -428,7 +436,10 @@ function DuplicateDialog({
         <Button kind="ghost" disabled={busy} onClick={onClose}>
           Cancel
         </Button>
-        <Button disabled={busy || !name.trim()} onClick={() => void submit()}>
+        <Button
+          disabled={busy || !name.trim() || nameTaken}
+          onClick={() => void submit()}
+        >
           <GitBranch size={15} />
           Create paused copy
         </Button>

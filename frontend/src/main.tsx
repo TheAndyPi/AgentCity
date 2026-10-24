@@ -11,7 +11,13 @@ import { AgentCityClient, LiveTransport } from "./api/client";
 import { AppProvider } from "./state/app";
 import { Busy } from "./components/ui";
 import Landing from "./pages/Landing";
+import "@fontsource/chakra-petch/400.css";
+import "@fontsource/chakra-petch/500.css";
+import "@fontsource/chakra-petch/600.css";
+import "@fontsource/chakra-petch/700.css";
+import "@fontsource-variable/manrope";
 import "./styles.css";
+import "./theme.css";
 const Setup = lazy(() => import("./pages/Setup")),
   Loading = lazy(() => import("./pages/Loading")),
   Simulation = lazy(() => import("./pages/Simulation")),
@@ -30,7 +36,7 @@ class ErrorBoundary extends Component<
   render() {
     return this.state.error ? (
       <div className="city-connecting">
-        <h1>This view needs a fresh start.</h1>
+        <h1>Something went wrong on this page.</h1>
         <p>{this.state.error}</p>
         <a href="/" className="button primary">
           Return home
@@ -71,7 +77,7 @@ async function start() {
           <Suspense
             fallback={
               <div className="city-connecting">
-                <Busy text="Opening AgentCity…" />
+                <Busy text="Loading…" />
               </div>
             }
           >
@@ -92,7 +98,7 @@ async function start() {
           path: "*",
           element: (
             <div className="city-connecting">
-              <h1>This street doesn’t exist yet.</h1>
+              <h1>Page not found</h1>
               <Link to="/" className="button primary">
                 Return home
               </Link>

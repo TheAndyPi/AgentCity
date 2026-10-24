@@ -232,8 +232,8 @@ export default function LifeHUD({
     <>
       <section className="cast-dock" aria-label="Your neighbors">
         <div className="cast-dock-heading">
-          <span>THE NEIGHBORHOOD</span>
-          <strong>{frame.agents.length} little lives</strong>
+          <span>Citizens</span>
+          <strong>{frame.agents.length} agents</strong>
         </div>
         <div className="cast-faces">
           {frame.agents.map((agent) => (
@@ -266,12 +266,8 @@ export default function LifeHUD({
       </section>
       {!selected && (
         <div className="life-hint">
-          <span>✳</span>
           <p>
-            A small world. Get to know everyone.
-            <small>
-              They choose their own plans. Pick a face to watch or step in.
-            </small>
+            <small>Select a citizen to follow them or see their details.</small>
           </p>
         </div>
       )}
@@ -305,7 +301,7 @@ export default function LifeHUD({
               <CitizenPortrait name={selected.name} large />
               <div>
                 <span className="eyebrow">
-                  {second ? "A LITTLE CONNECTION" : "IN THEIR OWN WORLD"}
+                  {second ? "Conversation" : "Citizen"}
                 </span>
                 <h2>{selected.name}</h2>
                 <p>

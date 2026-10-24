@@ -371,14 +371,14 @@ export default function ScenarioDialog({
     <Modal
       title={
         source === "random"
-          ? "A little unexpected"
+          ? "Trigger a random event"
           : source === "repeat"
-            ? "Revisit a turning point"
+            ? "Trigger a repeated event"
             : source === "policy"
-              ? "Put a policy into practice"
-              : "What happens if…"
+              ? "Apply a policy"
+              : "Trigger a custom event"
       }
-      eyebrow={`${pretty(source)} event / ${intervention ? "CITY PAUSED" : "WAITING FOR SAFE PAUSE"}`}
+      eyebrow={intervention ? "Simulation paused" : "Waiting for a safe pause"}
       onClose={() => void cancel()}
       busy={busy}
     >
@@ -393,9 +393,9 @@ export default function ScenarioDialog({
         <>
           <p className="dialog-intro">
             {source === "custom"
-              ? "Anything can happen here. Describe a twist, a discovery, a celebration, or something completely unexpected."
+              ? "Describe the event you want to add. Nothing changes until you confirm."
               : source === "random"
-                ? "A new possibility for your neighborhood. Nothing changes until you confirm."
+                ? "Here is a randomly chosen event. Nothing changes until you confirm."
                 : "Review the planned effects before anything changes."}
           </p>
           <form
@@ -593,8 +593,7 @@ export function InitialScenarioDialog({
   };
   return (
     <Modal
-      title="Your opening what if"
-      eyebrow="REVIEW BEFORE YOU BEGIN"
+      title="Review the opening scenario"
       onClose={() => void decide("skip")}
       busy={busy}
     >

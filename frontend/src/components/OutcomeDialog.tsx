@@ -93,8 +93,8 @@ export default function OutcomeDialog({
   };
   return (
     <Modal
-      title="Every change leaves a story."
-      eyebrow="EVENT COMPLETE / CITY PAUSED"
+      title="Event outcome"
+      eyebrow="Simulation paused"
       onClose={() => void acknowledge()}
       busy={busy}
       wide

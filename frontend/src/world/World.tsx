@@ -53,6 +53,7 @@ type Props = {
   focus?: string[];
   onUnfollow: () => void;
   reducedMotion: boolean;
+  theme?: "dark" | "light";
   onCameraReady: (action: (a: CameraAction) => void) => void;
   onFallback: () => void;
 };
@@ -396,8 +397,14 @@ export default function World(props: Props) {
               />
             )}
           <ContextGuard onFallback={props.onFallback} />
-          <color attach="background" args={["#171322"]} />
-          <fog attach="fog" args={["#171322", 260, 600]} />
+          <color
+            attach="background"
+            args={[props.theme === "light" ? "#efe6fa" : "#140b24"]}
+          />
+          <fog
+            attach="fog"
+            args={[props.theme === "light" ? "#efe6fa" : "#140b24", 260, 600]}
+          />
           <OrthographicCamera
             makeDefault
             position={[

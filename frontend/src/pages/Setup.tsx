@@ -18,9 +18,16 @@ import {
   Button,
   ErrorBox,
   Busy,
+  CityMark,
 } from "../components/ui";
 import { useApp, useQuery, messageOf } from "../state/app";
 import { defaultConfig, pretty } from "../api/defaults";
+import {
+  nameKey,
+  simulationNames,
+  takenMessage,
+  uniqueName,
+} from "../api/names";
 import * as S from "../api/schemas";
 import { ApiError } from "../api/client";
 import type { Config, Mode } from "../api/types";
@@ -32,26 +39,26 @@ const modes: {
 }[] = [
   {
     id: "sandbox",
-    title: "Everyday life",
-    description: "Follow ten neighbors through their everyday lives.",
+    title: "Sandbox",
+    description: "Everyday life with no planned event.",
     icon: FlaskConical,
   },
   {
     id: "behavior_lab",
     title: "Behavior Lab",
-    description: "Explore human connections.",
+    description: "How personality shapes relationships and choices.",
     icon: HeartHandshake,
   },
   {
     id: "crisis_lab",
     title: "Crisis Lab",
-    description: "Put resilience to the test.",
+    description: "How the community handles an emergency.",
     icon: Siren,
   },
   {
     id: "policy_lab",
     title: "Policy Lab",
-    description: "See ideas become impact.",
+    description: "Try a rule or program and measure its effects.",
     icon: Landmark,
   },
 ];
@@ -85,6 +92,14 @@ export default function Setup() {
   const key = useRef(crypto.randomUUID()),
     submitted = useRef(false);
   const profiles = useQuery(() => client.profiles(), [client]);
+  const existing = useQuery(() => simulationNames(client), [client]);
+  const deduped = useRef(false);
+  useEffect(() => {
+    if (!existing.data || deduped.current) return;
+    deduped.current = true;
+    setConfig((c) => ({ ...c, name: uniqueName(c.name, existing.data!) }));
+  }, [existing.data]);
+  const nameTaken = !!existing.data?.has(nameKey(config.name));
   useEffect(() => {
     localStorage.setItem("agentcity-setup-draft", JSON.stringify(config));
     key.current = crypto.randomUUID();
@@ -93,6 +108,10 @@ export default function Setup() {
     setConfig((c) => ({ ...c, [k]: v }));
   const submit = async () => {
     if (submitted.current) return;
+    if (nameTaken) {
+      setErrors({ name: takenMessage });
+      return;
+    }
     const valid = S.config.safeParse(config);
     if (!valid.success) {
       setErrors(
@@ -125,9 +144,8 @@ export default function Setup() {
   };
   return (
     <Page
-      eyebrow="THE NEXT CHAPTER IS YOURS"
-      title="Ten people. A world of little moments."
-      description="Make a small neighborhood, get to know each person, and drop into their everyday lives."
+      title="Build your custom simulation"
+      description="Set up the people, the place, and the opening scenario. The city starts paused so you can look around first."
     >
       <div className="setup-layout">
         <form
@@ -139,31 +157,25 @@ export default function Setup() {
         >
           <Section
             number="01"
-            title="Give your world a beginning"
-            description="A name, a question, a little curiosity."
+            title="Name and type"
+            description="Each simulation needs a unique name."
           >
-            <Field label="Simulation name" error={errors.name}>
+            <Field
+              label="Simulation name"
+              error={nameTaken ? takenMessage : errors.name}
+            >
               <input
                 value={config.name}
                 maxLength={80}
                 onChange={(e) => update("name", e.target.value)}
-                placeholder="Name your world"
+                placeholder="Name your simulation"
+                aria-invalid={nameTaken || !!errors.name}
                 required
               />
             </Field>
-            <div className="everyday-intro">
-              <HeartHandshake size={22} />
-              <p>
-                <strong>Everyday life, up close.</strong>
-                <span>
-                  Visit your neighbors. Follow a conversation. See friendships
-                  grow.
-                </span>
-              </p>
-            </div>
-            <details className="advanced">
+            <details className="advanced" open={config.mode !== "sandbox"}>
               <summary>
-                Other ways to explore
+                Simulation type: {modes.find((m) => m.id === config.mode)?.title}
                 <ChevronDown size={15} />
               </summary>
               <div className="mode-grid">
@@ -186,13 +198,13 @@ export default function Setup() {
           </Section>
           <Section
             number="02"
-            title="Meet the neighborhood"
-            description="Different people. Shared streets. Endless possibilities."
+            title="Population"
+            description="Starting personality and needs for the citizens."
           >
             <div className="population-control">
               <div>
-                <h3>A cast you can know by name</h3>
-                <p>Ten neighbors. Room for every little story.</p>
+                <h3>Number of agents</h3>
+                <p>Simulations currently run with ten citizens.</p>
               </div>
               <div className="fixed-cast-size">
                 <input
@@ -201,7 +213,7 @@ export default function Setup() {
                   value={10}
                   readOnly
                 />
-                <span>NEIGHBORS</span>
+                <span>Citizens</span>
               </div>
             </div>
             {errors.population && (
@@ -244,7 +256,7 @@ export default function Setup() {
             <div className="custom-agents-box">
               <div>
                 <Users size={18} />
-                <strong>Bring familiar faces</strong>
+                <strong>Custom agents</strong>
                 <span>
                   {config.custom_agent_ids.length} included in{" "}
                   {config.population}
@@ -296,12 +308,12 @@ export default function Setup() {
           </Section>
           <Section
             number="03"
-            title="A place to call home"
-            description="A few homes, shared spaces, and neighbors just a short walk away."
+            title="Environment"
+            description="Resources, density, infrastructure, and setting."
           >
             <details className="advanced">
               <summary>
-                Adjust their surroundings
+                Environment settings
                 <ChevronDown size={15} />
               </summary>
               <span className="field-caption">SETTLEMENT</span>
@@ -318,7 +330,7 @@ export default function Setup() {
                     })
                   }
                 >
-                  Suburb <span>Room to grow</span>
+                  Suburb
                 </button>
                 <button
                   type="button"
@@ -332,7 +344,7 @@ export default function Setup() {
                     })
                   }
                 >
-                  Urban <span>Closer together</span>
+                  Urban
                 </button>
               </div>
               <div className="slider-grid">
@@ -358,18 +370,18 @@ export default function Setup() {
           </Section>
           <Section
             number="04"
-            title="Introduce a what if"
-            description="Optional. Set something in motion, or simply watch everyday life."
+            title="Scenario"
+            description="Optional. Leave blank to watch everyday life."
           >
             <Field
-              label="Your opening scenario"
+              label="Scenario description"
               hint="You’ll review the interpreted effects before anything changes."
               error={errors.scenario_description}
             >
               <textarea
                 maxLength={4000}
                 rows={5}
-                placeholder="What if a sudden flood tested how well this neighborhood looks out for each other?"
+                placeholder="Describe the city and what you would like to happen…"
                 value={config.scenario_description}
                 onChange={(e) => update("scenario_description", e.target.value)}
               />
@@ -420,22 +432,19 @@ export default function Setup() {
           {error && <ErrorBox error={error} />}
           <div className="form-footer">
             <p>
-              Your city starts paused.
-              <br />
-              <span>Take a look around before you press Play.</span>
+              <span>The simulation starts paused.</span>
             </p>
-            <Button type="submit" disabled={busy}>
-              {busy ? "Creating your world…" : "Create simulation"}
+            <Button type="submit" disabled={busy || nameTaken}>
+              {busy ? "Creating simulation…" : "Create simulation"}
               <ArrowRight size={18} />
             </Button>
           </div>
         </form>
         <aside className="setup-aside">
           <div className="mini-city-icon">
-            <Users size={32} />
+            <CityMark />
           </div>
-          <div className="eyebrow">A WORLD IN THE MAKING</div>
-          <h2>{config.name || "Your next world"}</h2>
+          <h2>{config.name || "Untitled simulation"}</h2>
           <p>{modes.find((m) => m.id === config.mode)?.description}</p>
           <dl>
             <div>
@@ -447,20 +456,14 @@ export default function Setup() {
               <dd>{pretty(config.environment.settlement)}</dd>
             </div>
             <div>
-              <dt>Perspective</dt>
-              <dd>{pretty(config.mode)}</dd>
+              <dt>Type</dt>
+              <dd>{modes.find((m) => m.id === config.mode)?.title}</dd>
+            </div>
+            <div>
+              <dt>Custom agents</dt>
+              <dd>{config.custom_agent_ids.length}</dd>
             </div>
           </dl>
-          <div className="aside-note">
-            <span>✳</span>
-            <p>
-              Small changes can lead to surprising stories. There’s no perfect
-              starting point.
-            </p>
-          </div>
-          <small>
-            Exploratory simulations, not predictions of human behavior.
-          </small>
         </aside>
       </div>
     </Page>

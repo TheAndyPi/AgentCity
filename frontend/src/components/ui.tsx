@@ -1,74 +1,118 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
 import {
-  ArrowLeft,
-  ArrowUpRight,
-  ChevronRight,
-  LoaderCircle,
-  X,
-  Activity,
-} from "lucide-react";
+  useEffect,
+  useId,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { ArrowLeft, ChevronRight, LoaderCircle, X, Activity } from "lucide-react";
+import gearImage from "../assets/gear.png";
+import wiresImage from "../assets/wires.png";
+export function CityMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={`city-mark ${className}`}
+      viewBox="0 0 48 40"
+      fill="none"
+      aria-hidden="true"
+    >
+      <g
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 37V16h6l3 2v19M8 16v21M2 22l6 4M8 22l-6 5M2 31l6 3M11 24l-3 3" />
+        <path d="M14 37V11l5-2 5 2v26M19 9v28M19 9V2M14 17l5 3 5-3M14 25l5-3 5 4M14 32l5 2 5-3" />
+        <path d="M27 37V18h5l3 2v17M32 18v19M30 18v-5M27 24l5 3M32 24l3 4M27 31l5-2 3 3" />
+        <path d="M38 37V26l4-1.5 4 1.5v11M42 24.5V37M38 31l4 2 4-2" />
+        <path d="M1 37.5h46" opacity=".5" />
+      </g>
+      <circle cx="19" cy="2" r="1.3" className="mark-dot pink" />
+      <circle cx="30" cy="13" r="1.1" className="mark-dot yellow" />
+      <circle cx="42" cy="24.5" r="1" className="mark-dot green" />
+    </svg>
+  );
+}
 export function Brand({ large = false }: { large?: boolean }) {
   return (
     <span className={`brand ${large ? "brand-large" : ""}`}>
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <path
-          d="M5 38V23l10-6v21m0-9 9-5v14m0-27 11-6v33m0-17 8 5v12M2 39h44M9 25v4m10 2v3m9-19v4m0 5v4m11 0v5"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-      </svg>
+      <CityMark />
       <span>
         AGENT<span className="brand-city">CITY</span>
       </span>
     </span>
   );
 }
-export function Ambient() {
+const random = (seed: number) => {
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+};
+export function Ambient({ variant = "default" }: { variant?: "default" | "settings" }) {
+  const count = variant === "settings" ? 16 : 9;
+  const [minSize, maxSize] = variant === "settings" ? [140, 460] : [70, 240];
+  const gears = Array.from({ length: count }, (_, i) => {
+    const size = minSize + random(i + 1) * (maxSize - minSize);
+    return (
+      <img
+        key={i}
+        src={gearImage}
+        alt=""
+        className={`ambient-gear tint-${i % 4}`}
+        style={{
+          width: size,
+          height: size,
+          left: `${random(i + 11) * 100}%`,
+          top: `${random(i + 23) * 100}%`,
+          animationDuration: `${60 + random(i + 37) * 90}s`,
+          animationDirection: i % 2 ? "reverse" : "normal",
+        }}
+      />
+    );
+  });
   return (
-    <div className="ambient" aria-hidden="true">
-      <div className="ambient-orb" />
-      <svg
-        className="ambient-circuit"
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
-      >
-        <path d="M0 140h210l70 70h140l70-70h240l90 90h100l90-90h330M0 690h170l80-80h220l80 80h180l70-70h190l100 100h350M90 0v220l80 80v200l-80 80v320M1320 0v150l-80 80v360l80 80v230" />
-        <circle cx="420" cy="210" r="5" />
-        <circle cx="990" cy="620" r="5" />
-      </svg>
-      <div className="gear gear-one">⚙</div>
-      <div className="gear gear-two">⚙</div>
+    <div className={`ambient ambient-${variant}`} aria-hidden="true">
+      <div
+        className="ambient-wires"
+        style={{ backgroundImage: `url(${wiresImage})` }}
+      />
+      <div
+        className="ambient-wires ambient-wires-flip"
+        style={{ backgroundImage: `url(${wiresImage})` }}
+      />
+      {gears}
     </div>
   );
 }
 export function Page({
-  eyebrow,
   title,
   description,
   children,
   action,
+  ambient = "default",
 }: {
-  eyebrow: string;
   title: string;
   description?: string;
   children: ReactNode;
   action?: ReactNode;
+  ambient?: "default" | "settings";
 }) {
   const location = useLocation();
   return (
     <div className="page">
-      <Ambient />
+      <Ambient variant={ambient} />
       <header className="site-header">
         <Link to="/" aria-label="AgentCity home">
           <Brand />
         </Link>
-        <nav>
-          <Link to="/simulations">Your worlds</Link>
-          <Link to="/settings">Settings</Link>
-          <Link to="/about">
-            About <ArrowUpRight size={14} />
-          </Link>
+        <nav aria-label="Main">
+          <NavLink to="/simulations" end>
+            Previous simulations
+          </NavLink>
+          <NavLink to="/templates">Common simulations</NavLink>
+          <NavLink to="/settings">Settings</NavLink>
+          <NavLink to="/about">About</NavLink>
         </nav>
       </header>
       <main className="page-content">
@@ -80,7 +124,6 @@ export function Page({
         </Link>
         <div className="page-heading">
           <div>
-            <div className="eyebrow">{eyebrow}</div>
             <h1>{title}</h1>
             {description && <p>{description}</p>}
           </div>
@@ -88,12 +131,6 @@ export function Page({
         </div>
         {children}
       </main>
-      <footer className="site-footer">
-        <span>
-          <Activity size={13} /> A world of what ifs.
-        </span>
-        <span>AGENTCITY / EXPERIMENT WITH POSSIBILITY</span>
-      </footer>
     </div>
   );
 }
@@ -300,6 +337,7 @@ export function Slider({
   hint?: string;
 }) {
   const inputId = useId();
+  const share = max > min ? (value - min) / (max - min) : 0;
   return (
     <label className="slider-field" htmlFor={inputId}>
       <span>
@@ -309,15 +347,30 @@ export function Slider({
           {max === 100 ? "%" : ""}
         </output>
       </span>
-      <input
-        id={inputId}
-        aria-label={label}
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
+      <span
+        className="gear-range"
+        style={{ "--share": share } as CSSProperties}
+      >
+        <span className="gear-range-track">
+          <span className="gear-range-fill" />
+        </span>
+        <input
+          id={inputId}
+          aria-label={label}
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+        <span className="gear-range-knob">
+          <img
+            src={gearImage}
+            alt=""
+            style={{ transform: `rotate(${share * 360}deg)` }}
+          />
+        </span>
+      </span>
       {hint && <small>{hint}</small>}
     </label>
   );

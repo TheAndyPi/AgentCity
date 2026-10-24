@@ -12,6 +12,8 @@ import { AgentCityClient, ApiError } from "../api/client";
 import type { Capabilities, Settings } from "../api/types";
 import { defaultSettings } from "../api/defaults";
 import { Modal, Field, Button, ErrorBox } from "../components/ui";
+import { MouseTrail } from "../components/MouseTrail";
+import { CityZoom, type CityShot } from "../components/CityStrip";
 type AppState = {
   client: AgentCityClient;
   settings: Settings;
@@ -19,6 +21,7 @@ type AppState = {
   capabilities: Capabilities | null;
   notice: (text: string) => void;
   notifyError: (error: unknown) => void;
+  zoomCity: (shot: CityShot, onCovered: () => void) => void;
 };
 const Context = createContext<AppState>(null!);
 export function AppProvider({
@@ -35,6 +38,14 @@ export function AppProvider({
     [passphrase, setPassphrase] = useState(""),
     [signingIn, setSigningIn] = useState(false),
     [loginError, setLoginError] = useState("");
+  const [zoom, setZoom] = useState<{
+    shot: CityShot;
+    onCovered: () => void;
+  } | null>(null);
+  const zoomCity = useCallback(
+    (shot: CityShot, onCovered: () => void) => setZoom({ shot, onCovered }),
+    [],
+  );
   const notice = useCallback((text: string) => setMessage(text), []);
   const notifyError = useCallback(
     (e: unknown) => setMessage(e instanceof Error ? e.message : String(e)),
@@ -88,13 +99,21 @@ export function AppProvider({
         capabilities,
         notice,
         notifyError,
+        zoomCity,
       }}
     >
       {children}
+      {zoom && (
+        <CityZoom
+          shot={zoom.shot}
+          onCovered={zoom.onCovered}
+          onDone={() => setZoom(null)}
+        />
+      )}
+      <MouseTrail enabled={!settings.reduce_motion} />
       {needsLogin && (
         <Modal
-          title="Welcome to your private city."
-          eyebrow="OWNER SESSION"
+          title="Sign in to AgentCity"
           dismissible={false}
           busy={signingIn}
           onClose={() => {}}

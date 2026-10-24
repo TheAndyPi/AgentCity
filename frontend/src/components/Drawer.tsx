@@ -119,7 +119,7 @@ export default function Drawer({
         </button>
         <div>
           <div className="eyebrow">
-            {top.type === "agent" ? "CITIZEN INSPECTOR" : "EXPLORE YOUR WORLD"}
+            {top.type === "agent" ? "Citizen" : "Simulation"}
           </div>
           <h2>{titles[top.type]}</h2>
         </div>

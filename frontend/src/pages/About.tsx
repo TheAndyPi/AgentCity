@@ -6,59 +6,55 @@ import {
   Sparkles,
   GitBranch,
 } from "lucide-react";
-import { Page } from "../components/ui";
+import { CityMark, Page } from "../components/ui";
 export default function About() {
   return (
-    <Page
-      eyebrow="SMALL WORLDS. BIG QUESTIONS."
-      title="A city with a mind of its own."
-      description="AgentCity is a place to ask what if, then watch the answers unfold."
-    >
+    <Page title="About AgentCity">
       <div className="about-hero">
-        <span className="about-symbol">✳</span>
-        <h2>
-          People make a place.
-          <br />
-          <span>Possibility makes a city.</span>
-        </h2>
+        <CityMark className="about-mark" />
         <p>
-          Create a neighborhood of autonomous citizens with personalities,
-          goals, memories, and relationships. Change their environment,
-          introduce an event, and explore the choices that follow.
+          AgentCity is an interactive 3D society simulator where AI citizens
+          make decisions, remember experiences, and influence the world around
+          them.
+        </p>
+        <p>
+          Explore a procedurally generated town, introduce your own scenarios
+          such as floods, misinformation, or resource shortages, and observe
+          how citizens respond based on their personalities, needs,
+          relationships, and memories. Policy and misinformation labs let you
+          test rules and rumors in the same way.
         </p>
         <Link to="/simulations/new" className="button primary">
-          Create your first world
+          Build custom simulation
           <ArrowRight size={17} />
         </Link>
       </div>
       <section className="how-it-works">
-        <div className="eyebrow">HOW IT WORKS</div>
-        <h2>A living loop of choices and consequences.</h2>
+        <h2>How it works</h2>
         <div>
           {[
             {
               icon: BrainCircuit,
-              title: "A perspective of their own",
-              text: "Citizens act on what they can observe, what they remember, and who they know. Recorded decisions connect intention to evidence.",
+              title: "Agent decisions",
+              text: "Each citizen acts on what it can observe, what it remembers, and who it knows. Every decision is recorded with the evidence behind it.",
             },
             {
               icon: MessagesSquare,
-              title: "Connections that carry forward",
-              text: "Conversations and shared experiences shape directed relationships. Trust can be different in each direction.",
+              title: "Memory and relationships",
+              text: "Conversations and shared experiences are stored as memories and shape relationships. Trust can differ in each direction.",
             },
             {
               icon: Sparkles,
-              title: "A change in the everyday",
-              text: "Describe any event. Preview what citizens experience. Server rules validate actions, and committed state records the consequences.",
+              title: "Environment and events",
+              text: "Describe any event. You preview what citizens will experience, server rules validate their actions, and the simulation records the consequences.",
             },
             {
               icon: GitBranch,
-              title: "Another way things could go",
-              text: "Look back through recorded history. Branch from a saved point to try a new possibility while preserving the original story.",
+              title: "History and branches",
+              text: "Every step is saved. Return to an earlier snapshot or branch from it to try a different outcome without losing the original.",
             },
-          ].map(({ icon: Icon, title, text }, i) => (
+          ].map(({ icon: Icon, title, text }) => (
             <article key={title}>
-              <span className="step-number">0{i + 1}</span>
               <Icon size={26} />
               <h3>{title}</h3>
               <p>{text}</p>
@@ -68,8 +64,7 @@ export default function About() {
       </section>
       <div className="about-team">
         <div>
-          <div className="eyebrow">THE PEOPLE BEHIND THE POSSIBILITY</div>
-          <h2>Built with curiosity.</h2>
+          <h2>The team</h2>
         </div>
         <div>
           <p>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Check, Settings2 } from "lucide-react";
 import { Ambient, Brand, Button, ErrorBox } from "../components/ui";
+import gearImage from "../assets/gear.png";
 import { useApp, messageOf } from "../state/app";
 import type { Simulation } from "../api/types";
 export default function Loading() {
@@ -38,23 +39,24 @@ export default function Loading() {
   return (
     <div className="loading-page">
       <Ambient />
-      <Brand />
+      <Link to="/" aria-label="AgentCity home" className="loading-brand">
+        <Brand />
+      </Link>
       <main>
         <div className="loading-gears" aria-hidden="true">
-          <span>⚙</span>
-          <span>⚙</span>
+          <img src={gearImage} alt="" />
+          <img src={gearImage} alt="" />
+          <img src={gearImage} alt="" />
         </div>
-        <div className="eyebrow">A NEW STORY IS TAKING SHAPE</div>
         <h1>
           {progress < 10
-            ? "Getting your simulation ready"
+            ? "Getting your simulation ready…"
             : progress < 80
-              ? "Bringing your world to life"
-              : "Almost there"}
+              ? (s?.initialization.message ?? "Initializing…")
+              : "Almost there!"}
         </h1>
-        <p>{s?.initialization.message ?? "Connecting to your world…"}</p>
         <div className="progress-meta">
-          <span>{s?.name ?? "Your world"}</span>
+          <span>{s?.name ?? "Your simulation"}</span>
           <span>{Math.round(progress)}%</span>
         </div>
         <progress
@@ -97,11 +99,6 @@ export default function Loading() {
             </Button>
           </>
         )}
-        <p className="loading-tip">
-          Your citizens are more than dots on a map.
-          <br />
-          They remember, form connections, and find their own way.
-        </p>
       </main>
     </div>
   );

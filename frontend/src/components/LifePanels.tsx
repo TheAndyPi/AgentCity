@@ -97,7 +97,7 @@ export function Personality({ profile }: { profile: Profile }) {
       <div className="personality-intro">
         <Sparkles size={18} />
         <div>
-          <span className="eyebrow">ONE OF A KIND</span>
+          <span className="eyebrow">Personality</span>
           <h3>{profile.personality}</h3>
         </div>
       </div>
@@ -139,7 +139,7 @@ export function Personality({ profile }: { profile: Profile }) {
       <div className="life-wish">
         <Heart size={17} />
         <div>
-          <span className="eyebrow">WHAT THEY WANT</span>
+          <span className="eyebrow">Goal</span>
           <p>{profile.primary_goal}</p>
         </div>
       </div>
@@ -229,7 +229,7 @@ export function TraitsRoster({
           <div className="roster-profile-heading">
             <CitizenPortrait name={agent.name} large />
             <div>
-              <span className="eyebrow">GET TO KNOW</span>
+              <span className="eyebrow">Profile</span>
               <h3>{agent.name}</h3>
               <p>{agent.role}</p>
             </div>

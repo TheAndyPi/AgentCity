@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { Page, Busy, ErrorBox } from "../components/ui";
 import { useApp, useQuery } from "../state/app";
+import { pretty } from "../api/defaults";
+import { withScenarioPreset } from "../api/templatePresets";
 const icons = [Waves, Package, MessageCircle, PartyPopper, Landmark];
 export default function Templates() {
   const { client } = useApp();
@@ -16,9 +18,8 @@ export default function Templates() {
   const r = useQuery(() => client.templates(), [client]);
   return (
     <Page
-      eyebrow="A SPARK FOR YOUR NEXT EXPERIMENT"
-      title="Start with a little what if."
-      description="Familiar starting points. Unexpected stories. Make any of these worlds your own."
+      title="Common simulations"
+      description="Start from a prepared scenario. Its settings are filled in for you and can be changed before you create it."
     >
       {r.error ? (
         <ErrorBox
@@ -36,19 +37,20 @@ export default function Templates() {
                 className="template-card"
                 key={t.id}
                 onClick={() =>
-                  navigate("/simulations/new", { state: { config: t.config } })
+                  navigate("/simulations/new", {
+                    state: { config: withScenarioPreset(t) },
+                  })
                 }
               >
                 <div className={`template-art template-${i}`}>
                   <Icon size={56} strokeWidth={0.8} />
-                  <span>0{i + 1}</span>
                 </div>
                 <div className="template-body">
-                  <span className="eyebrow">A COMMUNITY EXPERIMENT</span>
+                  <span className="template-mode">{pretty(t.config.mode)}</span>
                   <h2>{t.title}</h2>
                   <p>{t.description}</p>
                   <span className="link-text">
-                    Make this world yours <ArrowRight size={15} />
+                    Customize this simulation <ArrowRight size={15} />
                   </span>
                 </div>
               </button>
