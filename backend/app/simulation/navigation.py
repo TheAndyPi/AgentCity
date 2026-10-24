@@ -130,3 +130,101 @@ class SpatialIndex:
             for c in self.buckets.get((i, j), [])
             if distance(position, c.summary.position) <= radius
         ]
+
+
+def meeting_point(map_data, origin, target, occupied=()):
+    """A reachable conversational distance, rather than overlapping the listener."""
+    length = distance(origin, target)
+    candidates = [
+        Vec2(x=target.x + dx, y=target.y + dy)
+        for dx, dy in [(2.4 * math.cos(i * math.pi / 4), 2.4 * math.sin(i * math.pi / 4)) for i in range(8)]
+    ]
+    if length > 0:
+        candidates.insert(
+            0,
+            Vec2(
+                x=target.x + (origin.x - target.x) * 2.4 / length,
+                y=target.y + (origin.y - target.y) * 2.4 / length,
+            ),
+        )
+    target_cell = cell_at(map_data, target)
+    for point in sorted(candidates, key=lambda p: distance(origin, p)):
+        cell = cell_at(map_data, point)
+        if target_cell and target_cell.terrain == "road" and cell and cell.terrain != "road":
+            continue
+        if (
+            cell
+            and cell.walkable
+            and all(distance(point, other) >= PERSONAL_SPACE for other in occupied)
+            and line_of_sight(map_data, point, target)
+            and pathfind(map_data, origin, point) is not None
+        ):
+            return point
+    return origin.model_copy()
+
+
+# Wider than the largest character's shoulders, including their hand gestures.
+PERSONAL_SPACE = 1.6
+
+
+def clear_travel(origin, destination, occupied, clearance=PERSONAL_SPACE):
+    """Fraction of a segment reachable before touching another citizen's radius.
+
+    Sweep the whole segment so a long tick cannot tunnel through someone.
+    Existing overlaps can move outward, allowing old saves to recover.
+    """
+    dx, dy = destination.x - origin.x, destination.y - origin.y
+    length_squared = dx * dx + dy * dy
+    if length_squared < 1e-12:
+        return 1.0
+    fraction = 1.0
+    for other in occupied:
+        ox, oy = origin.x - other.x, origin.y - other.y
+        along = ox * dx + oy * dy
+        gap = ox * ox + oy * oy - clearance * clearance
+        if gap < -1e-8:
+            if along < 0:
+                return 0.0
+            continue
+        discriminant = along * along - length_squared * gap
+        if along >= 0 or discriminant <= 0:
+            continue
+        contact = (-along - math.sqrt(discriminant)) / length_squared
+        if 0 <= contact < fraction:
+            fraction = max(0.0, contact - 1e-6)
+    return fraction
+
+
+def restore_personal_space(state):
+    """Repair overlapping positions in existing saves on nearby walkable ground."""
+    citizens = sorted((c for c in state.citizens.values() if c.summary.active), key=lambda c: c.summary.id)
+    for citizen in citizens:
+        if citizen.inside_building_id or citizen.entering_building_id or citizen.leaving_building_id:
+            continue
+        origin = citizen.summary.position
+        occupied = [c.summary.position for c in citizens if c is not citizen]
+        if all(distance(origin, p) >= PERSONAL_SPACE - 1e-6 for p in occupied):
+            continue
+        # Search locally; never place a citizen in a building or across a wall.
+        for radius in (0.4, 0.8, 1.2, 1.6, 2.0, 2.4):
+            candidates = [
+                Vec2(
+                    x=origin.x + radius * math.cos(i * math.pi / 8),
+                    y=origin.y + radius * math.sin(i * math.pi / 8),
+                )
+                for i in range(16)
+            ]
+            point = next(
+                (
+                    p
+                    for p in candidates
+                    if cell_at(state.map, p)
+                    and cell_at(state.map, p).walkable
+                    and line_of_sight(state.map, origin, p)
+                    and all(distance(p, other) >= PERSONAL_SPACE for other in occupied)
+                ),
+                None,
+            )
+            if point:
+                citizen.summary.position = point
+                break

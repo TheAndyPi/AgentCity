@@ -12,8 +12,19 @@ from app.simulation.agents import (
     remember,
     social_delta,
 )
+from app.simulation.autonomy import routine_destination, social_choice
+from app.simulation.building_visits import interior_slot, same_room, sync_building_location, trip_route
 from app.simulation.interactions import accept_invitation, coordinate_aid, speak
-from app.simulation.navigation import cell_at, distance, line_of_sight, pathfind
+from app.simulation.navigation import (
+    PERSONAL_SPACE,
+    cell_at,
+    clear_travel,
+    distance,
+    line_of_sight,
+    meeting_point,
+    pathfind,
+    polygon_contains,
+)
 from app.simulation.scenarios import blocked_cells
 
 ACTION_REGISTRY = {
@@ -124,19 +135,49 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 "Physical interactions require a distance of at most 3 meters",
             )
         action = intent.action
+        if registry.get("target") == "agent":
+            check(
+                same_room(citizen, target),
+                "OUT_OF_RANGE",
+                "People must be in the same indoor or outdoor space",
+            )
         if action in {"move", "evacuate"}:
             destination = intent.destination
             if destination is None and intent.target_id:
                 destination = citizen.known_locations.get(intent.target_id)
                 if target is not None and target.summary.id in context["nearby_ids"]:
-                    destination = target.summary.position
+                    destination = meeting_point(
+                        state.map,
+                        citizen.summary.position,
+                        target.summary.position,
+                        [
+                            c.summary.position
+                            for c in state.citizens.values()
+                            if c.summary.active and c is not citizen
+                        ],
+                    )
             check(
                 destination is not None,
                 "MISSING_DESTINATION",
                 "Movement requires a destination or a known target location",
             )
-            route = pathfind(state.map, citizen.summary.position, destination, blocked_cells(state))
-            check(route is not None, "UNREACHABLE", "Destination is not reachable through navigable cells")
+            facility = next(
+                (
+                    b
+                    for b in state.map.buildings
+                    if b.id == intent.target_id and distance(destination, b.entrance) < 0.1
+                ),
+                None,
+            )
+            if facility:
+                check(facility.functional, "INFRASTRUCTURE_UNAVAILABLE", "Building is closed")
+                check(
+                    interior_slot(state, citizen, facility) is not None,
+                    "CAPACITY",
+                    "Building has no available room",
+                )
+            route = trip_route(state, citizen, destination, facility, blocked_cells(state))
+            check(route is not None, "UNREACHABLE", "No reachable route or available room at the destination")
             if action == "evacuate":
                 check(
                     hazard_severity(state, destination) == 0,
@@ -166,8 +207,15 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                         "CAPACITY",
                         "Safe facility is unavailable or full",
                     )
+            citizen.leaving_building_id = citizen.inside_building_id
+            citizen.entering_building_id = facility.id if facility else None
             citizen.summary.path = route
-            citizen.plan = intent.model_dump()
+            if not (
+                citizen.plan
+                and citizen.plan.get("kind") == "social_visit"
+                and citizen.plan.get("target_id") == intent.target_id
+            ):
+                citizen.plan = intent.model_dump()
             decision.outcome_description = "Path accepted; movement is bounded by speed and tick duration"
         elif action == "rest":
             before = citizen.needs.fatigue
@@ -236,7 +284,8 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             )
             check(workplace.functional, "INFRASTRUCTURE_UNAVAILABLE", "Workplace is not functional")
             check(
-                distance(citizen.summary.position, workplace.entrance) <= 3,
+                citizen.inside_building_id == workplace.id
+                or distance(citizen.summary.position, workplace.entrance) <= 3,
                 "OUT_OF_RANGE",
                 "Work requires proximity to a workplace",
             )
@@ -331,7 +380,9 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 social_delta(state, citizen, target, did, 2)
                 decision.outcome_description = "Both parties accepted; resource exchange committed atomically"
         elif action in {"talk", "warn"}:
-            interaction, accepted = accept_invitation(state, citizen, target, "conversation")
+            interaction, accepted = accept_invitation(
+                state, citizen, target, "conversation", {"approach_reason": intent.motivation}
+            )
             # Warning is one-way speech; a conversation begins with an invitation.
             speak(state, citizen, target, intent, did, interaction)
             citizen.needs.social = clamp(citizen.needs.social - 5)
@@ -362,12 +413,36 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
 
 
 def advance_movement(state, citizen):
+    # Pause at a greeting long enough to answer it. Urgent evacuation/help still
+    # takes precedence; an invitation never teleports or accepts for its recipient.
+    if (
+        citizen.summary.action not in {"evacuate", "help"}
+        and hazard_severity(state, citizen.summary.position) == 0
+    ):
+        for interaction in state.interactions.values():
+            if (
+                interaction.kind == "conversation"
+                and interaction.status in {"invited", "accepted"}
+                and interaction.expires_tick >= state.simulation.tick
+                and citizen.summary.id in interaction.participant_ids
+            ):
+                other = next(
+                    (state.citizens[aid] for aid in interaction.participant_ids if aid != citizen.summary.id),
+                    None,
+                )
+                if other and distance(citizen.summary.position, other.summary.position) <= 3:
+                    return
     remaining = citizen.summary.movement_speed_mps * state.simulation.config.tick_seconds
     blocked = blocked_cells(state)
     while remaining > 1e-8 and citizen.summary.path:
         destination = citizen.summary.path[0]
         cell = cell_at(state.map, destination)
-        if cell is None or not cell.walkable or (cell.col, cell.row) in blocked:
+        indoor_waypoint = any(
+            b.id in {citizen.inside_building_id, citizen.entering_building_id, citizen.leaving_building_id}
+            and polygon_contains(destination, b.footprint)
+            for b in state.map.buildings
+        )
+        if cell is None or (not cell.walkable and not indoor_waypoint) or (cell.col, cell.row) in blocked:
             citizen.summary.path = []
             citizen.plan = None
             citizen.task_generation += 1
@@ -377,18 +452,72 @@ def advance_movement(state, citizen):
         citizen.summary.heading_rad = math.atan2(destination.x - origin.x, destination.y - origin.y) % (
             2 * math.pi
         )
-        if length <= remaining + 1e-8:
-            citizen.summary.position = destination.model_copy()
+        if length < 1e-8:
             citizen.summary.path.pop(0)
-            remaining -= length
-        else:
-            scale = remaining / length
-            citizen.summary.position = Vec2(
-                x=origin.x + (destination.x - origin.x) * scale,
-                y=origin.y + (destination.y - origin.y) * scale,
-            )
-            remaining = 0
-    if not citizen.summary.path:
+            continue
+        step = min(length, remaining)
+        candidate = Vec2(
+            x=origin.x + (destination.x - origin.x) * step / length,
+            y=origin.y + (destination.y - origin.y) * step / length,
+        )
+        occupied = [
+            c.summary.position for c in state.citizens.values() if c.summary.active and c is not citizen
+        ]
+        fraction = clear_travel(origin, candidate, occupied)
+        citizen.summary.position = Vec2(
+            x=origin.x + (candidate.x - origin.x) * fraction,
+            y=origin.y + (candidate.y - origin.y) * fraction,
+        )
+        remaining -= step * fraction
+        if fraction < 1:
+            p = citizen.summary.position
+            # Grid routes may pass through an occupied cell center before their
+            # final approach. Skip it when the next segment is already clear.
+            if len(citizen.summary.path) > 1:
+                onward = citizen.summary.path[1]
+                if line_of_sight(state.map, p, onward) and (
+                    clear_travel(p, onward, occupied) == 1
+                    or any(distance(destination, other) < PERSONAL_SPACE for other in occupied)
+                ):
+                    citizen.summary.path.pop(0)
+                    continue
+            # Shared resources and entrances are reached from personal space.
+            if len(citizen.summary.path) == 1 and distance(p, destination) <= 2.4:
+                citizen.summary.path = []
+            else:
+                # A two-corner bypass keeps the route around the obstruction,
+                # avoiding repeated left/right sidesteps at the same waypoint.
+                ux, uy = (
+                    (destination.x - p.x) / distance(p, destination),
+                    (destination.y - p.y) / distance(p, destination),
+                )
+                obstacle = min(occupied, key=lambda other: distance(p, other))
+                margin = PERSONAL_SPACE + 0.25
+                for side in (1, -1):
+                    corners = [
+                        Vec2(
+                            x=obstacle.x + along * ux - side * margin * uy,
+                            y=obstacle.y + along * uy + side * margin * ux,
+                        )
+                        for along in (-margin, margin)
+                    ]
+                    route = [p, *corners, destination]
+                    if all(
+                        cell_at(state.map, point)
+                        and cell_at(state.map, point).walkable
+                        and (cell_at(state.map, point).col, cell_at(state.map, point).row) not in blocked
+                        for point in corners
+                    ) and all(
+                        line_of_sight(state.map, a, b) and clear_travel(a, b, occupied) == 1
+                        for a, b in zip(route, route[1:])
+                    ):
+                        citizen.summary.path[:0] = corners
+                        break
+            break
+        if step >= length - 1e-8:
+            citizen.summary.path.pop(0)
+    sync_building_location(state, citizen)
+    if not citizen.summary.path and not (citizen.plan and citizen.plan.get("kind") == "social_visit"):
         citizen.plan = None
 
 
@@ -444,14 +573,17 @@ def rule_intent(state, citizen, context):
         return make_intent(
             "rest", motivation="No safe reachable route is currently available", emotion="worried"
         )
-    if citizen.summary.path:
-        return None
     if citizen.needs.hunger >= 45:
         for kind in ("food", "water"):
             if getattr(citizen.inventory, kind) >= 1:
                 return make_intent("consume", kind=kind, amount=1, motivation="I need to eat or drink")
     if citizen.needs.fatigue >= 65:
-        return make_intent("rest", motivation="I need to recover my energy")
+        home_trip = routine_destination(state, citizen)
+        if home_trip and home_trip[0].kind == "home" and not citizen.summary.path:
+            building, reason = home_trip
+            return make_intent("move", target=building.id, destination=building.entrance, motivation=reason)
+        if not citizen.summary.path:
+            return make_intent("rest", motivation="I need to recover my energy")
     # Explicit recipient acceptance of a remembered nearby invitation.
     for invitation in state.interactions.values():
         if (
@@ -483,18 +615,51 @@ def rule_intent(state, citizen, context):
             and citizen.summary.id in conversation.participant_ids
         ):
             lines = [d for d in state.dialogue if d.interaction_id == conversation.id]
-            if lines and lines[-1].speaker_id != citizen.summary.id:
-                speaker = state.citizens.get(lines[-1].speaker_id)
+            other_id = next((aid for aid in conversation.participant_ids if aid != citizen.summary.id), None)
+            speaker = state.citizens.get(other_id)
+            if (
+                speaker is not None
+                and speaker.summary.id in context["nearby_ids"]
+                and distance(p, speaker.summary.position) <= 3
+            ):
                 if (
-                    speaker is not None
-                    and speaker.summary.id in context["nearby_ids"]
-                    and distance(p, speaker.summary.position) <= 3
+                    lines
+                    and lines[-1].speaker_id != citizen.summary.id
+                    and lines[-1].tick < state.simulation.tick
                 ):
                     return make_intent(
                         "talk",
                         target=speaker.summary.id,
                         motivation="Reply to the neighbor who just spoke to me",
                     )
+                return make_intent(
+                    "idle", target=speaker.summary.id, motivation="Listen while my neighbor has their turn"
+                )
+    visit = citizen.plan if citizen.plan and citizen.plan.get("kind") == "social_visit" else None
+    if visit:
+        other = state.citizens.get(visit["target_id"])
+        if not other or not other.summary.active or visit["expires_tick"] < state.simulation.tick:
+            citizen.summary.path = []
+            citizen.plan = None
+        elif other.summary.id in context["nearby_ids"] and distance(p, other.summary.position) <= 3:
+            return make_intent(
+                "talk",
+                target=other.summary.id,
+                motivation=visit.get("motivation", "Say hello after walking over to my neighbor"),
+            )
+        elif citizen.summary.path:
+            return None
+        elif other.summary.id in context["nearby_ids"]:
+            return make_intent(
+                "move",
+                target=other.summary.id,
+                destination=meeting_point(state.map, p, other.summary.position),
+                motivation="Walk toward the neighbor I can see",
+            )
+        else:
+            citizen.plan = None
+    if citizen.summary.path:
+        return None
     scarce = min(("food", "water", "supplies"), key=lambda kind: getattr(citizen.inventory, kind))
     if getattr(citizen.inventory, scarce) < 2:
         sources = [
@@ -532,27 +697,51 @@ def rule_intent(state, citizen, context):
                     destination=resource.position,
                     motivation="Walk to a known resource source",
                 )
-    if nearby and citizen.profile.traits.sociability > 40 and citizen.needs.social > 20:
-        close = [c for c in nearby if distance(p, c.summary.position) <= 3]
-        if close:
-            return make_intent("talk", target=close[0].summary.id, motivation="Check on a nearby neighbor")
-    if citizen.profile.traits.cooperation >= 40:
-        workplace = min(
-            (b for b in state.map.buildings if b.kind == "work" and b.functional),
-            key=lambda b: distance(p, b.entrance),
-            default=None,
-        )
-        if workplace:
-            if distance(p, workplace.entrance) <= 3:
-                return make_intent(
-                    "work", target=workplace.id, motivation="Contribute to local work and household supplies"
+    if nearby and citizen.needs.social > 20 and state.simulation.tick >= citizen.next_social_tick:
+        recent_partners = {
+            aid
+            for interaction in state.interactions.values()
+            if interaction.kind == "conversation"
+            and citizen.summary.id in interaction.participant_ids
+            and interaction.expires_tick + 8 >= state.simulation.tick
+            for aid in interaction.participant_ids
+            if aid != citizen.summary.id
+        }
+        available = [other for other in nearby if other.summary.id not in recent_partners]
+        choice = social_choice(state, citizen, available)
+        if choice and (citizen.profile.traits.sociability > 40 or citizen.needs.social > 55):
+            other, reason = choice
+            if distance(p, other.summary.position) <= 3:
+                return make_intent("talk", target=other.summary.id, motivation=reason)
+            if (
+                not citizen.inside_building_id
+                and pathfind(state.map, p, other.summary.position, blocked_cells(state)) is not None
+            ):
+                citizen.plan = dict(
+                    kind="social_visit",
+                    target_id=other.summary.id,
+                    expires_tick=state.simulation.tick + 30,
+                    motivation=reason,
                 )
-            return make_intent(
-                "move",
-                target=workplace.id,
-                destination=workplace.entrance,
-                motivation="Travel to my workplace",
-            )
+                return make_intent(
+                    "move",
+                    target=other.summary.id,
+                    destination=meeting_point(state.map, p, other.summary.position),
+                    motivation=reason,
+                )
+    if citizen.inside_building_id and citizen.visit_until_tick > state.simulation.tick:
+        building = next(b for b in state.map.buildings if b.id == citizen.inside_building_id)
+        if building.kind == "work" and citizen.inventory.supplies < citizen.target_inventory_units:
+            return make_intent("work", target=building.id, motivation="Do a short shift at my workplace")
+        return make_intent(
+            "rest" if building.kind == "home" else "idle",
+            target=building.id,
+            motivation=f"Spend a little time inside {building.name}",
+        )
+    destination = routine_destination(state, citizen)
+    if destination:
+        building, reason = destination
+        return make_intent("move", target=building.id, destination=building.entrance, motivation=reason)
     return make_intent(
         "rest" if citizen.needs.fatigue > 20 else "idle",
         motivation="Take a quiet moment before the next task",

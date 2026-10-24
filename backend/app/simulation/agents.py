@@ -15,6 +15,7 @@ from app.contracts import (
     Relationship,
     Traits,
 )
+from app.simulation.characters import OCCUPATIONS, character_details, character_name
 from app.simulation.navigation import (
     SpatialIndex,
     cell_at,
@@ -40,30 +41,25 @@ def evidence(description, event_ids=None, decision_ids=None, memory_ids=None):
 
 
 def generated_profile(index, config, rng):
-    names = ["Alex", "Morgan", "Sam", "Jordan", "Riley", "Casey", "Avery", "Taylor", "Cameron", "Drew"]
-    roles = ["teacher", "medic", "builder", "shopkeeper", "engineer", "student", "gardener", "driver"]
-    traits = {
-        key: clamp(value + rng.uniform(-config.personality_diversity / 2, config.personality_diversity / 2))
-        for key, value in config.population_traits.model_dump().items()
-    }
+    traits = Traits(
+        **{
+            key: clamp(
+                value + rng.uniform(-config.personality_diversity / 2, config.personality_diversity / 2)
+            )
+            for key, value in config.population_traits.model_dump().items()
+        }
+    )
+    role = rng.choice(list(OCCUPATIONS))
     return Profile(
-        name=f"{names[index % len(names)]} {index + 1}",
+        name=character_name(index, config.seed),
         age=rng.randint(18, 80),
-        role=roles[index % len(roles)],
-        background="A resident with local work and family responsibilities.",
-        personality="Community-minded" if traits["cooperation"] >= 50 else "Independent and cautious",
-        values=["security", "community" if traits["empathy"] >= 50 else "independence"],
-        traits=Traits(**traits),
-        primary_goal="Keep my household safe and supplied",
-        secondary_goals=["Maintain friendships", "Finish my work"],
-        desires=["A stable home"],
-        fears=["Losing essential supplies"],
-        personal_history="Has lived in this settlement and knows its public facilities.",
-        skills=[roles[index % len(roles)]],
+        role=role,
+        traits=traits,
+        **character_details(role, traits, rng),
         intelligence=rng.uniform(30, 90),
         mobility=50,
         physical_attributes="Walks at an ordinary pace",
-        social_needs=traits["sociability"],
+        social_needs=traits.sociability,
     )
 
 
@@ -204,7 +200,9 @@ def perception(state, citizen, index=None):
         [
             c
             for c in index.nearby(p, 20)
-            if c.summary.id != citizen.summary.id and line_of_sight(state.map, p, c.summary.position)
+            if c.summary.id != citizen.summary.id
+            and c.inside_building_id == citizen.inside_building_id
+            and (citizen.inside_building_id or line_of_sight(state.map, p, c.summary.position))
         ],
         key=lambda c: (distance(p, c.summary.position), c.summary.id),
     )[:8]
@@ -324,5 +322,5 @@ def update_metrics(state):
             else values.model_copy()
         )
     for building in state.map.buildings:
-        building.occupancy = sum(distance(c.summary.position, building.entrance) <= 3 for c in active)
+        building.occupancy = sum(c.inside_building_id == building.id for c in active)
     return point

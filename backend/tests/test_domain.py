@@ -387,6 +387,8 @@ def test_rules_reply_to_a_neighbor_and_use_observed_event_in_conversation(client
     # Needs that require immediate care still have priority over conversation.
     b.needs.hunger = 0
     b.needs.fatigue = 0
+    assert rule_intent(state, b, perception(state, b)).action == "idle"
+    state.simulation.tick += 1  # A reply gets its own readable turn.
     reply = rule_intent(state, b, perception(state, b))
     assert reply.action == "talk" and reply.target_id == a.summary.id
     apply_intent(state, b, reply)

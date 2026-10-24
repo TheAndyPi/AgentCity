@@ -1,7 +1,11 @@
 """Explicit invitations and acceptances, bounded conversation and local hearing."""
 
+import math
+
 from app.contracts import Belief, Dialogue
 from app.simulation.agents import evidence, remember, social_delta
+from app.simulation.building_visits import same_room, sync_building_location
+from app.simulation.dialogue import rule_speech
 from app.simulation.navigation import SpatialIndex, distance, line_of_sight
 from app.simulation.state import Interaction
 
@@ -44,31 +48,15 @@ def accept_invitation(state, actor, target, kind, proposal=None):
 
 def speak(state, actor, target, intent, decision_id, interaction):
     previous = [d for d in state.dialogue if d.interaction_id == interaction.id]
-    events = [m for m in actor.memories if m.text.startswith("World event:")]
-    if intent.action == "warn":
-        fallback = "There is danger nearby; please find a safe route."
-    elif not previous:
-        fallback = (
-            f"Did you see what happened? {events[-1].text.removeprefix('World event: ')}"
-            if events
-            else f"Hi {target.summary.name.split()[0]}! How is your day going?"
-        )
-    elif len(previous) == 1:
-        fallback = (
-            "I heard you. I'd like to see how we can help each other."
-            if actor.profile.traits.empathy >= 60
-            else f"I've been thinking about my own plans. {actor.profile.primary_goal}"
-        )
-    elif len(previous) == 2:
-        fallback = f"That makes sense. For me, what matters is {', '.join(actor.profile.values[:2]) or 'getting through the day'}."
-    else:
-        fallback = f"Thanks for talking, {target.summary.name.split()[0]}. See you around!"
-    text = (intent.parameters.message or fallback)[:2000]
+    text = (intent.parameters.message or rule_speech(state, actor, target, intent, interaction, previous))[
+        :2000
+    ]
     # Physical filtering occurs independently for each message, including overhearers.
     audible = [
         c.summary.id
         for c in SpatialIndex(state.citizens).nearby(actor.summary.position, 8)
-        if line_of_sight(state.map, actor.summary.position, c.summary.position)
+        if same_room(actor, c)
+        and (actor.inside_building_id or line_of_sight(state.map, actor.summary.position, c.summary.position))
     ]
     dialogue = Dialogue(
         id=state.next_id("dialogue"),
@@ -82,10 +70,27 @@ def speak(state, actor, target, intent, decision_id, interaction):
         emotion=intent.emotion,
         end_conversation=interaction.turns >= 3,
     )
+    actor.summary.path = []
+    actor.plan = None
+    sync_building_location(state, actor)
+    actor.summary.heading_rad = math.atan2(
+        target.summary.position.x - actor.summary.position.x,
+        target.summary.position.y - actor.summary.position.y,
+    ) % (2 * math.pi)
+    if interaction.status == "accepted":
+        target.summary.heading_rad = (actor.summary.heading_rad + math.pi) % (2 * math.pi)
+    interaction.expires_tick = state.simulation.tick + 5
     interaction.turns += 1
     if dialogue.end_conversation:
         interaction.status = "ended"
+        for citizen in (actor, target):
+            citizen.next_social_tick = state.simulation.tick + 10
+            citizen.summary.path = []
+            if citizen.plan and citizen.plan.get("kind") == "social_visit":
+                citizen.plan = None
     state.dialogue.append(dialogue)
+    if not intent.parameters.message:
+        interaction.proposal["last_rule_line"] = dialogue.id
     proof = evidence(
         f"Heard {actor.summary.name} ({actor.summary.id}) speak nearby; reported information can be uncertain",
         decision_ids=[decision_id],

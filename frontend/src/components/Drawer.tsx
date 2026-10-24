@@ -69,8 +69,10 @@ export default function Drawer({
   follow,
   setFollow,
   readOnly,
+  onWatch,
 }: {
   readOnly: boolean;
+  onWatch?: (ids: string[]) => void;
   stack: DrawerNode[];
   frame: WorldFrame;
   revision: number;
@@ -192,6 +194,7 @@ export default function Drawer({
           <AgentPicker onCommand={onCommand} />
         ) : top.type === "feed" ? (
           <FeedPanel
+            onWatch={onWatch}
             queryScope={queryScope}
             frame={frame}
             revision={revision}
@@ -1163,7 +1166,9 @@ function FeedPanel({
   frame,
   revision,
   onPush,
+  onWatch,
 }: {
+  onWatch?: (ids: string[]) => void;
   queryScope: string;
   frame: WorldFrame;
   revision: number;
@@ -1182,6 +1187,7 @@ function FeedPanel({
         <Busy text="Listening in…" />
       ) : (
         <Conversations
+          onWatch={onWatch}
           dialogue={r.data ?? frame.recent_dialogue}
           frame={frame}
           onAgent={(id) => onPush({ type: "agent", id })}

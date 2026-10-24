@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import type { Dialogue, Profile, Traits, WorldFrame } from "../api/types";
+import { characterAppearance } from "../world/characterAppearance";
 import { pretty } from "../api/defaults";
 import { useApp, useQuery } from "../state/app";
 import { Busy, Empty, ErrorBox } from "./ui";
@@ -38,24 +39,54 @@ export function CitizenPortrait({
   name: string;
   large?: boolean;
 }) {
-  const hue =
-    [...name].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 360;
+  const look = characterAppearance(name);
   return (
     <span
       className={`citizen-portrait ${large ? "large" : ""}`}
-      style={{
-        background: `hsl(${hue} 36% 25%)`,
-        color: `hsl(${hue} 75% 82%)`,
-      }}
+      style={{ background: look.shirt + "33", color: look.shirt }}
       aria-hidden="true"
     >
-      <span className="portrait-hair" />
-      <span className="portrait-face">
-        <i />
-        <i />
-        <b />
-      </span>
-      <span className="portrait-shirt" />
+      <svg viewBox="0 0 64 64" width="100%" height="100%">
+        <path d="M8 68 Q8 43 32 43 Q56 43 56 68" fill={look.shirt} />
+        <path d="M25 45 L32 53 L39 45" fill={look.accent} />
+        {(look.hairStyle === 1 || look.hairStyle === 3) && (
+          <rect
+            x="14"
+            y="19"
+            width="36"
+            height={look.hairStyle === 3 ? "33" : "24"}
+            rx="12"
+            fill={look.hair}
+          />
+        )}
+        <ellipse cx="32" cy="30" rx="16" ry="19" fill={look.skin} />
+        <path
+          d={
+            look.hairStyle === 0
+              ? "M15 27 Q12 8 32 9 Q52 8 49 27 L44 17 Q31 22 18 20Z"
+              : look.hairStyle === 2
+                ? "M13 27 Q8 12 20 13 Q23 3 33 10 Q47 4 50 18 L49 28 L40 19 L31 23 L22 18Z"
+                : "M14 29 Q12 8 32 9 Q53 9 50 30 L44 19 Q30 24 18 18Z"
+          }
+          fill={look.hair}
+        />
+        <circle cx="26" cy="31" r="1.7" fill="#302a30" />
+        <circle cx="39" cy="31" r="1.7" fill="#302a30" />
+        {look.glasses && (
+          <g fill="none" stroke="#453949" strokeWidth="1.5">
+            <circle cx="25" cy="31" r="5" />
+            <circle cx="39" cy="31" r="5" />
+            <path d="M30 31H34" />
+          </g>
+        )}
+        <path
+          d="M28 39 Q32 42 36 39"
+          fill="none"
+          stroke="#805b50"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </svg>
     </span>
   );
 }
@@ -265,10 +296,12 @@ export function Conversations({
   dialogue,
   frame,
   onAgent,
+  onWatch,
 }: {
   dialogue: Dialogue[];
   frame: WorldFrame;
   onAgent: (id: string) => void;
+  onWatch?: (ids: string[]) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -353,6 +386,15 @@ export function Conversations({
                   : ""}
               </span>
             </header>
+            {onWatch && (
+              <button
+                className="watch-world-button"
+                onClick={() => onWatch(conversation.participants.slice(0, 2))}
+              >
+                <ArrowUpRight size={15} />
+                See them up close
+              </button>
+            )}
             <div className="conversation-participants">
               {conversation.participants.map((id) => (
                 <button key={id} onClick={() => onAgent(id)}>

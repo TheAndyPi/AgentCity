@@ -66,6 +66,12 @@ class Citizen(Model):
     task_generation: int = 0
     next_deliberation_tick: int = 0
     plan: dict[str, Any] | None = None
+    inside_building_id: str | None = None
+    entering_building_id: str | None = None
+    leaving_building_id: str | None = None
+    last_building_id: str | None = None
+    visit_until_tick: int = 0
+    next_social_tick: int = 0
     profile_template_id: str | None = None
     profile_template_version: int | None = None
     known_locations: dict[str, Vec2] = Field(default_factory=dict)

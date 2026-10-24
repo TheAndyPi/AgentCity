@@ -26,9 +26,11 @@ from app.simulation.agents import (
     spawn,
     update_metrics,
 )
+from app.simulation.building_visits import same_room, sync_building_location
+from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.engine import list_tree, tick
-from app.simulation.game_master import apply_intent
-from app.simulation.navigation import cell_at, distance, pathfind
+from app.simulation.game_master import apply_intent, make_intent
+from app.simulation.navigation import cell_at, distance, meeting_point, pathfind
 from app.simulation.scenarios import compile_preview, generate_map, queue_event, validate_spec
 from app.simulation.state import State, expired, expiry, now, uid
 
@@ -72,16 +74,19 @@ class Service:
             if head.simulation.status == "initializing":
                 self.initializers[sid] = asyncio.create_task(self.initialize(sid))
                 continue
-            if head.simulation.status == "running" or head.intervention or head.auto_resume:
-                state = head.model_copy(deep=True)
-                self.bump(state, control=True)
-                state.simulation.status = "paused"
-                state.simulation.pause_reason = "loaded"
-                self.clear_editor(state)
-                state.auto_resume = False
-                state.lineage_generation += 1
-                for runtime in state.events.values():
-                    runtime.resume_allowed = False
+            state = head.model_copy(deep=True)
+            upgraded = upgrade_placeholder_citizens(state)
+            recovering = head.simulation.status == "running" or head.intervention or head.auto_resume
+            if recovering or upgraded:
+                self.bump(state, control=bool(recovering))
+                if recovering:
+                    state.simulation.status = "paused"
+                    state.simulation.pause_reason = "loaded"
+                    self.clear_editor(state)
+                    state.auto_resume = False
+                    state.lineage_generation += 1
+                    for runtime in state.events.values():
+                        runtime.resume_allowed = False
                 try:
                     await self.persist([state])
                 except DomainError:
@@ -349,7 +354,22 @@ class Service:
                                 else generated_profile(i, state.simulation.config, rng)
                             )
                             home = homes[i % len(homes)].entrance
-                            citizen = spawn(state, profile, home, template)
+                            position = home
+                            if state.simulation.config.population <= 10:
+                                for dx, dy in [(-0.55, -0.55), (0.55, 0.55), (-0.55, 0.55), (0.55, -0.55)]:
+                                    candidate = c.Vec2(x=home.x + dx, y=home.y + dy)
+                                    cell = cell_at(state.map, candidate)
+                                    if (
+                                        cell
+                                        and cell.walkable
+                                        and all(
+                                            distance(candidate, other.summary.position) >= 1.05
+                                            for other in state.citizens.values()
+                                        )
+                                    ):
+                                        position = candidate
+                                        break
+                            citizen = spawn(state, profile, position, template)
                             citizen.home = home.model_copy()
                             citizen.next_deliberation_tick = i % 8
                         state.simulation.agent_count = len(state.citizens)
@@ -661,10 +681,65 @@ class Service:
             citizen.task_generation += 1
             citizen.next_deliberation_tick = state.simulation.tick
             if cmd.intent:
-                apply_intent(state, citizen, cmd.intent, "rules")
+                intent = cmd.intent
+                if intent.action != "talk":
+                    for interaction in state.interactions.values():
+                        if (
+                            interaction.kind == "conversation"
+                            and interaction.status in {"invited", "accepted"}
+                            and citizen.summary.id in interaction.participant_ids
+                        ):
+                            interaction.status = "ended"
+                if intent.action in {"rest", "consume"}:
+                    citizen.summary.path = []
+                    citizen.plan = None
+                    sync_building_location(state, citizen)
+                target = state.citizens.get(intent.target_id)
+                if (
+                    intent.action == "talk"
+                    and target
+                    and target.summary.active
+                    and target is not citizen
+                    and (
+                        not same_room(citizen, target)
+                        or distance(citizen.summary.position, target.summary.position) > 3
+                    )
+                ):
+                    # The owner's invitation supplies an initial destination;
+                    # subsequent pursuit can only use the citizen's own sight.
+                    facility = next(
+                        (b for b in state.map.buildings if b.id == target.inside_building_id), None
+                    )
+                    decision = apply_intent(
+                        state,
+                        citizen,
+                        make_intent(
+                            "move",
+                            target=facility.id if facility else target.summary.id,
+                            destination=facility.entrance
+                            if facility
+                            else meeting_point(state.map, citizen.summary.position, target.summary.position),
+                            motivation="Walk over for an invited chat",
+                        ),
+                        "rules",
+                    )
+                    require(
+                        decision.outcome != "rejected", "INVALID_REQUEST", decision.outcome_description, 400
+                    )
+                    citizen.plan = dict(
+                        kind="social_visit",
+                        target_id=target.summary.id,
+                        expires_tick=state.simulation.tick + 30,
+                    )
+                else:
+                    decision = apply_intent(state, citizen, intent, "rules")
+                    require(
+                        decision.outcome != "rejected", "INVALID_REQUEST", decision.outcome_description, 400
+                    )
             else:
                 citizen.summary.path = []
                 citizen.plan = None
+                sync_building_location(state, citizen)
             remember(
                 state,
                 citizen,

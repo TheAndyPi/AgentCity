@@ -81,6 +81,11 @@ def generate_map(state, rng):
                 )
                 sites.append((col + dx, row + dy, entrance))
     sites.sort(key=lambda p: (abs(p[0] - 32) + abs(p[1] - 32), p[0], p[1]))
+    intimate = config.population <= 10
+    if intimate:
+        # Ten households and the shared amenities fit into a few central blocks.
+        # Keep the navigable map extent for existing event/replay geometry.
+        sites = sites[:24]
     street_names = ["Maple", "Cedar", "Willow", "Aster", "Harbor", "Oak", "Juniper", "Birch"]
     mixed_use = ["home", "work", "home", "shop", "home", "work", "home", "community"]
     buildings = []
@@ -103,6 +108,10 @@ def generate_map(state, rng):
             "hospital": (8, 11),
             "community": (5, 8),
         }
+        if intimate:
+            heights = {key: (3.2, 5.2) for key in heights}
+            if kind == "home":
+                purpose = "Cottage"
         footprint = rectangle(col * 2, row * 2, (col + 2) * 2, (row + 2) * 2)
         for dy in range(2):
             for dx in range(2):
@@ -127,7 +136,9 @@ def generate_map(state, rng):
             )
         )
     resources = []
-    for col, row in [(16, 16), (32, 16), (16, 32), (48, 48)]:
+    for col, row in (
+        [(24, 32), (32, 24), (32, 32), (40, 32)] if intimate else [(16, 16), (32, 16), (16, 32), (48, 48)]
+    ):
         for k, kind in enumerate(("food", "water", "supplies")):
             resources.append(
                 ResourceSource(

@@ -24,6 +24,8 @@ def context_for(state, citizen):
         "profile": citizen.profile.model_dump(),
         "position": citizen.summary.position.model_dump(),
         "home": citizen.home.model_dump(),
+        "inside_building_id": citizen.inside_building_id,
+        "current_activity_reason": citizen.summary.thought_bubble,
         "tick": state.simulation.tick,
         "needs": citizen.needs.model_dump(),
         "inventory": citizen.inventory.model_dump(),

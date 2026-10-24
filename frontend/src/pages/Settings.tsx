@@ -43,6 +43,12 @@ export default function Settings() {
   useEffect(() => setDraft(settings), [settings]);
   const profiles = useQuery(() => client.profiles(), [client]);
   const usage = useQuery(() => client.usage(), [client]);
+  const totalTokens = usage.data
+    ? usage.data.input_tokens + usage.data.output_tokens
+    : 0;
+  const inputShare = totalTokens && usage.data
+    ? (usage.data.input_tokens / totalTokens) * 100
+    : 0;
   const location = useLocation(),
     navigate = useNavigate();
   const settingsKey = useRef(crypto.randomUUID());
@@ -273,11 +279,37 @@ export default function Settings() {
             calls.
           </p>
           {usage.error ? (
-            <ErrorBox error={usage.error} />
+            <ErrorBox error={usage.error} retry={usage.reload} />
           ) : !usage.data ? (
             <Busy />
           ) : (
             <>
+              <div className="token-meter">
+                <span className="field-caption">TOTAL TOKENS · ALL WORLDS</span>
+                <strong className="token-meter-total">
+                  {totalTokens.toLocaleString()}
+                </strong>
+                <div
+                  className="token-meter-track"
+                  role="img"
+                  aria-label={`Token usage: ${usage.data.input_tokens.toLocaleString()} input tokens and ${usage.data.output_tokens.toLocaleString()} output tokens. ${usage.data.cached_tokens.toLocaleString()} cached tokens are included in input.`}
+                >
+                  <span className="token-meter-input" style={{ width: `${inputShare}%` }} />
+                  <span className="token-meter-output" style={{ width: `${totalTokens ? 100 - inputShare : 0}%` }} />
+                </div>
+                <div className="token-meter-legend" aria-hidden="true">
+                  <span><i className="token-meter-input" /> Input</span>
+                  <span><i className="token-meter-output" /> Output</span>
+                </div>
+                <p className="helper-text">
+                  {totalTokens === 0
+                    ? "No token usage recorded yet."
+                    : "Cached tokens are included in input totals."}
+                </p>
+                <Button kind="ghost" onClick={usage.reload}>
+                  Refresh usage
+                </Button>
+              </div>
               <dl className="usage-stats">
                 <div>
                   <dt>Input tokens</dt>

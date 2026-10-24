@@ -85,11 +85,60 @@ physics, spawn geometry, or force a citizen's choices. Severity, duration and co
 regions remain available. Unrecognized events default to the whole city. Random
 and repeat use the same validation/commit path; repeat retains the original spec.
 
+Generated citizens receive unique seeded first and last names, occupations,
+interests, personal histories, ambitions and worries. Population trait controls
+still determine numerical personality variation. Exact original placeholder
+profiles are upgraded on load or the next tick in a new durable revision;
+custom profiles and historical revisions retain their authored content.
+
+New neighborhoods in the UI use a cast of ten. Their homes and amenities occupy
+24 low-rise central lots, with nearby food/water sources and distinct doorstep
+positions. Larger saved worlds and the existing API population range remain
+readable. Character appearance is a stable client-side design derived from the
+name, shared between portraits and low-poly instanced models.
+
 Nearby citizens prioritize a reply to an open conversation after urgent care and
-needs. Rule-based dialogue uses the speaker's observed events, goals and values;
-provider-supplied speech is retained. Conversations remain local, explicitly
+needs. Rule-based dialogue carries a disclosed topic through the exchange and
+uses the speaker's own needs, supplies, observed events, history and interests.
+Topics rotate across repeat meetings, and directed familiarity, trust, conflict
+and personality affect speech. A listener's private profile is never consulted
+for a speaker's line. Provider-supplied speech is retained verbatim and later
+rule replies acknowledge it. Model decision prompts explicitly request spoken
+words and replies to recent messages. Conversations remain local, explicitly
 accepted, and bounded to four turns. The UI groups lines by interaction ID and
 orders them by tick and persisted sequence; overhearers are not participants.
+Automatic dialogue takes at most one turn per conversation per tick. Neighbors
+pause nearby and face the person speaking, with urgent needs and danger retaining
+priority. Encounters cool down before another routine greeting of the same person.
+An explicit owner invitation uses the existing override command: a distant citizen
+walks to a reachable point at conversational distance, then says hello. The initial
+destination is supplied by the owner; later pursuit requires the citizen's own
+sight and expires if the person cannot be found. This plan survives checkpoints.
+The focus UI can follow a person or pair, pause/read, and step the next moment;
+it never invents dialogue or changes a historical revision.
+
+Citizens choose social partners using their own directed ties, curiosity,
+empathy, social need and observed roles/actions/emotions, with reproducible
+variation. They avoid interrupting a busy pair and retain their approach reason
+while walking. That reason appears in their thought and shapes the opening
+question. Private facts about a prospective partner are never read to rank them.
+Needs, finite conversations, short work shifts, household errands, community
+visits and rest at home form an autonomous routine; owner invitations and the
+Visit building control remain explicit interventions.
+
+Moving to a known building ID reserves a free indoor position and routes through
+its entrance and doorway. Occupants leave by that doorway before an outdoor trip.
+Closed or physically full facilities reject admission; floor positions preserve
+personal space. Occupancy counts people inside, not passersby near an entrance.
+Indoor location, reservations and visit durations survive checkpoints. Perception
+and hearing respect indoor/outdoor boundaries. Focusing an indoor citizen opens
+a floor cutaway; other buildings retain their exteriors.
+
+The renderer animates acknowledged positions along legal routes, including newly
+completed paths and paused steps. It carries forward the last displayed position
+when another tick arrives during a walk, rather than snapping to the last tick's
+endpoint. Both 3D and 2D speech shrink with camera zoom; the transcript stays
+readable at normal interface size. Reduced-motion settings still take precedence.
 
 Memory retrieval combines importance, recency and lexical relevance. Every 20
 ticks, meaningful recent episodes can produce a subjective summary referencing

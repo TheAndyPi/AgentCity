@@ -54,6 +54,7 @@ import ScenarioDialog, {
   InitialScenarioDialog,
   type ScenarioSource,
 } from "../components/ScenarioDialog";
+import LifeHUD from "../components/LifeHUD";
 import OutcomeDialog from "../components/OutcomeDialog";
 export default function Simulation() {
   const { id } = useParams();
@@ -73,6 +74,7 @@ export default function Simulation() {
     [fallback, setFallback] = useState(false),
     [busy, setBusy] = useState(false),
     [saveState, setSaveState] = useState("");
+  const [focused, setFocused] = useState<string[]>([]);
   const [revision, setRevision] = useState<number | null>(null),
     [historical, setHistorical] = useState<WorldFrame | null>(null),
     [timeline, setTimeline] = useState<
@@ -94,6 +96,7 @@ export default function Simulation() {
     setRevision(null);
     setHistorical(null);
     setFollow(null);
+    setFocused([]);
     setSource(null);
     setReplaying(false);
     seenEvents.current.clear();
@@ -101,6 +104,7 @@ export default function Simulation() {
   latest.current = live.frame?.simulation ?? null;
   const refresh = useCallback(async () => {
     const f = await client.state(id!);
+    latest.current = f.simulation;
     store.accept(f);
   }, [client, id, store]);
   const execute = useCallback(
@@ -156,7 +160,13 @@ export default function Simulation() {
       !navigationAllowed.current,
   );
   useEffect(() => {
-    if (blocker.state !== "blocked" || savingBlockedNavigation.current) return;
+    if (
+      blocker.state !== "blocked" ||
+      savingBlockedNavigation.current ||
+      busy ||
+      commandPending.current
+    )
+      return;
     savingBlockedNavigation.current = true;
     void execute({
       type: "save",
@@ -174,7 +184,7 @@ export default function Simulation() {
       .finally(() => {
         savingBlockedNavigation.current = false;
       });
-  }, [blocker, execute, notice]);
+  }, [blocker, execute, notice, busy]);
   const cmd = (c: CommandBody) => {
     void execute(c).catch(() => {});
   };
@@ -206,6 +216,7 @@ export default function Simulation() {
     }
     let active = true;
     setFollow(null);
+    setFocused([]);
     void client
       .state(id!, revision)
       .then((f) => {
@@ -247,8 +258,12 @@ export default function Simulation() {
     if (stack.length) {
       setStack((s) => (s.length > 1 ? s.slice(0, -1) : []));
       restoreFocus.current?.focus();
+    } else if (focused.length) {
+      setFocused([]);
+      setFollow(null);
+      camera.current("reset");
     }
-  }, [source, help, live.frame, menu, stack.length]);
+  }, [source, help, live.frame, menu, stack.length, focused.length]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
@@ -363,11 +378,13 @@ export default function Simulation() {
   const s = frame.simulation;
   const readOnly = revision !== null;
   const selected =
+    focused[0] ??
     [...stack]
       .reverse()
       .find(
         (n): n is Extract<DrawerNode, { type: "agent" }> => n.type === "agent",
-      )?.id ?? null;
+      )?.id ??
+    null;
   const active = frame.events.filter(
     (e) => e.status === "active" || e.status === "queued",
   );
@@ -417,7 +434,9 @@ export default function Simulation() {
     } else camera.current(action);
   };
   return (
-    <div className={`simulation-page ${stack.length ? "drawer-open" : ""}`}>
+    <div
+      className={`simulation-page life-mode ${focused.length ? "life-focused" : ""} ${stack.length ? "drawer-open" : ""}`}
+    >
       <div
         className="world-wrap"
         tabIndex={0}
@@ -442,9 +461,12 @@ export default function Simulation() {
           frame={frame}
           mode={fallback ? "2d" : settings.view_mode}
           selected={selected}
+          focus={focused}
           onSelect={(agentId) => {
             setMenu(false);
-            open({ type: "agent", id: agentId });
+            setStack([]);
+            setFocused([agentId]);
+            setFollow(agentId);
           }}
           onEmpty={() => {
             if (!dragged.current) {
@@ -578,7 +600,8 @@ export default function Simulation() {
             </button>
             <button
               onClick={() => open({ type: "agents" })}
-              disabled={readOnly}
+              disabled={readOnly || frame.agents.length >= 10}
+              title="This neighborhood has a cast of ten"
             >
               <Users size={16} />
               Add agent
@@ -936,12 +959,34 @@ export default function Simulation() {
           aria-label="Reset camera"
           onClick={() => {
             setFollow(null);
+            setFocused([]);
             camera.current("reset");
           }}
         >
           <Maximize2 size={17} />
         </button>
       </div>
+      {!source && !help && (
+        <LifeHUD
+          frame={frame}
+          focused={focused}
+          onFocus={(ids) => {
+            setFocused(ids);
+            setFollow(ids[0] ?? null);
+            setStack([]);
+            setMenu(false);
+          }}
+          onClose={() => {
+            setFocused([]);
+            setFollow(null);
+            camera.current("reset");
+          }}
+          onProfile={(agentId) => open({ type: "agent", id: agentId })}
+          onCommand={execute}
+          locked={locked}
+          readOnly={readOnly}
+        />
+      )}
       <div className="city-footer">
         <span>
           <Users size={13} />
@@ -991,6 +1036,11 @@ export default function Simulation() {
       )}
       {stack.length > 0 && (
         <Drawer
+          onWatch={(ids) => {
+            setFocused(ids);
+            setFollow(ids[0] ?? null);
+            setStack([]);
+          }}
           readOnly={readOnly}
           stack={stack}
           frame={frame}

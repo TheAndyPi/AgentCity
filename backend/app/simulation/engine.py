@@ -11,9 +11,10 @@ from app.simulation.agents import (
     retrieve,
     update_metrics,
 )
+from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.game_master import advance_movement, apply_intent, rule_intent
 from app.simulation.interactions import expire_interactions
-from app.simulation.navigation import SpatialIndex
+from app.simulation.navigation import SpatialIndex, restore_personal_space
 from app.simulation.scenarios import activate, apply_effects, finish_events
 
 RULES = {
@@ -41,9 +42,11 @@ def list_tree(value):
 
 
 def tick(state, proposals=None):
+    upgrade_placeholder_citizens(state)
     state.simulation.tick += 1
     state.simulation.sim_time_seconds = state.simulation.tick * state.simulation.config.tick_seconds
     activate(state)
+    restore_personal_space(state)
     index = SpatialIndex(state.citizens)
     contexts = {aid: perception(state, c, index) for aid, c in state.citizens.items() if c.summary.active}
     rng = random.Random()
@@ -56,6 +59,18 @@ def tick(state, proposals=None):
         citizen = state.citizens[aid]
         context = contexts[aid]
         proposed = proposals.get(aid)
+        if proposed and proposed[0].action == "talk":
+            # A model-written line still waits its turn in a local conversation.
+            current_lines = [line for line in state.dialogue if aid in [line.speaker_id, *line.recipient_ids]]
+            if current_lines:
+                last = current_lines[-1]
+                interaction = state.interactions.get(last.interaction_id)
+                if (
+                    interaction
+                    and interaction.status in {"invited", "accepted"}
+                    and (last.tick >= state.simulation.tick or last.speaker_id == aid)
+                ):
+                    proposed = None
         intent = proposed[0] if proposed else rule_intent(state, citizen, context)
         if intent is not None:
             # All participants still have pre-movement positions at this boundary.

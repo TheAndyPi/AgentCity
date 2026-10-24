@@ -121,7 +121,13 @@ function PolygonBuilding({
   );
 }
 
-export default function Buildings({ buildings }: { buildings: Building[] }) {
+export default function Buildings({
+  buildings,
+  cutaway = [],
+}: {
+  buildings: Building[];
+  cutaway?: string[];
+}) {
   const signature = buildingSignature(buildings);
   // Reuse thousands of facade instances while citizens and occupancy update.
   const layout = useMemo(() => buildingLayout(buildings), [signature]);
@@ -130,11 +136,62 @@ export default function Buildings({ buildings }: { buildings: Building[] }) {
   const bounds = building ? buildingBounds(building) : null;
   return (
     <>
-      <Parts parts={layout.boxes} onHover={setHovered} />
-      <Parts parts={layout.roofs} roof onHover={setHovered} />
-      {layout.polygons.map((b) => (
-        <PolygonBuilding key={b.id} building={b} onHover={setHovered} />
-      ))}
+      <Parts
+        parts={layout.boxes.filter((p) => !cutaway.includes(p.buildingId))}
+        onHover={setHovered}
+      />
+      <Parts
+        parts={layout.roofs.filter((p) => !cutaway.includes(p.buildingId))}
+        roof
+        onHover={setHovered}
+      />
+      {layout.polygons
+        .filter((b) => !cutaway.includes(b.id))
+        .map((b) => (
+          <PolygonBuilding key={b.id} building={b} onHover={setHovered} />
+        ))}
+      {buildings
+        .filter((b) => cutaway.includes(b.id))
+        .map((b) => {
+          const bounds = buildingBounds(b);
+          return (
+            <group key={`interior-${b.id}`}>
+              <PolygonBuilding
+                building={{ ...b, height_m: 0.04 }}
+                onHover={setHovered}
+              />
+              {b.footprint.map((a, i) => {
+                const next = b.footprint[(i + 1) % b.footprint.length];
+                return (
+                  <mesh
+                    key={i}
+                    position={[(a.x + next.x) / 2, 0.16, (a.y + next.y) / 2]}
+                    rotation={[0, -Math.atan2(next.y - a.y, next.x - a.x), 0]}
+                  >
+                    <boxGeometry
+                      args={[
+                        Math.hypot(next.x - a.x, next.y - a.y),
+                        0.24,
+                        0.08,
+                      ]}
+                    />
+                    <meshStandardMaterial color={buildingInfo(b).accent} />
+                  </mesh>
+                );
+              })}
+              <Html
+                position={[bounds.x, 0.3, bounds.y - bounds.depth / 2]}
+                center
+                zIndexRange={[5, 0]}
+                style={{ pointerEvents: "none" }}
+              >
+                <div className="character-nameplate">
+                  Inside {b.name} · {b.occupancy}/{b.capacity}
+                </div>
+              </Html>
+            </group>
+          );
+        })}
       {building && bounds && (
         <Html
           position={[bounds.x, building.height_m + 2, bounds.y]}

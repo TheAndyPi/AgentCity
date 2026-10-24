@@ -2,6 +2,7 @@ import {
   Component,
   Suspense,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -19,11 +20,16 @@ import * as THREE from "three";
 import type { OrbitControls as OrbitControlsType } from "three-stdlib";
 import type { AgentSummary, Metric, Vec2, WorldFrame } from "../api/types";
 import { colors } from "../api/defaults";
+import CharacterModels from "./CharacterModels";
+import { characterAppearance } from "./characterAppearance";
 import { subscribeToContextLoss } from "./contextLoss";
 import Ground, { useGround } from "./Ground";
 import Buildings, { BuildingTag } from "./Buildings";
 import { buildingBounds, buildingInfo, type Building } from "./buildingLayout";
 import { groundColors, type GroundRect } from "./groundLayout";
+import { acknowledgedRoute, pointAlongRoute } from "./motion";
+import { insideBuilding } from "./buildingAccess";
+import { speechBySpeaker } from "./speech";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -44,66 +50,17 @@ type Props = {
   overlay: Overlay;
   hazards: boolean;
   follow: string | null;
+  focus?: string[];
   onUnfollow: () => void;
   reducedMotion: boolean;
   onCameraReady: (action: (a: CameraAction) => void) => void;
   onFallback: () => void;
 };
-const palette = [
-  "#af9ad4",
-  "#799eaa",
-  "#99aaa4",
-  "#c2acb4",
-  "#8e85bd",
-  "#c8bdaf",
-];
 export const instanceAgentId = (
   agents: AgentSummary[],
   index: number | undefined,
 ) => (index === undefined ? null : (agents[index]?.id ?? null));
-/** Interpolate only the acknowledged prefix of the PREVIOUS legal path. The current path can contain future positions and must never be traversed speculatively. */
-export function boundedPosition(
-  previous: Vec2,
-  current: AgentSummary,
-  t: number,
-  previousPath: Vec2[] = [],
-): Vec2 {
-  if (t >= 1 || previousPath.length === 0) return current.position;
-  const route = [previous, ...previousPath];
-  const prefix: Vec2[] = [previous];
-  let found = false;
-  for (let i = 1; i < route.length; i++) {
-    const a = route[i - 1],
-      b = route[i],
-      p = current.position;
-    const length = Math.hypot(b.x - a.x, b.y - a.y),
-      along = Math.hypot(p.x - a.x, p.y - a.y),
-      rest = Math.hypot(b.x - p.x, b.y - p.y);
-    if (Math.abs(along + rest - length) < 0.001) {
-      prefix.push(p);
-      found = true;
-      break;
-    }
-    prefix.push(b);
-  }
-  if (!found) return current.position;
-  const lengths = prefix
-    .slice(1)
-    .map((p, i) => Math.hypot(p.x - prefix[i].x, p.y - prefix[i].y));
-  let distance =
-    lengths.reduce((a, b) => a + b, 0) * Math.max(0, Math.min(t, 1));
-  for (let i = 0; i < lengths.length; i++) {
-    if (distance <= lengths[i]) {
-      const fraction = lengths[i] === 0 ? 1 : distance / lengths[i];
-      return {
-        x: prefix[i].x + (prefix[i + 1].x - prefix[i].x) * fraction,
-        y: prefix[i].y + (prefix[i + 1].y - prefix[i].y) * fraction,
-      };
-    }
-    distance -= lengths[i];
-  }
-  return current.position;
-}
+export { boundedPosition } from "./motion";
 
 function ContextGuard({ onFallback }: { onFallback: () => void }) {
   const gl = useThree((state) => state.gl);
@@ -174,150 +131,92 @@ function Polygon({
     </mesh>
   );
 }
-function Citizens({
-  frame,
-  selected,
-  onSelect,
-  reducedMotion,
-}: {
-  frame: WorldFrame;
-  selected: string | null;
-  onSelect: (id: string) => void;
-  reducedMotion: boolean;
-}) {
-  const body = useRef<THREE.InstancedMesh>(null),
-    heads = useRef<THREE.InstancedMesh>(null);
-  const received = useRef(new Map<string, AgentSummary>());
-  const state = useRef({
-    previous: new Map<string, AgentSummary>(),
-    changed: 0,
-    revision: -1,
-    id: "",
-  });
-  useEffect(() => {
-    const jump =
-      state.current.id !== frame.simulation.id ||
-      frame.ref.revision <= state.current.revision ||
-      frame.simulation.status !== "running";
-    state.current = {
-      previous: jump ? new Map() : new Map(received.current),
-      changed: performance.now(),
-      revision: frame.ref.revision,
-      id: frame.simulation.id,
-    };
-    received.current = new Map(frame.agents.map((a) => [a.id, a]));
-  }, [frame]);
-  useFrame(() => {
-    if (!body.current || !heads.current) return;
-    const o = new THREE.Object3D(),
-      c = new THREE.Color();
-    const t = reducedMotion
-      ? 1
-      : Math.min(1, (performance.now() - state.current.changed) / 400);
-    frame.agents.forEach((a, i) => {
-      const p = boundedPosition(
-        state.current.previous.get(a.id)?.position ?? a.position,
-        a,
-        t,
-        state.current.previous.get(a.id)?.path ?? [],
-      );
-      o.position.set(p.x, 1.1, p.y);
-      o.rotation.set(0, a.heading_rad, 0);
-      o.scale.set(1, 1, 1);
-      o.updateMatrix();
-      body.current!.setMatrixAt(i, o.matrix);
-      body.current!.setColorAt(
-        i,
-        c.set(
-          a.id === selected
-            ? "#7ffff0"
-            : a.action === "help"
-              ? "#83dbb6"
-              : palette[i % palette.length],
-        ),
-      );
-      o.position.y = 2.2;
-      o.updateMatrix();
-      heads.current!.setMatrixAt(i, o.matrix);
-    });
-    body.current.instanceMatrix.needsUpdate = true;
-    heads.current.instanceMatrix.needsUpdate = true;
-    if (body.current.instanceColor)
-      body.current.instanceColor.needsUpdate = true;
-  });
-  const chosen = frame.agents.find((a) => a.id === selected);
-  return (
-    <>
-      <instancedMesh
-        ref={body}
-        args={[undefined, undefined, frame.agents.length]}
-        onClick={(e) => {
-          e.stopPropagation();
-          const id = instanceAgentId(frame.agents, e.instanceId);
-          if (id) onSelect(id);
-        }}
-      >
-        <capsuleGeometry args={[0.5, 1.1, 3, 6]} />
-        <meshStandardMaterial roughness={0.8} />
-      </instancedMesh>
-      <instancedMesh
-        ref={heads}
-        args={[undefined, undefined, frame.agents.length]}
-        onClick={(e) => {
-          e.stopPropagation();
-          const id = instanceAgentId(frame.agents, e.instanceId);
-          if (id) onSelect(id);
-        }}
-      >
-        <sphereGeometry args={[0.42, 8, 6]} />
-        <meshStandardMaterial color="#e8d7d8" />
-      </instancedMesh>
-      {chosen && (
-        <>
-          <mesh
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={[chosen.position.x, 0.3, chosen.position.y]}
-          >
-            <ringGeometry args={[1.3, 1.7, 32]} />
-            <meshBasicMaterial color="#80ffe8" side={THREE.DoubleSide} />
-          </mesh>
-          {chosen.thought_bubble && (
-            <Html
-              zIndexRange={[8, 0]}
-              position={[chosen.position.x, 6, chosen.position.y]}
-              center
-            >
-              <div className="thought-bubble">
-                {chosen.thought_bubble.slice(0, 90)}
-              </div>
-            </Html>
-          )}
-        </>
-      )}
-    </>
-  );
+function closeupOffset(agents: AgentSummary[]) {
+  if (agents.length !== 2) return new THREE.Vector3(24, 19, 28);
+  const dx = agents[1].position.x - agents[0].position.x,
+    dz = agents[1].position.y - agents[0].position.y;
+  if (Math.hypot(dx, dz) < 0.1) return new THREE.Vector3(24, 19, 28);
+  // View across their line of conversation so one person cannot hide the other.
+  const offset = new THREE.Vector3(dz, 0, -dx).normalize().multiplyScalar(34);
+  if (offset.x + offset.z < 0) offset.multiplyScalar(-1);
+  offset.y = 20;
+  return offset;
 }
 function Camera({
   frame,
   follow,
+  focus = [],
   reducedMotion,
   onCameraReady,
   onUnfollow,
 }: {
   frame: WorldFrame;
   follow: string | null;
+  focus?: string[];
   reducedMotion: boolean;
   onCameraReady: Props["onCameraReady"];
   onUnfollow: () => void;
 }) {
   const controls = useRef<OrbitControlsType>(null);
+  const { size } = useThree();
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
+  const transition = useRef<{
+    center: THREE.Vector3;
+    offset: THREE.Vector3;
+    zoom: number;
+  } | null>(null);
+  useEffect(() => {
+    const c = controls.current;
+    if (!c) return;
+    const current = frameRef.current;
+    const agents = focus.length
+      ? current.agents.filter((a) => focus.includes(a.id))
+      : current.agents;
+    if (!agents.length) return;
+    // Existing larger saves retain a neighborhood overview; the intimate cast
+    // opens framed around their homes rather than the entire map boundary.
+    if (!focus.length && current.agents.length > 10) return;
+    const xs = agents.map((a) => a.position.x),
+      zs = agents.map((a) => a.position.y);
+    const center = new THREE.Vector3(
+      (Math.min(...xs) + Math.max(...xs)) / 2,
+      focus.length ? 1.1 : 0,
+      (Math.min(...zs) + Math.max(...zs)) / 2,
+    );
+    const span = Math.max(
+      Math.max(...xs) - Math.min(...xs),
+      Math.max(...zs) - Math.min(...zs),
+    );
+    const zoom = focus.length
+      ? Math.min(
+          72,
+          Math.max(
+            12,
+            Math.min(size.width * 0.65, size.height * 0.64) / (span + 9),
+          ),
+        )
+      : Math.min(size.width, size.height) / Math.max(45, span + 26);
+    transition.current = {
+      center,
+      offset: focus.length
+        ? closeupOffset(agents)
+        : new THREE.Vector3(90, 95, 100),
+      zoom,
+    };
+  }, [focus, frame.simulation.id, size.width, size.height]);
   useEffect(() => {
     onCameraReady((action) => {
       const c = controls.current;
       if (!c) return;
+      transition.current = null;
       const cam = c.object as THREE.OrthographicCamera;
-      if (action === "zoom_in") cam.zoom = Math.min(15, cam.zoom * 1.15);
-      else if (action === "zoom_out") cam.zoom = Math.max(2, cam.zoom / 1.15);
+      if (
+        ["zoom_in", "zoom_out", "rotate_left", "rotate_right"].includes(action)
+      )
+        onUnfollow();
+      if (action === "zoom_in") cam.zoom = Math.min(90, cam.zoom * 1.2);
+      else if (action === "zoom_out") cam.zoom = Math.max(2, cam.zoom / 1.2);
       else if (action === "rotate_left" || action === "rotate_right") {
         const d = cam.position.clone().sub(c.target);
         d.applyAxisAngle(
@@ -326,18 +225,28 @@ function Camera({
         );
         cam.position.copy(c.target).add(d);
       } else if (action === "reset") {
-        c.target.set(frame.map.width_m / 2, 0, frame.map.height_m / 2);
-        cam.position.set(
-          frame.map.width_m * 1.4,
-          Math.max(frame.map.width_m, frame.map.height_m) * 1.2,
-          frame.map.height_m * 1.45,
-        );
-        cam.zoom = 4.4;
+        const agents = frameRef.current.agents;
+        const center =
+          agents.length <= 10 && agents.length
+            ? new THREE.Vector3(
+                agents.reduce((v, a) => v + a.position.x, 0) / agents.length,
+                0,
+                agents.reduce((v, a) => v + a.position.y, 0) / agents.length,
+              )
+            : new THREE.Vector3(
+                frame.map.width_m / 2,
+                0,
+                frame.map.height_m / 2,
+              );
+        c.target.copy(center);
+        cam.position.copy(center).add(new THREE.Vector3(90, 95, 100));
+        cam.zoom =
+          agents.length <= 10 ? Math.min(size.width, size.height) / 55 : 4.4;
       } else {
         const delta = new THREE.Vector3(
-          action === "pan_left" ? -5 : action === "pan_right" ? 5 : 0,
+          action === "pan_left" ? -3 : action === "pan_right" ? 3 : 0,
           0,
-          action === "pan_up" ? -5 : action === "pan_down" ? 5 : 0,
+          action === "pan_up" ? -3 : action === "pan_down" ? 3 : 0,
         );
         c.target.add(delta);
         cam.position.add(delta);
@@ -346,21 +255,77 @@ function Camera({
       cam.updateProjectionMatrix();
       c.update();
     });
-  }, [onCameraReady, frame.map.width_m, frame.map.height_m, onUnfollow]);
+  }, [
+    onCameraReady,
+    frame.map.width_m,
+    frame.map.height_m,
+    onUnfollow,
+    size.width,
+    size.height,
+  ]);
   useFrame((_, dt) => {
-    if (!follow || !controls.current) return;
-    const a = frame.agents.find((a) => a.id === follow);
-    if (!a) {
+    const c = controls.current;
+    if (!c) return;
+    const cam = c.object as THREE.OrthographicCamera;
+    const goal = transition.current;
+    if (goal) {
+      const t = reducedMotion ? 1 : Math.min(1, dt * 5);
+      c.target.lerp(goal.center, t);
+      cam.position.lerp(goal.center.clone().add(goal.offset), t);
+      cam.zoom = THREE.MathUtils.lerp(cam.zoom, goal.zoom, t);
+      cam.updateProjectionMatrix();
+      c.update();
+      if (
+        c.target.distanceTo(goal.center) < 0.02 &&
+        Math.abs(cam.zoom - goal.zoom) < 0.02
+      )
+        transition.current = null;
+      return;
+    }
+    if (!follow) return;
+    const agents = frame.agents.filter((a) =>
+      focus.length > 1 ? focus.includes(a.id) : a.id === follow,
+    );
+    if (!agents.length) {
       onUnfollow();
       return;
     }
-    const c = controls.current;
-    const next = new THREE.Vector3(a.position.x, 0, a.position.y);
+    const next = new THREE.Vector3(
+      agents.reduce((v, a) => v + a.position.x, 0) / agents.length,
+      1.1,
+      agents.reduce((v, a) => v + a.position.y, 0) / agents.length,
+    );
     const delta = next
       .sub(c.target)
-      .multiplyScalar(reducedMotion ? 1 : Math.min(1, dt * 3));
+      .multiplyScalar(reducedMotion ? 1 : Math.min(1, dt * 4));
     c.target.add(delta);
-    c.object.position.add(delta);
+    cam.position.add(delta);
+    if (focus.length > 1 && agents.length > 1) {
+      cam.position.lerp(
+        c.target.clone().add(closeupOffset(agents)),
+        reducedMotion ? 1 : Math.min(1, dt * 3),
+      );
+      const span =
+        Math.max(...agents.map((a) => a.position.x)) -
+        Math.min(...agents.map((a) => a.position.x));
+      const depth =
+        Math.max(...agents.map((a) => a.position.y)) -
+        Math.min(...agents.map((a) => a.position.y));
+      const zoom = Math.min(
+        72,
+        Math.max(
+          12,
+          Math.min(size.width * 0.65, size.height * 0.64) /
+            (Math.max(span, depth) + 9),
+        ),
+      );
+      cam.zoom = THREE.MathUtils.lerp(
+        cam.zoom,
+        zoom,
+        reducedMotion ? 1 : Math.min(1, dt * 3),
+      );
+      cam.updateProjectionMatrix();
+    }
     c.update();
   });
   return (
@@ -369,12 +334,15 @@ function Camera({
       makeDefault
       target={[frame.map.width_m / 2, 0, frame.map.height_m / 2]}
       minZoom={2}
-      maxZoom={15}
-      maxPolarAngle={Math.PI / 2.15}
+      maxZoom={90}
+      maxPolarAngle={Math.PI / 2.05}
       minPolarAngle={0.18}
       enableDamping={!reducedMotion}
       dampingFactor={0.12}
-      onStart={onUnfollow}
+      onStart={() => {
+        transition.current = null;
+        onUnfollow();
+      }}
     />
   );
 }
@@ -449,7 +417,18 @@ export default function World(props: Props) {
           />
           <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
           <Ground map={props.frame.map} />
-          <Buildings buildings={props.frame.map.buildings} />
+          <Buildings
+            buildings={props.frame.map.buildings}
+            cutaway={props.frame.map.buildings
+              .filter((b) =>
+                props.frame.agents.some(
+                  (a) =>
+                    (a.id === props.selected || props.focus?.includes(a.id)) &&
+                    insideBuilding(a.position, b),
+                ),
+              )
+              .map((b) => b.id)}
+          />
           {props.overlay &&
             props.frame.map.zones.map((z) => (
               <Polygon
@@ -487,15 +466,17 @@ export default function World(props: Props) {
                 />
               </group>
             ))}
-          <Citizens
+          <CharacterModels
             frame={props.frame}
             selected={props.selected}
+            focus={props.focus}
             onSelect={props.onSelect}
             reducedMotion={props.reducedMotion}
           />
           <Camera
             frame={props.frame}
             follow={props.follow}
+            focus={props.focus}
             reducedMotion={props.reducedMotion}
             onCameraReady={props.onCameraReady}
             onUnfollow={props.onUnfollow}
@@ -504,6 +485,53 @@ export default function World(props: Props) {
       </Suspense>
     </WebGLErrorBoundary>
   );
+}
+function MapWalker({
+  agent,
+  frame,
+  reducedMotion,
+  children,
+}: {
+  agent: AgentSummary;
+  frame: WorldFrame;
+  reducedMotion: boolean;
+  children: ReactNode;
+}) {
+  const group = useRef<SVGGElement>(null);
+  const position = useRef(agent.position);
+  const simulation = useRef(frame.simulation.id);
+  const tick = useRef(frame.ref.tick);
+  useLayoutEffect(() => {
+    const reset =
+      simulation.current !== frame.simulation.id ||
+      frame.ref.tick < tick.current;
+    const start = reset ? agent.position : position.current;
+    const route = acknowledgedRoute(start, agent.position, frame.map);
+    const began = performance.now();
+    const duration = Math.min(
+      4000,
+      Math.max(600, 200 / frame.simulation.speed_multiplier),
+    );
+    let request = 0;
+    const draw = () => {
+      const t =
+        reducedMotion || reset
+          ? 1
+          : Math.min(1, (performance.now() - began) / duration);
+      const p = pointAlongRoute(route, t);
+      position.current = p;
+      group.current?.setAttribute(
+        "transform",
+        `translate(${p.x},${frame.map.height_m - p.y})`,
+      );
+      if (t < 1) request = requestAnimationFrame(draw);
+    };
+    draw();
+    simulation.current = frame.simulation.id;
+    tick.current = frame.ref.tick;
+    return () => cancelAnimationFrame(request);
+  }, [agent.position.x, agent.position.y, frame.simulation.id, reducedMotion]);
+  return <g ref={group}>{children}</g>;
 }
 function World2D(props: Props) {
   const {
@@ -517,6 +545,7 @@ function World2D(props: Props) {
     onUnfollow,
   } = props;
   const ground = useGround(frame.map);
+  const speech = speechBySpeaker(frame, props.focus);
   const patternId = useId().replace(/:/g, "");
   const [hovered, setHovered] = useState<Building | null>(null);
   const currentBuilding = frame.map.buildings.find((b) => b.id === hovered?.id);
@@ -538,7 +567,8 @@ function World2D(props: Props) {
   } | null>(null);
   useEffect(
     () =>
-      onCameraReady((a) =>
+      onCameraReady((a) => {
+        onUnfollow();
         setView((v) => {
           if (a === "reset")
             return {
@@ -548,7 +578,7 @@ function World2D(props: Props) {
               h: frame.map.height_m + 16,
             };
           const scale = a === "zoom_in" ? 0.85 : a === "zoom_out" ? 1.15 : 1,
-            w = Math.max(35, Math.min(200, v.w * scale));
+            w = Math.max(8, Math.min(200, v.w * scale));
           return {
             x:
               v.x +
@@ -561,23 +591,56 @@ function World2D(props: Props) {
             w,
             h: v.h * (w / v.w),
           };
-        }),
-      ),
-    [onCameraReady],
+        });
+      }),
+    [onCameraReady, onUnfollow],
   );
+  const lastViewFocus = useRef<{
+    ids: string[] | undefined;
+    simulation: string;
+  }>({ ids: undefined, simulation: "" });
   useEffect(() => {
-    if (!props.follow) return;
-    const a = frame.agents.find((a) => a.id === props.follow);
-    if (!a) {
-      onUnfollow();
+    const changed =
+      lastViewFocus.current.ids !== props.focus ||
+      lastViewFocus.current.simulation !== frame.simulation.id;
+    lastViewFocus.current = {
+      ids: props.focus,
+      simulation: frame.simulation.id,
+    };
+    if (!props.follow && !changed) return;
+    if (!props.focus?.length && !props.follow && frame.agents.length > 10)
       return;
-    }
-    setView((v) => ({
-      ...v,
-      x: a.position.x - v.w / 2,
-      y: frame.map.height_m - a.position.y - v.h / 2,
-    }));
-  }, [frame.agents, props.follow, onUnfollow, frame.map.height_m]);
+    const agents = frame.agents.filter((a) =>
+      props.focus?.length
+        ? props.focus.includes(a.id)
+        : props.follow
+          ? a.id === props.follow
+          : true,
+    );
+    if (!agents.length) return;
+    const xs = agents.map((a) => a.position.x),
+      ys = agents.map((a) => a.position.y);
+    const centerX = (Math.min(...xs) + Math.max(...xs)) / 2,
+      centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const span = Math.max(
+      Math.max(...xs) - Math.min(...xs),
+      Math.max(...ys) - Math.min(...ys),
+    );
+    setView((v) => {
+      const w = props.focus?.length
+        ? Math.max(12, span + 12)
+        : props.follow
+          ? v.w
+          : Math.max(45, span + 20);
+      return {
+        ...v,
+        x: centerX - w / 2,
+        y: frame.map.height_m - centerY - w / 2,
+        w,
+        h: w,
+      };
+    });
+  }, [frame.agents, props.focus, props.follow, frame.map.height_m]);
   const polygon = (p: Vec2[]) =>
     p.map((p) => `${p.x},${frame.map.height_m - p.y}`).join(" ");
   const patches = (name: string, pieces: GroundRect[], fill: string) => (
@@ -774,20 +837,54 @@ function World2D(props: Props) {
             }
           }}
         >
-          <circle
-            cx={a.position.x}
-            cy={frame.map.height_m - a.position.y}
-            r="2.6"
-            fill="transparent"
-          />
-          <circle
-            cx={a.position.x}
-            cy={frame.map.height_m - a.position.y}
-            r={a.id === selected ? 1.5 : 0.9}
-            fill={a.id === selected ? "#81ffe7" : "#efe4ff"}
-            stroke={a.id === selected ? "#81ffe7" : "#5d506f"}
-            strokeWidth=".4"
-          />
+          <MapWalker
+            agent={a}
+            frame={frame}
+            reducedMotion={props.reducedMotion}
+          >
+            {(a.id === selected || props.focus?.includes(a.id)) && (
+              <circle r="1.8" fill="none" stroke="#e4c67f" strokeWidth=".18" />
+            )}
+            <circle r="2.6" fill="transparent" />
+            <ellipse
+              cy=".55"
+              rx=".7"
+              ry=".85"
+              fill={characterAppearance(a.name).shirt}
+            />
+            <circle cy="-.4" r=".65" fill={characterAppearance(a.name).skin} />
+            <path
+              d="M-.65 -.4 Q-.7 -1.2 0 -1.1 Q.7 -1.2 .65 -.4 L.4 -.8 L-.3 -.65Z"
+              fill={characterAppearance(a.name).hair}
+            />
+            <circle cx="-.23" cy="-.35" r=".08" fill="#302a30" />
+            <circle cx=".23" cy="-.35" r=".08" fill="#302a30" />
+            {speech.has(a.id) && (
+              <foreignObject
+                x={-4}
+                y={-8}
+                width={8}
+                height={6}
+                pointerEvents="none"
+                overflow="visible"
+              >
+                <div
+                  className="character-speech"
+                  data-speaker-id={a.id}
+                  style={{
+                    width: "100%",
+                    fontSize: 0.38,
+                    padding: 0.4,
+                    borderRadius: 0.4,
+                  }}
+                >
+                  <strong>{a.name.split(" ")[0]}</strong>
+                  <br />
+                  {speech.get(a.id)!.text}
+                </div>
+              </foreignObject>
+            )}
+          </MapWalker>
         </g>
       ))}
       {currentBuilding && hoveredBounds && (

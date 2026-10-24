@@ -32,8 +32,8 @@ const modes: {
 }[] = [
   {
     id: "sandbox",
-    title: "Sandbox",
-    description: "Let a world unfold.",
+    title: "Everyday life",
+    description: "Follow ten neighbors through their everyday lives.",
     icon: FlaskConical,
   },
   {
@@ -60,11 +60,21 @@ export default function Setup() {
   const location = useLocation(),
     navigate = useNavigate();
   const [config, setConfig] = useState<Config>(() => {
-    if (location.state?.config) return location.state.config;
+    if (location.state?.config)
+      return {
+        ...location.state.config,
+        population: 10,
+        custom_agent_ids: location.state.config.custom_agent_ids.slice(0, 10),
+      };
     try {
-      return S.config.parse(
+      const draft = S.config.parse(
         JSON.parse(localStorage.getItem("agentcity-setup-draft") ?? "null"),
       );
+      return {
+        ...draft,
+        population: 10,
+        custom_agent_ids: draft.custom_agent_ids.slice(0, 10),
+      };
     } catch {
       return structuredClone(defaultConfig);
     }
@@ -116,8 +126,8 @@ export default function Setup() {
   return (
     <Page
       eyebrow="THE NEXT CHAPTER IS YOURS"
-      title="Build a world. See what happens."
-      description="Set the starting conditions. Your citizens take it from there."
+      title="Ten people. A world of little moments."
+      description="Make a small neighborhood, get to know each person, and drop into their everyday lives."
     >
       <div className="setup-layout">
         <form
@@ -141,23 +151,38 @@ export default function Setup() {
                 required
               />
             </Field>
-            <span className="field-caption">CHOOSE YOUR LENS</span>
-            <div className="mode-grid">
-              {modes.map(({ id, title, description, icon: Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`mode-card ${config.mode === id ? "selected" : ""}`}
-                  aria-pressed={config.mode === id}
-                  onClick={() => update("mode", id)}
-                >
-                  <Icon size={21} />
-                  <strong>{title}</strong>
-                  <span>{description}</span>
-                  <i />
-                </button>
-              ))}
+            <div className="everyday-intro">
+              <HeartHandshake size={22} />
+              <p>
+                <strong>Everyday life, up close.</strong>
+                <span>
+                  Visit your neighbors. Follow a conversation. See friendships
+                  grow.
+                </span>
+              </p>
             </div>
+            <details className="advanced">
+              <summary>
+                Other ways to explore
+                <ChevronDown size={15} />
+              </summary>
+              <div className="mode-grid">
+                {modes.map(({ id, title, description, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`mode-card ${config.mode === id ? "selected" : ""}`}
+                    aria-pressed={config.mode === id}
+                    onClick={() => update("mode", id)}
+                  >
+                    <Icon size={21} />
+                    <strong>{title}</strong>
+                    <span>{description}</span>
+                    <i />
+                  </button>
+                ))}
+              </div>
+            </details>
           </Section>
           <Section
             number="02"
@@ -166,67 +191,56 @@ export default function Setup() {
           >
             <div className="population-control">
               <div>
-                <h3>Population</h3>
-                <p>Between 10 and 100 citizens</p>
+                <h3>A cast you can know by name</h3>
+                <p>Ten neighbors. Room for every little story.</p>
               </div>
-              <div className="number-stepper">
-                <button
-                  type="button"
-                  aria-label="Decrease population"
-                  disabled={config.population <= 10}
-                  onClick={() => update("population", config.population - 1)}
-                >
-                  −
-                </button>
+              <div className="fixed-cast-size">
                 <input
                   aria-label="Population"
                   type="number"
-                  min={10}
-                  max={100}
-                  value={config.population}
-                  onChange={(e) => update("population", Number(e.target.value))}
+                  value={10}
+                  readOnly
                 />
-                <button
-                  type="button"
-                  aria-label="Increase population"
-                  disabled={config.population >= 100}
-                  onClick={() => update("population", config.population + 1)}
-                >
-                  +
-                </button>
+                <span>NEIGHBORS</span>
               </div>
             </div>
             {errors.population && (
               <p className="field-error">{errors.population}</p>
             )}
-            <div className="slider-grid">
-              {Object.entries(config.population_traits).map(([k, v]) => (
+            <details className="advanced">
+              <summary>
+                Personality & starting needs
+                <ChevronDown size={15} />
+              </summary>
+              <div className="slider-grid">
+                {Object.entries(config.population_traits).map(([k, v]) => (
+                  <Slider
+                    key={k}
+                    label={pretty(k)}
+                    value={v}
+                    onChange={(value) =>
+                      update("population_traits", {
+                        ...config.population_traits,
+                        [k]: value,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+              <div className="section-divider" />
+              <div className="slider-grid">
                 <Slider
-                  key={k}
-                  label={pretty(k)}
-                  value={v}
-                  onChange={(value) =>
-                    update("population_traits", {
-                      ...config.population_traits,
-                      [k]: value,
-                    })
-                  }
+                  label="Household supplies"
+                  value={config.household_supplies}
+                  onChange={(v) => update("household_supplies", v)}
                 />
-              ))}
-            </div>
-            <div className="section-divider" />
-            <div className="slider-grid">
-              <Slider
-                label="Household supplies"
-                value={config.household_supplies}
-                onChange={(v) => update("household_supplies", v)}
-              />
-              <Slider
-                label="Personality diversity"
-                value={config.personality_diversity}
-                onChange={(v) => update("personality_diversity", v)}
-              />
-            </div>
+                <Slider
+                  label="Personality diversity"
+                  value={config.personality_diversity}
+                  onChange={(v) => update("personality_diversity", v)}
+                />
+              </div>
+            </details>
             <div className="custom-agents-box">
               <div>
                 <Users size={18} />
@@ -254,6 +268,10 @@ export default function Setup() {
                       <input
                         type="checkbox"
                         checked={config.custom_agent_ids.includes(p.id)}
+                        disabled={
+                          config.custom_agent_ids.length >= 10 &&
+                          !config.custom_agent_ids.includes(p.id)
+                        }
                         onChange={(e) =>
                           update(
                             "custom_agent_ids",
@@ -278,59 +296,65 @@ export default function Setup() {
           </Section>
           <Section
             number="03"
-            title="Shape their surroundings"
-            description="The environment sets the stage. It doesn’t write the story."
+            title="A place to call home"
+            description="A few homes, shared spaces, and neighbors just a short walk away."
           >
-            <span className="field-caption">SETTLEMENT</span>
-            <div className="segmented">
-              <button
-                type="button"
-                className={
-                  config.environment.settlement === "suburb" ? "active" : ""
-                }
-                onClick={() =>
-                  update("environment", {
-                    ...config.environment,
-                    settlement: "suburb",
-                  })
-                }
-              >
-                Suburb <span>Room to grow</span>
-              </button>
-              <button
-                type="button"
-                className={
-                  config.environment.settlement === "urban" ? "active" : ""
-                }
-                onClick={() =>
-                  update("environment", {
-                    ...config.environment,
-                    settlement: "urban",
-                  })
-                }
-              >
-                Urban <span>Closer together</span>
-              </button>
-            </div>
-            <div className="slider-grid">
-              {(
-                [
-                  "resource_availability",
-                  "population_density",
-                  "infrastructure_capacity",
-                  "initial_community_trust",
-                ] as const
-              ).map((k) => (
-                <Slider
-                  key={k}
-                  label={pretty(k)}
-                  value={config.environment[k]}
-                  onChange={(v) =>
-                    update("environment", { ...config.environment, [k]: v })
+            <details className="advanced">
+              <summary>
+                Adjust their surroundings
+                <ChevronDown size={15} />
+              </summary>
+              <span className="field-caption">SETTLEMENT</span>
+              <div className="segmented">
+                <button
+                  type="button"
+                  className={
+                    config.environment.settlement === "suburb" ? "active" : ""
                   }
-                />
-              ))}
-            </div>
+                  onClick={() =>
+                    update("environment", {
+                      ...config.environment,
+                      settlement: "suburb",
+                    })
+                  }
+                >
+                  Suburb <span>Room to grow</span>
+                </button>
+                <button
+                  type="button"
+                  className={
+                    config.environment.settlement === "urban" ? "active" : ""
+                  }
+                  onClick={() =>
+                    update("environment", {
+                      ...config.environment,
+                      settlement: "urban",
+                    })
+                  }
+                >
+                  Urban <span>Closer together</span>
+                </button>
+              </div>
+              <div className="slider-grid">
+                {(
+                  [
+                    "resource_availability",
+                    "population_density",
+                    "infrastructure_capacity",
+                    "initial_community_trust",
+                  ] as const
+                ).map((k) => (
+                  <Slider
+                    key={k}
+                    label={pretty(k)}
+                    value={config.environment[k]}
+                    onChange={(v) =>
+                      update("environment", { ...config.environment, [k]: v })
+                    }
+                  />
+                ))}
+              </div>
+            </details>
           </Section>
           <Section
             number="04"

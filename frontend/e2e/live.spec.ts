@@ -102,9 +102,9 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
   await page.goto("/simulations/new");
   const name = `Live integration ${Date.now()}`;
   await page.getByLabel("Simulation name").fill(name);
-  await page
-    .getByRole("spinbutton", { name: "Population", exact: true })
-    .fill("30");
+  await expect(
+    page.getByRole("spinbutton", { name: "Population", exact: true }),
+  ).toHaveValue("10");
   await page
     .getByLabel("Your opening scenario")
     .fill("A flood severity 60 for 2 ticks");
@@ -114,7 +114,7 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
   await expect(page.getByRole("dialog")).toContainText("Confirm opening event");
   const id = page.url().match(/simulations\/([^/]+)/)![1];
   const initial = await api<WorldFrame>(page, `/simulations/${id}/state`);
-  expect(initial.agents).toHaveLength(30);
+  expect(initial.agents).toHaveLength(10);
   expect(initial.simulation.tick).toBe(0);
   await expect(page.locator(".mock-badge")).toHaveCount(0);
   await expect(page.locator(".connection")).toHaveText("LIVE");
@@ -768,9 +768,9 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .getByRole("button", { name: "Save and continue", exact: true })
     .click();
   await expect(page.getByLabel("Simulation name")).toHaveValue(name);
-  await page
-    .getByRole("spinbutton", { name: "Population", exact: true })
-    .fill("10");
+  await expect(
+    page.getByRole("spinbutton", { name: "Population", exact: true }),
+  ).toHaveValue("10");
   await page.getByRole("checkbox", { name: /Aster integration/ }).check();
   await page
     .getByRole("button", { name: "Create simulation", exact: true })
