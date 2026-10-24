@@ -63,7 +63,7 @@ def test_routes_prefer_public_roads_over_shorter_lawn_cut_through(client):
     assert len(route) > 8
     assert all(cell_at(state.map, point).terrain == "road" for point in route)
     # Walkable land is still reachable for a destination away from the streets.
-    lawn_destination = c.Vec2(x=5, y=7)
+    lawn_destination = c.Vec2(x=5, y=9)
     approach = pathfind(state.map, origin, lawn_destination)
     assert approach and approach[-1] == lawn_destination
     assert all(cell_at(state.map, point).walkable for point in approach)

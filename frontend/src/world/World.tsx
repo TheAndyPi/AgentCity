@@ -21,6 +21,8 @@ import type { AgentSummary, Metric, Vec2, WorldFrame } from "../api/types";
 import { colors } from "../api/defaults";
 import { subscribeToContextLoss } from "./contextLoss";
 import Ground, { useGround } from "./Ground";
+import Buildings, { BuildingTag } from "./Buildings";
+import { buildingBounds, buildingInfo, type Building } from "./buildingLayout";
 import { groundColors, type GroundRect } from "./groundLayout";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
@@ -142,127 +144,6 @@ function PerformanceReadout({
         citizens
       </output>
     </Html>
-  );
-}
-function Buildings({ frame }: { frame: WorldFrame }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
-  const buildings = frame.map.buildings;
-  const rectangular = buildings.filter(
-    (b) =>
-      b.footprint.length === 4 &&
-      b.footprint.every(
-        (p, i, all) => p.x === all[(i + 1) % 4].x || p.y === all[(i + 1) % 4].y,
-      ),
-  );
-  useEffect(() => {
-    if (!ref.current) return;
-    const o = new THREE.Object3D(),
-      color = new THREE.Color();
-    rectangular.forEach((b, i) => {
-      const xs = b.footprint.map((p) => p.x),
-        ys = b.footprint.map((p) => p.y);
-      o.position.set(
-        (Math.min(...xs) + Math.max(...xs)) / 2,
-        b.height_m / 2,
-        (Math.min(...ys) + Math.max(...ys)) / 2,
-      );
-      o.scale.set(
-        Math.max(...xs) - Math.min(...xs),
-        b.height_m,
-        Math.max(...ys) - Math.min(...ys),
-      );
-      o.updateMatrix();
-      ref.current!.setMatrixAt(i, o.matrix);
-      ref.current!.setColorAt(
-        i,
-        color.set(
-          b.functional
-            ? b.kind === "hospital"
-              ? "#9dc5bc"
-              : b.kind === "shelter"
-                ? "#87b3c3"
-                : b.kind === "community"
-                  ? "#c6a1d1"
-                  : palette[i % palette.length]
-            : "#575263",
-        ),
-      );
-    });
-    ref.current.instanceMatrix.needsUpdate = true;
-    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
-  }, [buildings]);
-  return (
-    <>
-      <instancedMesh
-        ref={ref}
-        args={[undefined, undefined, rectangular.length]}
-      >
-        <boxGeometry />
-        <meshStandardMaterial roughness={0.7} metalness={0.12} />
-      </instancedMesh>
-      {buildings
-        .filter((b) => !rectangular.includes(b))
-        .map((b) => (
-          <PolyBuilding
-            key={b.id}
-            footprint={b.footprint}
-            height={b.height_m}
-          />
-        ))}
-      {rectangular.map((b, i) => {
-        const xs = b.footprint.map((p) => p.x),
-          ys = b.footprint.map((p) => p.y);
-        const p = {
-          x: (Math.min(...xs) + Math.max(...xs)) / 2,
-          y: (Math.min(...ys) + Math.max(...ys)) / 2,
-        };
-        const width = Math.max(...xs) - Math.min(...xs),
-          depth = Math.max(...ys) - Math.min(...ys);
-        return (
-          <group key={b.id}>
-            <mesh position={[p.x, b.height_m + 0.4, p.y]}>
-              <boxGeometry args={[width * 0.65, 0.7, depth * 0.6]} />
-              <meshStandardMaterial color={palette[i % palette.length]} />
-            </mesh>
-            <mesh position={[b.entrance.x, 0.22, b.entrance.y]}>
-              <boxGeometry args={[2.5, 0.15, 1]} />
-              <meshBasicMaterial
-                color={b.kind === "shelter" ? "#76e8c7" : "#c3afe3"}
-              />
-            </mesh>
-            {(b.kind === "shelter" || b.kind === "community") && (
-              <Html
-                zIndexRange={[8, 0]}
-                position={[p.x, b.height_m + 4, p.y]}
-                center
-              >
-                <span className="building-label">
-                  {b.kind === "shelter" ? "SHELTER" : "COMMUNITY"}
-                </span>
-              </Html>
-            )}
-          </group>
-        );
-      })}
-    </>
-  );
-}
-function PolyBuilding({
-  footprint,
-  height,
-}: {
-  footprint: Vec2[];
-  height: number;
-}) {
-  const shape = useMemo(
-    () => new THREE.Shape(footprint.map((p) => new THREE.Vector2(p.x, -p.y))),
-    [footprint],
-  );
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]}>
-      <extrudeGeometry args={[shape, { depth: height, bevelEnabled: false }]} />
-      <meshStandardMaterial color="#ac97c5" />
-    </mesh>
   );
 }
 function Polygon({
@@ -568,7 +449,7 @@ export default function World(props: Props) {
           />
           <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
           <Ground map={props.frame.map} />
-          <Buildings frame={props.frame} />
+          <Buildings buildings={props.frame.map.buildings} />
           {props.overlay &&
             props.frame.map.zones.map((z) => (
               <Polygon
@@ -637,6 +518,11 @@ function World2D(props: Props) {
   } = props;
   const ground = useGround(frame.map);
   const patternId = useId().replace(/:/g, "");
+  const [hovered, setHovered] = useState<Building | null>(null);
+  const currentBuilding = frame.map.buildings.find((b) => b.id === hovered?.id);
+  const hoveredBounds = currentBuilding
+    ? buildingBounds(currentBuilding)
+    : null;
   const [view, setView] = useState({
     x: -8,
     y: -8,
@@ -716,7 +602,7 @@ function World2D(props: Props) {
     <svg
       className="world-2d"
       role="img"
-      aria-label="Interactive top-down city map. Select a citizen or use Search agent."
+      aria-label="Interactive top-down city map. Hover or focus a building for its purpose. Select a citizen or use Search agent."
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
       onPointerDown={(e) => {
         drag.current = {
@@ -793,16 +679,58 @@ function World2D(props: Props) {
       {patches("entrances", ground.entrances, groundColors.sidewalk)}
       {patches("curbs", ground.curbs, groundColors.curb)}
       {patches("markings", ground.markings, groundColors.markings)}
-      {frame.map.buildings.map((b, i) => (
-        <polygon
-          key={b.id}
-          points={polygon(b.footprint)}
-          fill={palette[i % palette.length]}
-          stroke="#dacded"
-          strokeWidth=".25"
-          pointerEvents="none"
-        />
-      ))}
+      {frame.map.buildings.map((b) => {
+        const info = buildingInfo(b),
+          bounds = buildingBounds(b);
+        return (
+          <g
+            key={b.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`${info.label}: ${b.name}`}
+            data-building-id={b.id}
+            data-building-purpose={info.purpose}
+            onPointerEnter={() => setHovered(b)}
+            onPointerLeave={() => setHovered(null)}
+            onFocus={() => setHovered(b)}
+            onBlur={() => setHovered(null)}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!drag.current?.moved) setHovered(b);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setHovered(null);
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setHovered(b);
+              }
+            }}
+          >
+            <polygon
+              points={polygon(b.footprint)}
+              fill={b.functional ? info.color : "#65636a"}
+              stroke="#eadfc9"
+              strokeWidth=".18"
+            />
+            <rect
+              x={bounds.x - bounds.width * 0.3}
+              y={frame.map.height_m - bounds.y - bounds.depth * 0.3}
+              width={bounds.width * 0.6}
+              height={bounds.depth * 0.6}
+              fill={info.accent}
+              pointerEvents="none"
+            />
+            {b.kind === "hospital" && (
+              <path
+                d={`M${bounds.x - 0.7} ${frame.map.height_m - bounds.y}h1.4 M${bounds.x} ${frame.map.height_m - bounds.y - 0.7}v1.4`}
+                stroke="#fff7e9"
+                strokeWidth=".42"
+                pointerEvents="none"
+              />
+            )}
+          </g>
+        );
+      })}
       {overlay &&
         frame.map.zones.map((z) => (
           <polygon
@@ -862,6 +790,31 @@ function World2D(props: Props) {
           />
         </g>
       ))}
+      {currentBuilding && hoveredBounds && (
+        <foreignObject
+          x={Math.max(
+            view.x,
+            Math.min(
+              view.x + view.w - Math.min(40, view.w),
+              hoveredBounds.x - 20,
+            ),
+          )}
+          y={Math.max(
+            view.y,
+            Math.min(
+              view.y + view.h - Math.min(29, view.h),
+              frame.map.height_m - hoveredBounds.y - 32,
+            ),
+          )}
+          width={Math.min(40, view.w)}
+          height={Math.min(29, view.h)}
+          pointerEvents="none"
+        >
+          <div className="building-tag-2d">
+            <BuildingTag building={currentBuilding} />
+          </div>
+        </foreignObject>
+      )}
     </svg>
   );
 }

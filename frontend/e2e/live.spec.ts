@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
+import * as THREE from "three";
 import type { Simulation, WorldFrame, Settings } from "../src/api/types";
 
 const artifactDirectory = resolve("artifacts/integration");
@@ -839,6 +840,129 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
   expect((await page.request.get(`/api/v1/simulations/${id}`)).status()).toBe(
     404,
   );
+});
+
+test("dense mixed-use blocks have 3D hover tags and keyboard-accessible 2D purposes", async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await preferences(page, {
+    view_mode: "3d",
+    reduce_motion: true,
+    theme: "dark",
+  });
+  const city = await api<Simulation>(page, "/simulations", "POST", {
+    config: {
+      name: "Downtown neighborhoods",
+      seed: 42,
+      population: 80,
+      environment: { settlement: "urban", population_density: 75 },
+    },
+  });
+  await expect
+    .poll(
+      async () =>
+        (await api<Simulation>(page, `/simulations/${city.id}`)).status,
+    )
+    .toBe("paused");
+  const frame = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
+  expect(frame.agents).toHaveLength(80);
+  expect(frame.map.buildings).toHaveLength(240);
+  const blocks = new Map<string, number>();
+  for (const building of frame.map.buildings) {
+    const first = building.footprint[0],
+      key = `${Math.floor(first.x / 16)}:${Math.floor(first.y / 16)}`;
+    blocks.set(key, (blocks.get(key) ?? 0) + 1);
+  }
+  expect(blocks.size).toBe(64);
+  expect([...blocks.values()].every((count) => count >= 2 && count <= 4)).toBe(
+    true,
+  );
+  await page.goto(`/simulations/${city.id}?qa=1`);
+  const viewport = page.getByRole("region", { name: /City viewport/ });
+  await expect(viewport.locator("canvas")).toBeVisible();
+  await expect(page.locator("[data-qa-fps]")).toContainText("FPS");
+  const canvas = (await viewport.locator("canvas").boundingBox())!;
+  const camera = new THREE.OrthographicCamera(
+    -canvas.width / 2,
+    canvas.width / 2,
+    canvas.height / 2,
+    -canvas.height / 2,
+    0.1,
+    1000,
+  );
+  camera.position.set(
+    frame.map.width_m * 1.4,
+    Math.max(frame.map.width_m, frame.map.height_m) * 1.2,
+    frame.map.height_m * 1.45,
+  );
+  camera.zoom = 4.4;
+  camera.lookAt(frame.map.width_m / 2, 0, frame.map.height_m / 2);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  const hoveredKinds = new Set<string>();
+  for (const building of [...frame.map.buildings].reverse()) {
+    if (hoveredKinds.has(building.kind)) continue;
+    const xs = building.footprint.map((p) => p.x),
+      ys = building.footprint.map((p) => p.y);
+    const point = new THREE.Vector3(
+      (Math.min(...xs) + Math.max(...xs)) / 2,
+      building.height_m,
+      (Math.min(...ys) + Math.max(...ys)) / 2,
+    ).project(camera);
+    const x = canvas.x + ((point.x + 1) * canvas.width) / 2,
+      y = canvas.y + ((1 - point.y) * canvas.height) / 2;
+    if (
+      x < canvas.x ||
+      x > canvas.x + canvas.width ||
+      y < canvas.y ||
+      y > canvas.y + canvas.height
+    )
+      continue;
+    await page.mouse.move(x, y);
+    const tag = page.locator(`[data-building-tooltip="${building.id}"]`);
+    if (await tag.isVisible()) {
+      await expect(tag).toContainText(building.name);
+      await expect(tag).toContainText(`Capacity ${building.capacity}`);
+      hoveredKinds.add(building.kind);
+    }
+    if (hoveredKinds.size >= 4) break;
+  }
+  expect(hoveredKinds.size).toBeGreaterThanOrEqual(4);
+  await page.mouse.move(canvas.x + 5, canvas.y + 5);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await page.screenshot({
+    path: info.outputPath("dense-city-3d.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Test WebGL fallback", exact: true })
+    .click();
+  await expect(viewport.locator("[data-building-id]")).toHaveCount(
+    frame.map.buildings.length,
+  );
+  const restaurant = frame.map.buildings.find((b) =>
+    b.name.includes("Restaurant"),
+  )!;
+  const restaurantShape = viewport.locator(
+    `[data-building-id="${restaurant.id}"]`,
+  );
+  await restaurantShape.hover();
+  await expect(page.getByRole("tooltip")).toContainText("Restaurant");
+  await expect(page.getByRole("tooltip")).toContainText(restaurant.name);
+  await page.mouse.move(canvas.x + 5, canvas.y + 5);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  const hospital = frame.map.buildings.find((b) => b.kind === "hospital")!;
+  await viewport.locator(`[data-building-id="${hospital.id}"]`).focus();
+  await expect(page.getByRole("tooltip")).toContainText(hospital.name);
+  await page.screenshot({
+    path: info.outputPath("dense-city-2d-purpose-tag.png"),
+    fullPage: true,
+  });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  expect(errors).toEqual([]);
 });
 
 for (const population of [30, 100])

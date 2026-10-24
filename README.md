@@ -17,6 +17,8 @@ Reopening a larger saved history includes integrity verification. The launchers 
 
 Create a city, confirm or skip its initial scenario, then use Play or Step. Custom scenarios pause the city while their effects are previewed. Outcomes, snapshots, replay, restored branches, profiles, settings and history use backend persistence in `backend/data/`. Restarted simulations reopen paused. Rules decisions are labeled in the interface.
 
+Fresh setup defaults to 80 citizens in an urban neighborhood. New maps contain two to four separate buildings per block (240 buildings at the default urban density), with clear road entrances and green courtyards. Apartments, offices, restaurants, markets and civic buildings have different silhouettes. Hover over a building in 3D or hover/focus one in 2D to see its name, purpose and capacity; tapping a building also shows its tag. Existing saved cities keep their original layout and population while receiving the new building rendering and tags. Existing setup drafts retain their chosen settings.
+
 The setup command creates `backend/.venv`, installs the pinned Python dependencies and runs `npm ci` in `frontend/`. On Windows, `python` must be on PATH; set `PYTHON` if another executable is needed when creating the environment. `AGENTCITY_PYTHON` can select an existing compatible Python environment.
 
 ## Configuration

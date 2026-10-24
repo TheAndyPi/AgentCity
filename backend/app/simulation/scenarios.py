@@ -61,35 +61,59 @@ def generate_map(state, rng):
                     zone_id=f"zone_{col // 32}_{row // 32}",
                 )
             )
-    kinds = ["shelter", "hospital", "community", "shop", "work", "work"] + ["home"] * max(
-        8, (config.population + 2) // 3
-    )
-    # Every entrance is a walkable public road; building interiors block navigation.
-    sites = [(col, row) for row in range(8, 57, 8) for col in range(8, 57, 8)]
-    if config.environment.settlement == "urban":
-        sites.sort(key=lambda p: (abs(p[0] - 32) + abs(p[1] - 32), p))
-    else:
-        rng.shuffle(sites)
-        density = config.environment.population_density / 100
-        # The density control changes household clustering on the fixed-size map.
-        sites.sort(
-            key=lambda p: density * (abs(p[0] - 32) + abs(p[1] - 32)) + (1 - density) * rng.random() * 80
-        )
+    urban = config.environment.settlement == "urban"
+    density = config.environment.population_density
+    lots_per_block = 2 + int(density >= 40) + int(urban or density >= 80)
+    # Four separate lots per block leave a shared green courtyard and clear
+    # approaches to the surrounding streets. The narrow waterfront fits two.
+    sites = []
+    for row in range(0, 57, 8):
+        for col in range(0, 57, 8):
+            lots = [0, 2] if col == 56 else list(range(4))
+            rng.shuffle(lots)
+            for lot in lots[:lots_per_block]:
+                dx, dy = (2 if lot % 2 == 0 else 5), (2 if lot < 2 else 5)
+                entrance = (
+                    Vec2(x=col * 2 + 1, y=(row + dy) * 2 + 1)
+                    if lot % 2 == 0
+                    else Vec2(x=(col + 8) * 2 + 1, y=(row + dy) * 2 + 1)
+                )
+                sites.append((col + dx, row + dy, entrance))
+    sites.sort(key=lambda p: (abs(p[0] - 32) + abs(p[1] - 32), p[0], p[1]))
+    street_names = ["Maple", "Cedar", "Willow", "Aster", "Harbor", "Oak", "Juniper", "Birch"]
+    mixed_use = ["home", "work", "home", "shop", "home", "work", "home", "community"]
     buildings = []
-    for i, kind in enumerate(kinds):
-        col, row = sites[i]
-        footprint = rectangle((col + 1) * 2, (row + 1) * 2, (col + 3) * 2, (row + 3) * 2)
-        for dy in (1, 2):
-            for dx in (1, 2):
+    for i, (col, row, entrance) in enumerate(sites):
+        kind = ["shelter", "hospital", "community"][i] if i < 3 else mixed_use[(i - 3) % len(mixed_use)]
+        street = street_names[i % len(street_names)]
+        purpose = {
+            "home": "Apartments" if urban or i % 3 else "Townhouse",
+            "work": "Company Offices" if i % 2 else "Studio Offices",
+            "shop": "Restaurant" if (i // len(mixed_use)) % 2 else "Market",
+            "shelter": "Emergency Shelter",
+            "hospital": "Hospital",
+            "community": "Community Center",
+        }[kind]
+        heights = {
+            "home": (9, 18) if urban else (5, 11),
+            "work": (12, 22) if urban else (8, 15),
+            "shop": (3.5, 5),
+            "shelter": (4, 6),
+            "hospital": (8, 11),
+            "community": (5, 8),
+        }
+        footprint = rectangle(col * 2, row * 2, (col + 2) * 2, (row + 2) * 2)
+        for dy in range(2):
+            for dx in range(2):
                 cells[(row + dy) * 64 + col + dx].walkable = False
         buildings.append(
             Building(
                 id=state.next_id("building"),
-                name=f"{kind.title()} {i + 1}",
+                name=f"{street} {purpose} {i + 1}",
                 kind=kind,
                 footprint=footprint,
-                entrance=Vec2(x=col * 2 + 1, y=row * 2 + 3),
-                height_m=(12 if config.environment.settlement == "urban" else 6) if kind == "home" else 12,
+                entrance=entrance,
+                height_m=round(rng.uniform(*heights[kind]), 2),
                 capacity=max(
                     1,
                     round(

@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 import zlib
 from collections import OrderedDict
 from pathlib import Path
@@ -88,7 +89,17 @@ class Repository:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temp, path)
+        # Windows can temporarily deny an atomic rename while another process
+        # holds a file handle. Retry only those errors on the same fsynced bytes;
+        # the old manifest remains the commit point until replacement succeeds.
+        for attempt in range(7):
+            try:
+                os.replace(temp, path)
+                break
+            except OSError as error:
+                if getattr(error, "winerror", None) not in {5, 32, 33} or attempt == 6:
+                    raise
+                time.sleep(0.02 * 2**attempt)
         if os.name != "nt":
             fd = os.open(path.parent, os.O_RDONLY)
             try:

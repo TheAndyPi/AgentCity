@@ -73,6 +73,18 @@ blocks match each other and the frozen 1.0.0 contract. No file under
   loading. Navigation prefers roads (cost 1) over walkable lawns (cost 4), while
   preserving obstacles, speed bounds, destination access and detours. Existing
   recorded map geometry and historical paths are preserved.
+- New city maps develop every block with two to four non-overlapping buildings,
+  including two lots along the narrow waterfront. Default urban settings produce
+  240 buildings; fresh setup defaults to 80 citizens and density 75. Homes,
+  workplaces and shops retain their existing simulation kinds, with restaurant,
+  market, apartment, townhouse and office names. Height ranges vary by purpose.
+  Building interiors remain blocked and all entrances connect to public roads.
+  Saved cities and setup drafts retain their original layout/population/settings.
+- Buildings use purpose-specific instanced facades: apartment setbacks/balconies,
+  office glazing, shop and restaurant awnings, pitched neighborhood roofs and
+  hospital crosses. Hover or tap in 3D reveals a single purpose/name/capacity tag;
+  2D supports hover, tap, keyboard focus and Escape. Geometry is retained between
+  occupancy updates, and arbitrary polygon footprints are preserved.
 - Applying the update exposed slow startup with a longer saved city. Recovery now
   verifies every unique object's checksum and journal reference, fully validates
   restored heads, and fully validates historical State objects on demand, without
@@ -88,12 +100,12 @@ blocks match each other and the frozen 1.0.0 contract. No file under
 | ---------------------------------------------------- | ----------------------------------------------------------- |
 | Fresh documented setup                               | Passed; locked Python install and frontend `npm ci`         |
 | TypeScript, including Playwright tests/configuration | Passed                                                      |
-| Frontend unit/contract tests                         | 76 passed                                                   |
-| Backend tests                                        | 113 passed in 45.00 s                                       |
+| Frontend unit/contract tests                         | 81 passed                                                   |
+| Backend tests                                        | 127 passed in 99.80 s                                       |
 | Frozen contract gate                                 | 36 file hashes plus DTO, OpenAPI and stream equality passed |
-| Ruff lint and format checks                          | Passed; 50 Python files formatted                           |
+| Ruff lint and format checks                          | Passed; 52 Python files formatted                           |
 | Production build                                     | Passed                                                      |
-| Real Chrome browser tests                            | 12 passed in 65.7 s; no skips, flaky tests or failures      |
+| Real Chrome browser tests                            | 13 passed in 107.1 s; no skips, flaky tests or failures     |
 | Git whitespace/error check                           | Passed                                                      |
 
 Run the same verification with `npm test`, `npm run build`, then
@@ -102,11 +114,21 @@ separate data directories under `backend/.tmp/`. Windows uses installed Chrome;
 other hosts can install Playwright Chromium as described in the root README.
 Only the current Windows environment was exercised.
 
-During publication verification, two earlier backend runs hit the test helper's
-15-second city-initialization timeout before reaching their domain assertions.
-The affected cases, all 29 domain tests, and the final full 113-test run passed
-without source changes or weakened assertions. The specific timeout cause was
-not captured; intermittent local initialization timing remains a test limitation.
+The earlier intermittent initialization timeout recurred during the denser-city
+update. A separate full browser run also reached a degraded persistence store.
+A disposable save stress test then captured `[WinError 5] Access is denied` at
+`os.replace(manifest.json.tmp, manifest.json)` after 53 publications. Atomic saves
+now retry only Windows rename errors 5, 32 and 33, with six exponential delays
+totaling at most 1.26 seconds. They reuse the same fsynced temporary file, retain
+the previous commit until success, and still halt writes on persistent failure.
+Disk-full and other errors fail immediately. Fault tests cover successful retry,
+exhaustion, unchanged durable/in-memory metadata and non-retryable errors. A fresh
+2,000-publication stress run passed. No test deadlines or assertions were weakened.
+
+The browser suite also checks a real 80-citizen, 240-building city, multiple
+buildings per block, hover tags on several 3D building kinds, restaurant hover in
+2D, hospital keyboard focus and Escape dismissal. Screenshots include
+`dense-city-3d.png` and `dense-city-2d-purpose-tag.png`.
 
 The browser suite exercises real creation and staged initialization, initial
 flood preview, queued confirmation, stepping/streaming, citizen inspection,
@@ -131,7 +153,7 @@ replace the simulation with fixture state.
 
 Recorded evidence:
 
-- `backend/artifacts/test-results.xml`: final 113-test JUnit report.
+- `backend/artifacts/test-results.xml`: final 127-test JUnit report.
 - `frontend/artifacts/integration/playwright-results.json`: final browser report,
   timings and running-world render measurements.
 - `frontend/artifacts/integration/live-request-response.json`: actual UI mutation
@@ -139,8 +161,8 @@ Recorded evidence:
 - `frontend/artifacts/integration/screenshots/`: full-resolution live preview,
   outcome, inspector, mobile, built application and 30/100-citizen evidence.
 
-Short Chrome headless samples at 1440×900 measured 153.4 FPS for 30 citizens and
-160.0 FPS for 100 while running, using the real local backend. These are local
+Short Chrome headless samples at 1440×900 measured 155.8 FPS for 30 citizens and
+163.0 FPS for 100 while running, using the real local backend. These are local
 render observations rather than universal performance guarantees. The prior
 backend cadence/storage measurements remain in `backend/artifacts/performance.json`.
 The Three.js/Fiber/Drei bundle is approximately 305.5 KB gzip, loaded separately.
