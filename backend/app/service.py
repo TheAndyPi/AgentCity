@@ -47,6 +47,44 @@ class Transaction:
     initialize: str | None = None
 
 
+@dataclass(frozen=True)
+class ProviderResult:
+    tag: str
+    context_tick: int
+    intent: c.Intent
+    expires_at: float
+
+
+class ProviderProposals(dict):
+    """The tick requests each proposal after activation and prior actors' actions.
+
+    Revalidate at that boundary, not just when the application starts the tick.
+    This preserves the engine's existing mapping interface without a second
+    writer or changes to simulation modules owned by the other workstream.
+    """
+
+    def __init__(self, service, state):
+        super().__init__()
+        self.service, self.state = service, state
+
+    def get(self, aid, default=None):
+        result = self.pop(aid, None)
+        if result is None:
+            return default
+        if not self.service.valid_proposal(self.state, aid, result):
+            self.service.discard_proposal(self.state, aid)
+            return default
+        self.state.provider_references.append(
+            dict(
+                agent_id=aid,
+                context_tick=result.context_tick,
+                accepted_tick=self.state.simulation.tick,
+                source="gemini",
+            )
+        )
+        return result.intent, result.tag
+
+
 class Service:
     def __init__(self, config):
         config.validate()
@@ -256,6 +294,9 @@ class Service:
                     for task_key, task in list(self.provider_tasks.items()):
                         if task_key[0] == result.delete:
                             task.cancel()
+                    for task_key in list(self.provider_results):
+                        if task_key[0] == result.delete:
+                            self.provider_results.pop(task_key, None)
                 if result.initialize:
                     self.initializers[result.initialize] = asyncio.create_task(
                         self.initialize(result.initialize)
@@ -1043,26 +1084,34 @@ class Service:
                         await self.persist([state])
 
     def take_proposals(self, state):
-        results = {}
-        for key, (tag, created, intent) in list(self.provider_results.items()):
+        results = ProviderProposals(self, state)
+        for key, result in list(self.provider_results.items()):
             sid, aid = key
             if sid != state.simulation.id:
                 continue
             self.provider_results.pop(key, None)
-            citizen = state.citizens.get(aid)
-            if citizen and tag == relevance(state, citizen) and state.simulation.tick - created <= 4:
-                results[aid] = (intent, tag)
-                state.provider_references.append(
-                    dict(
-                        agent_id=aid,
-                        context_tick=created,
-                        accepted_tick=state.simulation.tick,
-                        source="gemini",
-                    )
-                )
+            if self.valid_proposal(state, aid, result):
+                results[aid] = result
             else:
-                self.gateway.diagnostics["discarded"] += 1
+                self.discard_proposal(state, aid)
         return results
+
+    def valid_proposal(self, state, aid, result):
+        citizen = state.citizens.get(aid)
+        return (
+            citizen is not None
+            and citizen.summary.active
+            and result.context_tick <= state.simulation.tick
+            and time.monotonic() <= result.expires_at
+            and result.tag is not None
+            and result.tag == relevance(state, citizen)
+        )
+
+    def discard_proposal(self, state, aid):
+        self.gateway.diagnostics["discarded"] += 1
+        citizen = state.citizens.get(aid)
+        if citizen and citizen.summary.active:
+            citizen.next_deliberation_tick = min(citizen.next_deliberation_tick, state.simulation.tick)
 
     def prepare_deliberation(self, state):
         if not self.config.gemini_enabled or state.simulation.status != "running":
@@ -1094,7 +1143,7 @@ class Service:
                 continue
             context = context_for(state, citizen)
             if context:
-                tag = relevance(state, citizen)
+                tag = relevance(state, citizen, context)
                 created = state.simulation.tick
                 citizen.next_deliberation_tick = state.simulation.tick + 30
                 jobs.append((key, tag, created, context))
@@ -1114,7 +1163,13 @@ class Service:
         except DomainError:
             return
         if intent and key[0] in self.heads:
-            self.provider_results[key] = (tag, created, intent)
+            head = self.heads[key[0]]
+            # Request duration is bounded by Gateway.decide's wall-clock deadline.
+            # Delivery gets two physical scheduling intervals (2..10 real seconds),
+            # rather than four simulated ticks whose lifetime shrinks at high speed.
+            interval = 1 / (self.config.base_tps * head.simulation.speed_multiplier)
+            window = min(10, max(2, interval * 2))
+            self.provider_results[key] = ProviderResult(tag, created, intent, time.monotonic() + window)
 
     async def record_usage(self, sid, counts):
         async with self.writer:
