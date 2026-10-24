@@ -253,6 +253,8 @@ def perception(state, citizen, index=None):
                     facts.append(f"Observed {effect.hazard} conditions nearby")
                 elif effect.type == "community":
                     facts.append(f"Observed a local {effect.activity} activity")
+                elif effect.type == "information" and effect.reliability == 100:
+                    facts.append(f"World event: {effect.message}")
     return {
         "facts": facts,
         "nearby_ids": [c.summary.id for c in nearby],

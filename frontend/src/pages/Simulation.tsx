@@ -886,7 +886,17 @@ export default function Simulation() {
           onClick={() => open({ type: "feed" })}
         >
           <MessageSquare size={17} />
-          Neighborhood feed<span>{frame.recent_dialogue.length}</span>
+          Conversations
+          <span>
+            {new Set(frame.recent_dialogue.map((d) => d.interaction_id)).size}
+          </span>
+        </button>
+        <button
+          className="glass quiet-button"
+          onClick={() => open({ type: "traits" })}
+        >
+          <Users size={17} />
+          Agent traits<span>{frame.agents.length}</span>
         </button>
       </div>
       <div className="camera-tools glass">

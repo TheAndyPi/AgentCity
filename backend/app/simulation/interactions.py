@@ -43,14 +43,27 @@ def accept_invitation(state, actor, target, kind, proposal=None):
 
 
 def speak(state, actor, target, intent, decision_id, interaction):
-    text = (
-        intent.parameters.message
-        or (
-            "There is danger nearby; please find a safe route."
-            if intent.action == "warn"
-            else "How are you managing today?"
+    previous = [d for d in state.dialogue if d.interaction_id == interaction.id]
+    events = [m for m in actor.memories if m.text.startswith("World event:")]
+    if intent.action == "warn":
+        fallback = "There is danger nearby; please find a safe route."
+    elif not previous:
+        fallback = (
+            f"Did you see what happened? {events[-1].text.removeprefix('World event: ')}"
+            if events
+            else f"Hi {target.summary.name.split()[0]}! How is your day going?"
         )
-    )[:2000]
+    elif len(previous) == 1:
+        fallback = (
+            "I heard you. I'd like to see how we can help each other."
+            if actor.profile.traits.empathy >= 60
+            else f"I've been thinking about my own plans. {actor.profile.primary_goal}"
+        )
+    elif len(previous) == 2:
+        fallback = f"That makes sense. For me, what matters is {', '.join(actor.profile.values[:2]) or 'getting through the day'}."
+    else:
+        fallback = f"Thanks for talking, {target.summary.name.split()[0]}. See you around!"
+    text = (intent.parameters.message or fallback)[:2000]
     # Physical filtering occurs independently for each message, including overhearers.
     audible = [
         c.summary.id

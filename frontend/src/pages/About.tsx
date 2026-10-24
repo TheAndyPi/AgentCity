@@ -49,7 +49,7 @@ export default function About() {
             {
               icon: Sparkles,
               title: "A change in the everyday",
-              text: "Describe an event. Review its supported effects. Server rules validate actions, and committed state records the consequences.",
+              text: "Describe any event. Preview what citizens experience. Server rules validate actions, and committed state records the consequences.",
             },
             {
               icon: GitBranch,

@@ -12,6 +12,7 @@
     "build": "npm --prefix frontend run build",
     "start": "node scripts/start.mjs",
     "test": "node scripts/check.mjs",
-    "test:e2e": "npm --prefix frontend run test:e2e"
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:gemini": "node scripts/test-gemini.mjs"
   }
 }

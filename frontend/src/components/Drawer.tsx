@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowRight,
   X,
-  Search,
   Users,
   Heart,
   Shield,
@@ -28,9 +27,11 @@ import type {
 import type { Overlay } from "../world/World";
 import * as S from "../api/schemas";
 import Narration from "./Narration";
+import { Conversations, Personality, TraitsRoster } from "./LifePanels";
 import { ReportMetrics } from "./OutcomeDialog";
 export type DrawerNode =
   | { type: "search" }
+  | { type: "traits" }
   | { type: "agent"; id: string }
   | { type: "decision"; id: string }
   | { type: "events" }
@@ -41,7 +42,8 @@ export type DrawerNode =
   | { type: "feed" }
   | { type: "compare"; otherId?: string };
 const titles = {
-  search: "Find a citizen",
+  search: "Agent traits",
+  traits: "Agent traits",
   agent: "A closer look",
   decision: "Why this action",
   events: "City chronicle",
@@ -49,7 +51,7 @@ const titles = {
   overview: "The bigger picture",
   overlays: "A different perspective",
   agents: "Bring someone new",
-  feed: "Around the neighborhood",
+  feed: "Conversations",
   compare: "Two paths, one beginning",
 };
 export default function Drawer({
@@ -128,11 +130,15 @@ export default function Drawer({
         </button>
       </header>
       <div className="drawer-scroll">
-        <div className="revision-label">
-          COMMITTED REVISION {revision} <span>· tick {frame.ref.tick}</span>
-        </div>
-        {top.type === "search" ? (
-          <SearchPanel frame={frame} onPush={onPush} />
+        {!["search", "traits", "feed"].includes(top.type) && (
+          <div className="revision-label">Tick {frame.ref.tick}</div>
+        )}
+        {top.type === "search" || top.type === "traits" ? (
+          <TraitsRoster
+            frame={frame}
+            revision={revision}
+            onAgent={(id) => onPush({ type: "agent", id })}
+          />
         ) : top.type === "agent" ? (
           <AgentInspector
             queryScope={queryScope}
@@ -214,56 +220,6 @@ function Avatar({ name, large = false }: { name: string; large?: boolean }) {
     </span>
   );
 }
-function SearchPanel({
-  frame,
-  onPush,
-}: {
-  frame: WorldFrame;
-  onPush: (n: DrawerNode) => void;
-}) {
-  const [q, setQ] = useState("");
-  const agents = frame.agents.filter((a) =>
-    `${a.name} ${a.role}`.toLowerCase().includes(q.toLowerCase()),
-  );
-  return (
-    <>
-      <div className="search-input">
-        <Search size={17} />
-        <input
-          autoFocus
-          placeholder="Name or role…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          aria-label="Search citizens"
-        />
-      </div>
-      <p className="helper-text">
-        {agents.length} citizens · select a story to explore
-      </p>
-      <div className="citizen-list">
-        {agents.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => onPush({ type: "agent", id: a.id })}
-          >
-            <Avatar name={a.name} />
-            <span>
-              <strong>{a.name}</strong>
-              <small>{a.role}</small>
-            </span>
-            <i className="status-dot" />
-            <ChevronRight size={15} />
-          </button>
-        ))}
-      </div>
-      {!agents.length && (
-        <Empty title="No matching citizens">
-          Try a different name or role.
-        </Empty>
-      )}
-    </>
-  );
-}
 function AgentInspector({
   queryScope,
   frame,
@@ -291,7 +247,7 @@ function AgentInspector({
     [frame.simulation.id, id, revision],
     JSON.stringify([queryScope, id]),
   );
-  const [tab, setTab] = useState("story");
+  const [tab, setTab] = useState("traits");
   if (result.error && !result.data)
     return <ErrorBox error={result.error} retry={result.reload} />;
   if (!result.data) return <Busy text="Reading this citizen’s story…" />;
@@ -345,7 +301,7 @@ function AgentInspector({
         ))}
       </div>
       <div className="drawer-tabs" role="tablist" aria-label="Citizen details">
-        {["story", "memories", "relationships", "mind"].map((t) => (
+        {["traits", "story", "memories", "relationships", "mind"].map((t) => (
           <button
             role="tab"
             aria-selected={tab === t}
@@ -356,7 +312,9 @@ function AgentInspector({
           </button>
         ))}
       </div>
-      {tab === "story" ? (
+      {tab === "traits" ? (
+        <Personality profile={d.profile} />
+      ) : tab === "story" ? (
         <>
           <div className="thought-card">
             <MessageSquare size={16} />
@@ -1217,28 +1175,19 @@ function FeedPanel({
     [frame.simulation.id, revision],
     queryScope,
   );
-  return r.error ? (
-    <ErrorBox error={r.error} />
-  ) : !r.data ? (
-    <Busy />
-  ) : r.data.length ? (
-    r.data.map((d) => (
-      <article className="dialogue-card" key={d.id}>
-        <button onClick={() => onPush({ type: "agent", id: d.speaker_id })}>
-          {frame.agents.find((a) => a.id === d.speaker_id)?.name ??
-            d.speaker_id}
-          <span>Tick {d.tick}</span>
-        </button>
-        <p>“{d.text}”</p>
-        <small>
-          {d.emotion} · {d.intent}
-        </small>
-      </article>
-    ))
-  ) : (
-    <Empty title="A quiet moment">
-      Recorded conversations will appear here as neighbors interact.
-    </Empty>
+  return (
+    <>
+      {r.error && <ErrorBox error={r.error} retry={r.reload} />}
+      {!r.data && !r.error ? (
+        <Busy text="Listening in…" />
+      ) : (
+        <Conversations
+          dialogue={r.data ?? frame.recent_dialogue}
+          frame={frame}
+          onAgent={(id) => onPush({ type: "agent", id })}
+        />
+      )}
+    </>
   );
 }
 export function ComparePanel({

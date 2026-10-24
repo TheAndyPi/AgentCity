@@ -342,3 +342,66 @@ def test_frontend_suggested_scenarios_have_real_supported_effects(client, prompt
     assert result.can_commit and result.spec.effects
     if "aid" in prompt:
         assert any(effect.type == "community" and effect.activity == "aid" for effect in result.spec.effects)
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Dinosaurs appear in the town square",
+        "Two neighbors discover they are long-lost siblings",
+        "A mysterious visitor arrives with a secret",
+        "A flood and a dragon visit the whole city for 2 ticks",
+    ],
+)
+def test_open_ended_events_reach_citizens_and_remain_repeatable(client, prompt):
+    from app.simulation.scenarios import queue_event
+
+    state = world(client)
+    preview = compile_preview(state, "custom", prompt)
+    assert preview.can_commit and preview.unsupported_requests == []
+    assert preview.spec.description == prompt
+    assert preview.spec.title == prompt[:80]
+    preview.spec.duration_ticks = 1
+    runtime = queue_event(state, preview, state.snapshots[0].id, False)
+    tick(state)
+    cohort = state.events[runtime.id].cohort
+    assert cohort
+    for aid in cohort:
+        citizen = state.citizens[aid]
+        assert any(prompt in memory.text for memory in citizen.memories)
+        assert any(prompt in belief.text for belief in citizen.beliefs)
+    while state.events[runtime.id].summary.status != "resolved":
+        tick(state)
+    repeated = compile_preview(state, "repeat", source_event_id=runtime.id)
+    assert repeated.spec == preview.spec
+
+
+def test_rules_reply_to_a_neighbor_and_use_observed_event_in_conversation(client):
+    from app.simulation.game_master import rule_intent
+
+    state = world(client)
+    a, b = nearby_pair(state)
+    remember(state, a, "World event: Dinosaurs appear in the town square")
+    apply_intent(state, a, make_intent("talk", target=b.summary.id))
+    assert "Dinosaurs" in state.dialogue[-1].text
+    # Needs that require immediate care still have priority over conversation.
+    b.needs.hunger = 0
+    b.needs.fatigue = 0
+    reply = rule_intent(state, b, perception(state, b))
+    assert reply.action == "talk" and reply.target_id == a.summary.id
+    apply_intent(state, b, reply)
+    assert state.dialogue[-1].speaker_id == b.summary.id
+    assert state.dialogue[-1].interaction_id == state.dialogue[-2].interaction_id
+    assert state.dialogue[-1].text != state.dialogue[-2].text
+
+
+def test_full_length_custom_event_and_empty_event_validation(client):
+    from app.infrastructure.errors import DomainError
+
+    state = world(client)
+    prompt = "A" * 2000
+    result = compile_preview(state, "custom", prompt)
+    assert result.can_commit and result.spec.description == prompt
+    assert len(result.interpretation) <= 2000
+    with pytest.raises(DomainError):
+        compile_preview(state, "custom", "   ")

@@ -474,6 +474,27 @@ def rule_intent(state, citizen, context):
                     amount=1,
                     motivation="Accept a nearby exchange of essential supplies",
                 )
+    # Give a nearby speaker a reply before starting another routine task.
+    for conversation in state.interactions.values():
+        if (
+            conversation.kind == "conversation"
+            and conversation.status in {"invited", "accepted"}
+            and conversation.expires_tick >= state.simulation.tick
+            and citizen.summary.id in conversation.participant_ids
+        ):
+            lines = [d for d in state.dialogue if d.interaction_id == conversation.id]
+            if lines and lines[-1].speaker_id != citizen.summary.id:
+                speaker = state.citizens.get(lines[-1].speaker_id)
+                if (
+                    speaker is not None
+                    and speaker.summary.id in context["nearby_ids"]
+                    and distance(p, speaker.summary.position) <= 3
+                ):
+                    return make_intent(
+                        "talk",
+                        target=speaker.summary.id,
+                        motivation="Reply to the neighbor who just spoke to me",
+                    )
     scarce = min(("food", "water", "supplies"), key=lambda kind: getattr(citizen.inventory, kind))
     if getattr(citizen.inventory, scarce) < 2:
         sources = [

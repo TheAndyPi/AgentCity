@@ -11,6 +11,7 @@ from app.contracts import (
     EventReport,
     EventSpec,
     EventSummary,
+    InformationEffect,
     MapData,
     MetricDeltas,
     Metrics,
@@ -274,50 +275,23 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         spec = preset(state, kinds[0] if kinds else "custom", prompt=prompt or "")
         for kind in kinds[1:]:
             spec.effects.extend(preset(state, kind, prompt=prompt or "").effects)
-        # Explicitly preserve the complete request: no claim of unrestricted NLP.
-        unsupported_terms = [
-            word
-            for word in (
-                "teleport",
-                "dinosaur",
-                "earthquake",
-                "disease",
-                "epidemic",
-                "tsunami",
-                "meteor",
-                "war",
-                "zombie",
-                "build a",
-                "create a building",
-                "kill",
-                "resurrect",
-                "hydrodynamic",
+        # Keep every custom premise as citizen-visible world context. Familiar
+        # mechanics can accompany it, but a keyword list never gates an event.
+        premise = (prompt or "").strip()
+        require(bool(premise), "INVALID_REQUEST", "Describe an event first", 400)
+        if "misinformation" not in kinds:
+            spec.effects.append(
+                InformationEffect(
+                    type="information", message=premise[:2000], reliability=100, delivery="local"
+                )
             )
-            if word in text
-        ]
-        if not kinds:
-            unsupported.append(prompt[:2000] if prompt else "No supported effect family recognized")
-        elif unsupported_terms:
-            unsupported.append("Unsupported mechanics: " + ", ".join(unsupported_terms))
-        for clause in re.split(r"\b(?:and|plus|also|then)\b|[;,]", prompt or "", flags=re.IGNORECASE):
-            if (
-                clause.strip()
-                and not any(
-                    re.search(r"\b" + re.escape(word) + r"\b", clause.lower())
-                    for words in aliases.values()
-                    for word in words
-                )
-                and not re.fullmatch(
-                    r"[\s\w.:=%-]*(?:ticks?|severity|north|south|east|west)[\s\w.:=%-]*",
-                    clause,
-                    re.IGNORECASE,
-                )
-            ):
-                notice = "Uncompiled request fragment: " + clause.strip()[:1900]
-                if kinds and notice not in unsupported:
-                    unsupported.append(notice)
+        spec.title = " ".join(premise.split())[:80].strip()
+        if not kinds and not any(word in text for word in ("north", "east", "west", "south")):
+            spec.affected_polygon = rectangle(0, 0, state.map.width_m, state.map.height_m)
+            spec.origin = Vec2(x=state.map.width_m / 2, y=state.map.height_m / 2)
         warnings.append(
-            "Bounded keyword compiler: only the displayed effects, polygon, severity and tick duration will execute. Other prose is not executable."
+            "Citizens observe this event, remember it and can discuss it. "
+            "Physical changes are limited to the additional effects shown below."
         )
         if "community aid" in text or "aid drive" in text:
             spec.effects = [
@@ -338,7 +312,7 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         source_event_id=source_event_id,
         based_on=state.ref(),
         expires_at=expiry(),
-        interpretation=f"{spec.title}: severity {spec.severity:g}, {spec.duration_ticks} ticks; {len(spec.effects)} supported effect(s).",
+        interpretation=f"{spec.description[:1900]} Citizens respond in their own way over {spec.duration_ticks} ticks.",
         spec=spec,
         affected_agent_ids=[
             a
@@ -449,8 +423,10 @@ def activate(state):
                     memory = remember(
                         state,
                         citizen,
-                        f"Scenario source reports: {effect.message}",
-                        source="heard",
+                        f"World event: {effect.message}"
+                        if effect.reliability == 100
+                        else f"Scenario source reports: {effect.message}",
+                        source="observed" if effect.reliability == 100 else "heard",
                         importance=60,
                         proof=proof,
                     )
@@ -458,10 +434,16 @@ def activate(state):
 
                     citizen.beliefs.append(
                         Belief(
-                            text=f"Unverified scenario broadcast: {effect.message}"[:2000],
+                            text=(
+                                f"World event: {effect.message}"
+                                if effect.reliability == 100
+                                else f"Unverified scenario broadcast: {effect.message}"
+                            )[:2000],
                             confidence=effect.reliability,
                             evidence=evidence(
-                                "Heard information; not verified fact",
+                                "Observed world event"
+                                if effect.reliability == 100
+                                else "Heard information; not verified fact",
                                 event_ids=[runtime.summary.id],
                                 memory_ids=[memory.id],
                             ),

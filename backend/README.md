@@ -114,9 +114,49 @@ in `../docs/backend-handoff.md` and `../docs/backend-contract-requests.md`.
 
 ## Gemini and optional integrations
 
-To enable Gemini, select an actual model available to your account and set
-`LLM_MODE=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL` on the server. No model or
-price is assumed. The gateway uses structured JSON and semantic Game Master
+Gemini supports two explicit billing routes. Set `LLM_MODE=gemini` and
+`GEMINI_MODEL=gemini-3.5-flash-lite` in `backend/.env`.
+
+For Google Cloud (Vertex AI), set `GEMINI_BACKEND=vertex`,
+`GOOGLE_CLOUD_PROJECT` to your project ID, and `GOOGLE_CLOUD_LOCATION=global`.
+Enable `aiplatform.googleapis.com` on that project and confirm its linked billing
+account has eligible unexpired credits. The calling identity needs Vertex AI User
+(`roles/aiplatform.user`) and Service Usage Consumer (`roles/serviceusage.serviceUsageConsumer`).
+For local authentication, install the Google Cloud CLI and run:
+
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project YOUR_PROJECT_ID
+```
+
+Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS` to the absolute path of a
+service-account JSON file stored outside Git (owner-only permissions, e.g. `chmod 600`).
+The local unattended setup uses service account
+`agentcity-backend@agentcityx.iam.gserviceaccount.com` in project `agentcityx`.
+The secret itself is not included in this repository. Set
+`GOOGLE_GENAI_USE_VERTEXAI=true` as the standard Google SDK routing flag;
+AgentCity's explicit `GEMINI_BACKEND` takes precedence if both are set.
+For a Google Cloud deployment, prefer attaching the service account to the
+runtime and omit `GOOGLE_APPLICATION_CREDENTIALS` so metadata credentials are used.
+Google Cloud authentication refreshes
+off the simulation event loop. This route never uses `GEMINI_API_KEY` or silently
+switches to AI Studio billing. Credit eligibility and charges are controlled by
+Google Cloud, not by these environment variables.
+
+For the AI Studio Developer API instead, set `GEMINI_BACKEND=developer` and
+`GEMINI_API_KEY`. That route uses AI Studio billing, which excludes the standard
+Google Cloud welcome credits.
+
+From the repository root, `npm run test:gemini` loads the local environment and
+makes one small live structured-decision request. Authentication must be completed
+first. `npm run test:gemini -- --application` starts a disposable real backend,
+creates a ten-citizen city through HTTP, plays it, and requires an accepted
+Gemini decision returned through the decision API. It pauses the test city and
+removes its temporary storage. Both commands make real, potentially billable
+Vertex requests; they are opt-in and excluded from `npm test`.
+Restart the backend after configuration changes.
+
+The gateway uses structured JSON and semantic Game Master
 checks. Physical ticks never await the provider. Timeout, rate limit, malformed,
 obsolete, budget-limited and circuit-open responses fall back to labeled rules.
 Only persona/decision generation calls the provider in this build; deterministic

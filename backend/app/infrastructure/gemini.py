@@ -6,7 +6,11 @@ from collections import deque
 from pathlib import Path
 from urllib.parse import quote
 
+import google.auth
 import httpx
+import requests
+from google.auth.exceptions import GoogleAuthError
+from google.auth.transport.requests import Request
 
 from app.contracts import Intent
 from app.data.repository import encode
@@ -88,7 +92,49 @@ class Gateway:
         self.reserved = 0
         self.failures = 0
         self.open_until = 0
+        self.credentials = None
+        self.auth_lock = asyncio.Lock()
+        # Only bounded categories/status codes; never credentials or provider response bodies.
+        self.last_error = None
         self.diagnostics = {"timeouts": 0, "rate_limits": 0, "malformed": 0, "fallbacks": 0, "discarded": 0}
+
+    def endpoint(self):
+        model = quote(self.config.gemini_model, safe="")
+        if self.config.gemini_backend != "vertex":
+            return f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        location = quote(self.config.google_cloud_location, safe="")
+        project = quote(self.config.google_cloud_project, safe="")
+        host = (
+            "aiplatform.googleapis.com" if location == "global" else f"{location}-aiplatform.googleapis.com"
+        )
+        return (
+            f"https://{host}/v1/projects/{project}/locations/{location}"
+            f"/publishers/google/models/{model}:generateContent"
+        )
+
+    def _cloud_headers(self):
+        if self.credentials is None:
+            self.credentials, _ = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                quota_project_id=self.config.google_cloud_project,
+            )
+        headers = {}
+        # Refresh credentials off the simulation event loop with bounded HTTP calls.
+        with requests.Session() as session:
+            transport = Request(session=session)
+
+            def request(*args, **kwargs):
+                kwargs["timeout"] = self.config.llm_timeout
+                return transport(*args, **kwargs)
+
+            self.credentials.before_request(request, "POST", self.endpoint(), headers)
+        return headers
+
+    async def headers(self):
+        if self.config.gemini_backend != "vertex":
+            return {"x-goog-api-key": self.config.gemini_api_key}
+        async with self.auth_lock:
+            return await asyncio.to_thread(self._cloud_headers)
 
     async def decide(self, sid, context):
         if not self.config.gemini_enabled:
@@ -123,10 +169,10 @@ class Gateway:
                     transient = False
                     try:
                         response = await self.client.post(
-                            f"https://generativelanguage.googleapis.com/v1beta/models/{quote(self.config.gemini_model, safe='')}:generateContent",
-                            headers={"x-goog-api-key": self.config.gemini_api_key},
+                            self.endpoint(),
+                            headers=await self.headers(),
                             json={
-                                "contents": [{"parts": [{"text": prompt}]}],
+                                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                                 "generationConfig": {
                                     "responseMimeType": "application/json",
                                     "responseJsonSchema": Intent.model_json_schema(),
@@ -153,17 +199,37 @@ class Gateway:
                         )
                         intent = Intent.model_validate_json(text)
                         self.failures = 0
+                        self.last_error = None
                         return intent
                     except asyncio.CancelledError:
                         counts["failed_calls"] = 1
                         raise
-                    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as error:
+                    except (
+                        httpx.HTTPError,
+                        GoogleAuthError,
+                        ValueError,
+                        KeyError,
+                        IndexError,
+                        TypeError,
+                    ) as error:
+                        self.last_error = {
+                            "category": "authentication"
+                            if isinstance(error, GoogleAuthError)
+                            else "timeout"
+                            if isinstance(error, httpx.TimeoutException)
+                            else "http"
+                            if isinstance(error, httpx.HTTPError)
+                            else "invalid_response",
+                            "http_status": error.response.status_code
+                            if isinstance(error, httpx.HTTPStatusError)
+                            else None,
+                        }
                         counts["failed_calls"] = 1
                         self.failures += 1
                         if isinstance(error, httpx.TimeoutException):
                             self.diagnostics["timeouts"] += 1
                             transient = True
-                        elif not isinstance(error, httpx.HTTPError):
+                        elif not isinstance(error, (httpx.HTTPError, GoogleAuthError)):
                             self.diagnostics["malformed"] += 1
                         if self.failures >= 3:
                             self.open_until = time.monotonic() + 30

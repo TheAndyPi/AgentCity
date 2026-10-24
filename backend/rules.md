@@ -75,12 +75,21 @@ and temporary policy overlays restore their scoped baseline on expiry. Removed
 stock never regrows when a shortage ends. Uniform polygon hazards and simple
 exposure rules are intentional; hydrodynamics and epidemiology are unsupported.
 
-The bounded natural-language compiler recognizes flood, fire, storm, shortage,
-outage, misinformation/rumor, festival/aid, and policy terms. It composes the six
-EffectSpec families, accepts an explicit severity/tick duration and compass region,
-and displays the exact interpretation. Unsupported-only prompts cannot commit;
-unsupported clauses and limitations remain visible in the preview. Random and
-repeat use the same validation/commit path. Repeat retains the original spec.
+Custom events accept any nonempty description (up to 2,000 characters). The
+premise is delivered locally as a reliable world observation, enters citizens'
+memories and beliefs, and becomes available in perception and conversation. Rumor
+requests retain uncertain, heard information instead. Familiar flood, fire, storm,
+shortage, outage, festival/aid and policy terms add their existing physical effects.
+The preview explains these separately: an arbitrary premise does not implement new
+physics, spawn geometry, or force a citizen's choices. Severity, duration and compass
+regions remain available. Unrecognized events default to the whole city. Random
+and repeat use the same validation/commit path; repeat retains the original spec.
+
+Nearby citizens prioritize a reply to an open conversation after urgent care and
+needs. Rule-based dialogue uses the speaker's observed events, goals and values;
+provider-supplied speech is retained. Conversations remain local, explicitly
+accepted, and bounded to four turns. The UI groups lines by interaction ID and
+orders them by tick and persisted sequence; overhearers are not participants.
 
 Memory retrieval combines importance, recency and lexical relevance. Every 20
 ticks, meaningful recent episodes can produce a subjective summary referencing

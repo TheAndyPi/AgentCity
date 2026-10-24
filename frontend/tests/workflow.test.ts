@@ -76,7 +76,7 @@ describe("safe event and outcome transitions", () => {
     ).rejects.toMatchObject({ code: "PREVIEW_EXPIRED" });
     expect((await sim()).status).toBe("paused");
   });
-  it("unsupported-only requests cannot commit and retain paused state", async () => {
+  it("open-ended events can be previewed and committed", async () => {
     const { s, hold } = await preview();
     const p = await client.preview(s.id, {
       intervention_id: hold.id,
@@ -85,10 +85,16 @@ describe("safe event and outcome transitions", () => {
       prompt: "Teleport everyone with a dragon",
       policy: null,
     });
-    expect(p.can_commit).toBe(false);
-    await expect(
-      client.commit(s.id, hold, p, crypto.randomUUID()),
-    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    expect(p.can_commit).toBe(true);
+    expect(p.unsupported_requests).toEqual([]);
+    expect(p.spec.effects).toContainEqual({
+      type: "information",
+      message: "Teleport everyone with a dragon",
+      reliability: 100,
+      delivery: "local",
+    });
+    const committed = await client.commit(s.id, hold, p, crypto.randomUUID());
+    expect(committed.event.status).toBe("queued");
     expect((await sim()).status).toBe("paused");
   });
   it("explicit pause revokes cancellation auto-resume", async () => {

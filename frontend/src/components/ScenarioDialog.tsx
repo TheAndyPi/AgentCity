@@ -18,6 +18,7 @@ import type {
   ScenarioPreview,
   Simulation,
   Policies,
+  EffectSpec,
 } from "../api/types";
 import { pretty } from "../api/defaults";
 import {
@@ -25,6 +26,28 @@ import {
   previewPoint,
   type MapBounds,
 } from "../world/previewGeometry";
+function describeEffect(effect: EffectSpec): string {
+  switch (effect.type) {
+    case "information":
+      return effect.reliability === 100
+        ? "Citizens learn about your event, remember it, and can talk about it with one another."
+        : `Word spreads: “${effect.message}”`;
+    case "hazard":
+      return `${pretty(effect.hazard)} affects the highlighted area. Citizens can seek safety or help each other.`;
+    case "community":
+      return effect.activity === "festival"
+        ? "A gathering lifts happiness and gives neighbors a break from stress."
+        : "Community aid provides supplies to citizens in the area.";
+    case "infrastructure":
+      return effect.functional
+        ? `Local buildings operate at ${Math.round(effect.capacity_multiplier * 100)}% capacity.`
+        : "Local buildings close until the event ends.";
+    case "resource_multiplier":
+      return `${pretty(effect.resource)} stocks change to ${Math.round(effect.multiplier * 100)}% of their current amount.`;
+    case "policy":
+      return `Aid runs at ${Math.round(effect.aid_multiplier * 100)}%${effect.evacuation_order ? ", with an evacuation order" : ""}${effect.ration_units_per_agent !== null ? ` and ${effect.ration_units_per_agent} units per citizen` : ""}.`;
+  }
+}
 export type ScenarioSource = "random" | "repeat" | "custom" | "policy";
 export function PreviewCard({
   preview,
@@ -106,15 +129,11 @@ export function PreviewCard({
         </span>
       </div>
       <div className="supported-effects">
-        <h4>Planned, supported effects</h4>
-        {preview.spec.effects.map((e, i) => (
-          <p key={i}>
+        <h4>What happens in your city</h4>
+        {preview.spec.effects.map((effect, i) => (
+          <p className="event-effect" key={i}>
             <Check size={14} />
-            {Object.entries(e)
-              .map(
-                ([k, v]) => `${pretty(k)}: ${v === null ? "none" : String(v)}`,
-              )
-              .join(" · ")}
+            {describeEffect(effect)}
           </p>
         ))}
       </div>
@@ -338,9 +357,9 @@ export default function ScenarioDialog({
   };
   const suggestions = [
     [
-      "A neighborhood festival brings everyone together.",
-      "A sudden storm floods the western streets.",
-      "A power outage affects local businesses.",
+      "A mysterious visitor arrives with a secret.",
+      "Two neighbors discover they are long-lost siblings.",
+      "Dinosaurs appear in the town square.",
     ],
     [
       "A supply shortage tests the neighborhood.",
@@ -374,7 +393,7 @@ export default function ScenarioDialog({
         <>
           <p className="dialog-intro">
             {source === "custom"
-              ? "Describe a change. Review the supported effects before introducing it to your city."
+              ? "Anything can happen here. Describe a twist, a discovery, a celebration, or something completely unexpected."
               : source === "random"
                 ? "A new possibility for your neighborhood. Nothing changes until you confirm."
                 : "Review the planned effects before anything changes."}
@@ -528,7 +547,7 @@ export default function ScenarioDialog({
                     (source === "repeat" && !eventId)
                   }
                 >
-                  {busy ? "Preparing preview…" : "Preview effects"}
+                  {busy ? "Preparing preview…" : "Preview event"}
                   <ArrowRight size={16} />
                 </Button>
               )}

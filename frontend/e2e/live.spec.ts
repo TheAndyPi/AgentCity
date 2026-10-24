@@ -157,7 +157,8 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
   await page
     .getByRole("button", { name: "Find a citizen", exact: true })
     .click();
-  await page.locator(".citizen-list button").first().click();
+  await page.getByRole("button", { name: /^Open .* profile$/ }).click();
+  await page.getByRole("tab", { name: "Story", exact: true }).click();
   await expect(page.getByRole("complementary")).toContainText(
     "Why this action",
   );
@@ -355,7 +356,7 @@ test("citizen details remain readable during slow live refreshes and isolate cha
   await page
     .getByRole("button", { name: "Find a citizen", exact: true })
     .click();
-  await page.locator(".citizen-list button").first().click();
+  await page.getByRole("button", { name: /^Open .* profile$/ }).click();
   const inspector = page.getByRole("complementary");
   await expect(
     inspector.getByRole("tab", { name: "Story", exact: true }),
@@ -453,7 +454,7 @@ test("citizen details remain readable during slow live refreshes and isolate cha
   await page
     .getByRole("button", { name: "Find a citizen", exact: true })
     .click();
-  await page.locator(".citizen-list button").first().click();
+  await page.getByRole("button", { name: /^Open .* profile$/ }).click();
   await expect(inspector.locator(".agent-heading")).toBeVisible();
   await page
     .getByRole("slider", { name: "Committed history revision" })
@@ -1067,3 +1068,150 @@ for (const population of [30, 100])
     await page.keyboard.press("Enter");
     await expect(page.getByRole("complementary")).toContainText(agent.name);
   });
+
+test("life sim traits, conversations and open-ended events work on desktop and mobile", async ({
+  page,
+}, info) => {
+  await preferences(page, { view_mode: "2d", reduce_motion: true });
+  const city = await api<Simulation>(page, "/simulations", "POST", {
+    config: { name: "Life sim UI review", seed: 19, population: 10 },
+  });
+  await expect
+    .poll(
+      async () =>
+        (await api<Simulation>(page, `/simulations/${city.id}`)).status,
+    )
+    .toBe("paused");
+  const frame = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
+  const [a, b] = frame.agents;
+  const dialogue = [
+    {
+      id: "dialogue_00000001",
+      interaction_id: "conversation-test",
+      tick: 1,
+      speaker_id: a.id,
+      recipient_ids: [b.id],
+      text: "Did you see the mysterious visitor?",
+      end_conversation: false,
+    },
+    {
+      id: "dialogue_00000002",
+      interaction_id: "conversation-test",
+      tick: 1,
+      speaker_id: b.id,
+      recipient_ids: [a.id],
+      text: "Yes! I wonder what brought them here.",
+      end_conversation: false,
+    },
+    {
+      id: "dialogue_00000003",
+      interaction_id: "conversation-test",
+      tick: 2,
+      speaker_id: a.id,
+      recipient_ids: [b.id],
+      text: "Let's ask them together.",
+      end_conversation: true,
+    },
+  ].map((message) => ({
+    ...message,
+    audible_to_ids: [a.id, b.id],
+    emotion: "curious",
+    intent: "talk",
+  }));
+  await page.route(`**/api/v1/simulations/${city.id}/dialogue?*`, (route) =>
+    route.fulfill({
+      json: {
+        schema_version: "1.0.0",
+        request_id: randomUUID(),
+        data: { items: [...dialogue].reverse(), next_cursor: null },
+      },
+    }),
+  );
+  await page.goto(`/simulations/${city.id}`);
+  await page
+    .getByRole("button", { name: "Agent traits 10", exact: true })
+    .click();
+  await expect(page.locator(".roster-grid button")).toHaveCount(10);
+  await expect(page.getByRole("meter")).toHaveCount(6);
+  await page.locator(".roster-grid button").nth(1).click();
+  await expect(page.locator(".roster-profile h3").first()).toHaveText(b.name);
+  await expect(page.getByRole("meter")).toHaveCount(6);
+  await page.screenshot({
+    path: info.outputPath("life-traits-desktop.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Close panel", exact: true })
+    .last()
+    .click();
+  await page.getByRole("button", { name: /^Conversations/ }).click();
+  const transcript = page.getByRole("region", {
+    name: "Conversation transcript",
+  });
+  await expect(transcript).toContainText("Did you see the mysterious visitor?");
+  await expect(transcript).toContainText(
+    "Yes! I wonder what brought them here.",
+  );
+  await expect(page.locator(".speech-message strong")).toHaveText([
+    a.name,
+    b.name,
+    a.name,
+  ]);
+  await page.screenshot({
+    path: info.outputPath("life-conversations-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(transcript).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: info.outputPath("life-conversations-mobile.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Close panel", exact: true })
+    .last()
+    .click();
+  await page
+    .getByRole("button", { name: "Agent traits 10", exact: true })
+    .click();
+  await expect(page.getByRole("meter")).toHaveCount(6);
+  await page.getByLabel("Search citizens").fill(b.name);
+  await expect(page.locator(".roster-grid button")).toHaveCount(1);
+  await page.screenshot({
+    path: info.outputPath("life-traits-mobile.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Close panel", exact: true })
+    .last()
+    .click();
+  await page
+    .getByRole("button", { name: "Introduce an event", exact: true })
+    .click();
+  await page
+    .getByLabel("Describe your event")
+    .fill("Dinosaurs appear in the town square");
+  await page
+    .getByRole("button", { name: "Preview event", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "Citizens learn about your event",
+  );
+  await expect(page.getByRole("dialog")).not.toContainText("Unsupported parts");
+  await page.screenshot({
+    path: info.outputPath("life-custom-event-mobile.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Confirm event", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const queued = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
+  expect(queued.events[0].title).toBe("Dinosaurs appear in the town square");
+  expect(queued.events[0].status).toBe("queued");
+});

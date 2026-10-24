@@ -20,6 +20,9 @@ class AppConfig:
     llm_mode: str = "rules"
     gemini_api_key: str = ""
     gemini_model: str = ""
+    gemini_backend: str = "developer"
+    google_cloud_project: str = ""
+    google_cloud_location: str = "global"
     llm_concurrency: int = 4
     llm_timeout: float = 8
     llm_rpm: int = 30
@@ -48,6 +51,12 @@ class AppConfig:
             llm_mode=os.getenv("LLM_MODE", "rules"),
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
             gemini_model=os.getenv("GEMINI_MODEL", ""),
+            gemini_backend=os.getenv(
+                "GEMINI_BACKEND",
+                "vertex" if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() == "true" else "developer",
+            ),
+            google_cloud_project=os.getenv("GOOGLE_CLOUD_PROJECT", ""),
+            google_cloud_location=os.getenv("GOOGLE_CLOUD_LOCATION", "global"),
             llm_concurrency=int(os.getenv("LLM_MAX_CONCURRENCY", "4")),
             llm_timeout=float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "8")),
             llm_rpm=int(os.getenv("LLM_REQUESTS_PER_MINUTE", "30")),
@@ -62,9 +71,14 @@ class AppConfig:
 
     @property
     def gemini_enabled(self):
-        return self.llm_mode == "gemini" and bool(self.gemini_api_key and self.gemini_model)
+        configured = self.google_cloud_project if self.gemini_backend == "vertex" else self.gemini_api_key
+        return self.llm_mode == "gemini" and bool(configured and self.gemini_model)
 
     def validate(self):
+        if self.gemini_backend not in {"developer", "vertex"}:
+            raise ValueError("GEMINI_BACKEND must be developer or vertex")
+        if self.gemini_backend == "vertex" and not self.google_cloud_location:
+            raise ValueError("GOOGLE_CLOUD_LOCATION is required for Vertex AI")
         if self.auth_mode not in {"local", "session"} or self.llm_mode not in {"rules", "gemini"}:
             raise ValueError("invalid AUTH_MODE or LLM_MODE")
         if self.auth_mode == "local" and self.host not in {"127.0.0.1", "localhost", "::1"}:

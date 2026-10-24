@@ -122,7 +122,7 @@ def test_cancel_running_and_explicit_pause_revokes_resume(client):
     assert cancel.json()["data"]["status"] == "paused"
 
 
-def test_initial_preview_and_unsupported_request(client):
+def test_initial_preview_and_open_ended_request(client):
     sim = create_city(client, scenario_description="A flood for 1 tick")
     sid = sim["id"]
     assert command(client, sid, "play").status_code == 409
@@ -139,11 +139,12 @@ def test_initial_preview_and_unsupported_request(client):
     assert committed.json()["data"]["event"]["status"] == "queued"
     sid = create_city(client)["id"]
     hold, p = preview(client, sid, "Teleport dinosaurs into the city")
-    assert p["can_commit"] is False
-    assert p["unsupported_requests"]
-    rejected = commit_preview(client, sid, hold, p)
-    assert rejected.status_code == 400
-    assert client.get(f"/api/v1/simulations/{sid}").json()["data"]["pause_reason"] == "intervention"
+    assert p["can_commit"] is True
+    assert p["unsupported_requests"] == []
+    assert p["spec"]["description"] == "Teleport dinosaurs into the city"
+    committed = commit_preview(client, sid, hold, p)
+    assert committed.status_code == 201
+    assert committed.json()["data"]["event"]["status"] == "queued"
 
 
 def test_websocket_snapshot_reconnect(client):

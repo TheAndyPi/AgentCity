@@ -261,23 +261,44 @@ export class MockTransport implements Transport {
         ];
       }
     }
-    r.frame.recent_dialogue =
-      s.tick >= 2
-        ? [
-            {
-              id: "dialogue-1",
-              interaction_id: "interaction-1",
-              tick: 2,
-              speaker_id: "citizen-1",
-              recipient_ids: ["citizen-2"],
-              audible_to_ids: ["citizen-1", "citizen-2"],
-              text: "Let’s check on our neighbors. The shelter is open.",
-              intent: "help",
-              emotion: "Concerned",
-              end_conversation: true,
-            },
-          ]
-        : [];
+    r.frame.recent_dialogue = [
+      {
+        id: "dialogue-1",
+        interaction_id: "interaction-1",
+        tick: 2,
+        speaker_id: "citizen-1",
+        recipient_ids: ["citizen-2"],
+        audible_to_ids: ["citizen-1", "citizen-2"],
+        text: "Let’s check on our neighbors. The shelter is open.",
+        intent: "talk",
+        emotion: "Concerned",
+        end_conversation: false,
+      },
+      {
+        id: "dialogue-2",
+        interaction_id: "interaction-1",
+        tick: 3,
+        speaker_id: "citizen-2",
+        recipient_ids: ["citizen-1"],
+        audible_to_ids: ["citizen-1", "citizen-2"],
+        text: "Good idea, Maya. I'll stop by the square and see who needs a hand.",
+        intent: "talk",
+        emotion: "Reassured",
+        end_conversation: false,
+      },
+      {
+        id: "dialogue-3",
+        interaction_id: "interaction-1",
+        tick: 4,
+        speaker_id: "citizen-1",
+        recipient_ids: ["citizen-2"],
+        audible_to_ids: ["citizen-1", "citizen-2"],
+        text: "Thank you, Oliver. It helps knowing we're looking out for each other.",
+        intent: "talk",
+        emotion: "Grateful",
+        end_conversation: true,
+      },
+    ].filter((message) => message.tick <= s.tick);
     if (s.tick >= s.config.max_ticks && !s.pending_outcome_event_ids.length) {
       s.status = "completed";
       s.pause_reason = null;

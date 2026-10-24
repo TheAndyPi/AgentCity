@@ -17,6 +17,118 @@ def provider_config(**kwargs):
     )
 
 
+def test_vertex_config_uses_project_instead_of_developer_key(monkeypatch):
+    monkeypatch.setenv("LLM_MODE", "gemini")
+    monkeypatch.setenv("GEMINI_BACKEND", "vertex")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "agentcityx")
+    monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "global")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    config = AppConfig.from_env()
+    config.validate()
+    assert config.gemini_enabled
+    assert not AppConfig(llm_mode="gemini", gemini_backend="vertex", gemini_model="model").gemini_enabled
+    with pytest.raises(ValueError, match="GEMINI_BACKEND"):
+        AppConfig(gemini_backend="unknown").validate()
+
+
+def test_standard_vertex_flag_and_explicit_route_precedence(monkeypatch):
+    monkeypatch.delenv("GEMINI_BACKEND", raising=False)
+    monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    assert AppConfig.from_env().gemini_backend == "vertex"
+    monkeypatch.setenv("GEMINI_BACKEND", "developer")
+    assert AppConfig.from_env().gemini_backend == "developer"
+
+
+@pytest.mark.parametrize("location", ["global", "us-central1"])
+def test_vertex_authentication_and_structured_decision(monkeypatch, location):
+    class Credentials:
+        def before_request(self, request, method, url, headers):
+            assert method == "POST"
+            headers["authorization"] = "Bearer test-cloud-token"
+            headers["x-goog-user-project"] = "agentcityx"
+
+    def default(**kwargs):
+        assert kwargs["quota_project_id"] == "agentcityx"
+        assert kwargs["scopes"] == ["https://www.googleapis.com/auth/cloud-platform"]
+        return Credentials(), "agentcityx"
+
+    monkeypatch.setattr("app.infrastructure.gemini.google.auth.default", default)
+
+    async def run():
+        usage = []
+
+        async def record(sid, counts):
+            usage.append(counts)
+
+        async def handler(request):
+            host = (
+                "aiplatform.googleapis.com"
+                if location == "global"
+                else f"{location}-aiplatform.googleapis.com"
+            )
+            assert request.url.host == host
+            assert request.url.path == (
+                f"/v1/projects/agentcityx/locations/{location}"
+                "/publishers/google/models/configured-test-model:generateContent"
+            )
+            assert request.headers["authorization"] == "Bearer test-cloud-token"
+            assert "x-goog-api-key" not in request.headers
+            assert json.loads(request.content)["contents"][0]["role"] == "user"
+            assert json.loads(request.content)["generationConfig"]["responseJsonSchema"]
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [{"content": {"parts": [{"text": make_intent("rest").model_dump_json()}]}}],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+                },
+            )
+
+        gateway = Gateway(
+            provider_config(
+                gemini_backend="vertex", google_cloud_project="agentcityx", google_cloud_location=location
+            ),
+            record,
+            httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        )
+        assert (await gateway.decide("city", {"profile": {"name": "Example"}})).action == "rest"
+        assert usage[0]["input_tokens"] == 10
+        await gateway.close()
+
+    asyncio.run(run())
+
+
+def test_vertex_missing_credentials_falls_back_without_developer_request(monkeypatch):
+    from google.auth.exceptions import DefaultCredentialsError
+
+    def missing(**kwargs):
+        raise DefaultCredentialsError("No local login")
+
+    monkeypatch.setattr("app.infrastructure.gemini.google.auth.default", missing)
+
+    async def run():
+        usage = []
+
+        async def record(sid, counts):
+            usage.append(counts)
+
+        async def handler(request):
+            raise AssertionError("No API call or alternate billing route is allowed")
+
+        gateway = Gateway(
+            provider_config(gemini_backend="vertex", google_cloud_project="agentcityx"),
+            record,
+            httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        )
+        assert await gateway.decide("city", {"profile": {"name": "Example"}}) is None
+        assert len(usage) == 1 and usage[0]["failed_calls"] == 1
+        assert gateway.diagnostics["malformed"] == 0
+        assert gateway.last_error == {"category": "authentication", "http_status": None}
+        await gateway.close()
+
+    asyncio.run(run())
+
+
 def test_structured_output_and_measured_usage():
     async def run():
         usage = []

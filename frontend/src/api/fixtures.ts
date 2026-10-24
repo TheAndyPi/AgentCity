@@ -393,7 +393,6 @@ export function fixturePreview(
     policy = source === "policy" || /policy|evacuation|ration/i.test(prompt),
     shortage = /shortage/i.test(prompt),
     misinformation = /misinformation/i.test(prompt),
-    unsupported = /teleport|zombie|dragon/i.test(prompt),
     storm = /storm|tornado/i.test(prompt),
     fire = /fire/i.test(prompt),
     aid = /aid/i.test(prompt),
@@ -401,40 +400,47 @@ export function fixturePreview(
       /festival|aid|flood|water|storm|tornado|fire|outage|power|shortage|supply|misinformation|warning|policy|evacuation|ration/i.test(
         prompt,
       );
-  const kind: T.EventSpec["kind"] = festival
-    ? "festival"
-    : outage
-      ? "outage"
-      : policy
-        ? "policy"
-        : shortage
-          ? "shortage"
-          : misinformation
-            ? "misinformation"
-            : storm
-              ? "storm"
-              : fire
-                ? "fire"
-                : aid
-                  ? "custom"
-                  : "flood";
-  const title = festival
-    ? "A neighborhood festival"
-    : outage
-      ? "District power outage"
-      : policy
-        ? "Community aid policy"
-        : shortage
-          ? "Supply shortage"
-          : misinformation
-            ? "An unverified warning"
-            : storm
-              ? "A storm over West Quarter"
-              : fire
-                ? "A fire in West Quarter"
-                : aid
-                  ? "Community aid at the square"
-                  : "Rising water in West Quarter";
+  const custom =
+    (source === "custom" || source === "initial") && !!prompt.trim();
+  const kind: T.EventSpec["kind"] =
+    custom && !recognized
+      ? "custom"
+      : festival
+        ? "festival"
+        : outage
+          ? "outage"
+          : policy
+            ? "policy"
+            : shortage
+              ? "shortage"
+              : misinformation
+                ? "misinformation"
+                : storm
+                  ? "storm"
+                  : fire
+                    ? "fire"
+                    : aid
+                      ? "custom"
+                      : "flood";
+  const title = custom
+    ? prompt.trim().replace(/\s+/g, " ").slice(0, 80).trim()
+    : festival
+      ? "A neighborhood festival"
+      : outage
+        ? "District power outage"
+        : policy
+          ? "Community aid policy"
+          : shortage
+            ? "Supply shortage"
+            : misinformation
+              ? "An unverified warning"
+              : storm
+                ? "A storm over West Quarter"
+                : fire
+                  ? "A fire in West Quarter"
+                  : aid
+                    ? "Community aid at the square"
+                    : "Rising water in West Quarter";
   return {
     id: `preview-${frame.simulation.id}-${frame.ref.revision}`,
     simulation_id: frame.simulation.id,
@@ -457,51 +463,61 @@ export function fixturePreview(
       affected_polygon: area,
       severity: 60,
       duration_ticks: 8,
-      effects: festival
-        ? [{ type: "community", activity: "festival", capacity: 30 }]
-        : outage
+      effects:
+        custom && !recognized
           ? [
               {
-                type: "infrastructure",
-                functional: false,
-                capacity_multiplier: 0,
+                type: "information",
+                message: prompt.trim(),
+                reliability: 100,
+                delivery: "local",
               },
             ]
-          : policy
-            ? [
-                {
-                  type: "policy",
-                  evacuation_order: true,
-                  ration_units_per_agent: null,
-                  aid_multiplier: 1.5,
-                },
-              ]
-            : shortage
+          : festival
+            ? [{ type: "community", activity: "festival", capacity: 30 }]
+            : outage
               ? [
                   {
-                    type: "resource_multiplier",
-                    resource: "food",
-                    multiplier: 0.5,
+                    type: "infrastructure",
+                    functional: false,
+                    capacity_multiplier: 0,
                   },
                 ]
-              : misinformation
+              : policy
                 ? [
                     {
-                      type: "information",
-                      message: "An unverified warning",
-                      reliability: 25,
-                      delivery: "local",
+                      type: "policy",
+                      evacuation_order: true,
+                      ration_units_per_agent: null,
+                      aid_multiplier: 1.5,
                     },
                   ]
-                : aid
-                  ? [{ type: "community", activity: "aid", capacity: 30 }]
-                  : [
+                : shortage
+                  ? [
                       {
-                        type: "hazard",
-                        hazard: storm ? "storm" : fire ? "fire" : "flood",
-                        severity: 60,
+                        type: "resource_multiplier",
+                        resource: "food",
+                        multiplier: 0.5,
                       },
-                    ],
+                    ]
+                  : misinformation
+                    ? [
+                        {
+                          type: "information",
+                          message: "An unverified warning",
+                          reliability: 25,
+                          delivery: "local",
+                        },
+                      ]
+                    : aid
+                      ? [{ type: "community", activity: "aid", capacity: 30 }]
+                      : [
+                          {
+                            type: "hazard",
+                            hazard: storm ? "storm" : fire ? "fire" : "flood",
+                            severity: 60,
+                          },
+                        ],
       success_condition: "duration_elapsed",
     },
     affected_agent_ids: frame.agents.slice(0, 12).map((a) => a.id),
@@ -509,18 +525,12 @@ export function fixturePreview(
     warnings: [
       "Planned effects only. Actual outcomes depend on committed citizen actions.",
     ],
-    unsupported_requests:
-      unsupported ||
-      ((source === "custom" || source === "initial") && !recognized)
-        ? [
-            "This request includes unsupported mechanics. Try a flood, festival, shortage, or outage.",
-          ]
-        : [],
+    unsupported_requests: [],
     can_commit:
       source === "random" ||
       source === "repeat" ||
       source === "policy" ||
-      recognized,
+      !!prompt.trim(),
   };
 }
 export const fixtureSettings = structuredClone(defaultSettings);
