@@ -309,6 +309,11 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             inventory_delta(citizen, "supplies", 0.25)
             metric_delta(citizen, "happiness", 0.2, proof)
         elif action == "help":
+            check(
+                hazard_severity(state, citizen.summary.position) == 0 and not state.policies.evacuation_order,
+                "SELF_SAFETY_REQUIRED",
+                "Reach safety before offering optional help; no exception applies during an evacuation order",
+            )
             check(citizen.inventory.supplies >= 1, "INSUFFICIENT_INVENTORY", "Help requires one supply unit")
             inventory_delta(citizen, "supplies", -1)
             state.counters["resources_consumed"] += 1
@@ -381,12 +386,27 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 decision.outcome_description = "Both parties accepted; resource exchange committed atomically"
         elif action in {"talk", "warn"}:
             interaction, accepted = accept_invitation(
-                state, citizen, target, "conversation", {"approach_reason": intent.motivation}
+                state,
+                citizen,
+                target,
+                "warning" if action == "warn" else "conversation",
+                {"approach_reason": intent.motivation},
+            )
+            check(
+                action == "warn" or accepted or interaction.turns == 0,
+                "AWAITING_ACCEPTANCE",
+                "The recipient must accept before the initiator can continue the conversation",
             )
             # Warning is one-way speech; a conversation begins with an invitation.
             speak(state, citizen, target, intent, did, interaction)
-            citizen.needs.social = clamp(citizen.needs.social - 5)
-            metric_delta(citizen, "happiness", 0.3, proof)
+            if action == "warn":
+                decision.outcome_description = "One-way warning delivered; no conversation acceptance implied"
+            elif not accepted:
+                decision.outcome_description = "Conversation invited; awaiting explicit recipient acceptance"
+            else:
+                decision.outcome_description = "Both participants accepted the conversation"
+                citizen.needs.social = clamp(citizen.needs.social - 5)
+                metric_delta(citizen, "happiness", 0.3, proof)
         citizen.summary.action = action
         citizen.summary.action_target_id = intent.target_id
         citizen.summary.emotion = intent.emotion
@@ -525,33 +545,7 @@ def rule_intent(state, citizen, context):
     p = citizen.summary.position
     nearby = [state.citizens[aid] for aid in context["nearby_ids"]]
     threatened = hazard_severity(state, p) > 0 or state.policies.evacuation_order
-    visible_victims = [
-        other
-        for other in nearby
-        if distance(p, other.summary.position) <= 3
-        and (other.needs.health < 95 or hazard_severity(state, other.summary.position) > 0)
-    ]
-    if (
-        visible_victims
-        and citizen.inventory.supplies >= 1
-        and citizen.needs.health > 60
-        and citizen.profile.traits.empathy >= 65
-    ):
-        victim = max(
-            visible_victims,
-            key=lambda other: (
-                citizen.relationships.get(other.summary.id).affection
-                if other.summary.id in citizen.relationships
-                else 0
-            ),
-        )
-        # Never access unknown remote positions; help is limited to perceived nearby targets.
-        return make_intent(
-            "help",
-            target=victim.summary.id,
-            motivation="Someone I can see needs help and I have supplies",
-            emotion="concerned",
-        )
+    # Self-safety has no helping exception, even if no safe route can be found.
     if threatened:
         safe = [
             b
@@ -572,6 +566,34 @@ def rule_intent(state, citizen, context):
                 )
         return make_intent(
             "rest", motivation="No safe reachable route is currently available", emotion="worried"
+        )
+    visible_victims = [
+        other
+        for other in nearby
+        if distance(p, other.summary.position) <= 3
+        and same_room(citizen, other)
+        and (other.needs.health < 95 or hazard_severity(state, other.summary.position) > 0)
+    ]
+    if (
+        visible_victims
+        and citizen.inventory.supplies >= 1
+        and citizen.needs.health > 60
+        and citizen.profile.traits.empathy >= 65
+    ):
+        victim = max(
+            visible_victims,
+            key=lambda other: (
+                citizen.relationships.get(other.summary.id).affection
+                if other.summary.id in citizen.relationships
+                else 0
+            ),
+        )
+        # A safe helper may aid a perceived, nearby victim; never use remote positions.
+        return make_intent(
+            "help",
+            target=victim.summary.id,
+            motivation="Someone I can see needs help and I have supplies",
+            emotion="concerned",
         )
     if citizen.needs.hunger >= 45:
         for kind in ("food", "water"):

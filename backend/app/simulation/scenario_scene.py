@@ -13,16 +13,29 @@ CATALOG = json.loads((Path(__file__).resolve().parents[3] / "contracts/scenario-
 COLORS = json.loads((Path(__file__).resolve().parents[3] / "contracts/scenario-palette.json").read_text())
 
 
+def affirmed_mentions(text, term):
+    """Match occurrences individually so a denial cannot hide a later affirmative clause."""
+    modifiers = (
+        "a|an|the|any|severe|major|extreme|mild|minor|small|heavy|dangerous|new|large|"
+        "significant|serious|local|nearby|expected|been"
+    )
+    prefix = re.compile(r"\b(?:no|without|not|never)\s+(?:(?:" + modifiers + r")\s+)*$")
+    suffix = re.compile(
+        r"^\s+(?:(?:is|are|was|were|will|would|should|does|do|did|has|have|had|can|could)\s+"
+        r"(?:(?:be|been)\s+)?(?:not|never|no longer)\b|"
+        r"(?:isn't|aren't|wasn't|weren't|won't|wouldn't|shouldn't|doesn't|don't|didn't|can't|couldn't)\b)"
+    )
+    return [
+        mention
+        for mention in re.finditer(r"\b" + re.escape(term) + r"\b", text)
+        if not prefix.search(text[: mention.start()]) and not suffix.search(text[mention.end() :])
+    ]
+
+
 def matches(prompt):
     text = prompt.lower()
     recipes = [
-        recipe
-        for recipe in CATALOG
-        if any(
-            re.search(r"\b" + re.escape(term) + r"\b", text)
-            and not re.search(r"\b(?:no|without|not)\s+(?:a\s+|any\s+)?" + re.escape(term) + r"\b", text)
-            for term in recipe["terms"]
-        )
+        recipe for recipe in CATALOG if any(affirmed_mentions(text, term) for term in recipe["terms"])
     ][:8]
     result = []
     for recipe in recipes:
@@ -35,7 +48,7 @@ def matches(prompt):
         if color:
             recipe["color"] = COLORS[color[1]]
         # A qualified water shortage should not also remove the town's food.
-        if recipe["id"] == "shortage" and re.search(r"\bwater shortage\b", text):
+        if recipe["id"] == "shortage" and affirmed_mentions(text, "water shortage"):
             continue
         result.append(recipe)
     return result

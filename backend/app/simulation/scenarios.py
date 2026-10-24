@@ -23,7 +23,7 @@ from app.contracts import (
 from app.infrastructure.errors import require
 from app.simulation.agents import clamp, evidence, hazard_severity, metric_delta, remember
 from app.simulation.navigation import polygon_contains, simple_polygon
-from app.simulation.scenario_scene import CATALOG, build_scene, matches
+from app.simulation.scenario_scene import CATALOG, affirmed_mentions, build_scene, matches
 from app.simulation.state import EventRuntime, expiry
 
 
@@ -260,6 +260,72 @@ def preset(state, kind, policy=None, prompt=""):
     )
 
 
+def unsupported_physical_requests(description):
+    """Building geometry/lifecycle changes have no corresponding simulation effect."""
+    buildings = r"\b(?:hospitals?|buildings?|houses?|homes?|shelters?|schools?|bridges?|towers?|offices?)\b"
+    actions = {
+        "destruction": (
+            "destroy",
+            "destroys",
+            "destroyed",
+            "destroying",
+            "demolish",
+            "demolishes",
+            "demolished",
+            "demolishing",
+            "raze",
+            "razes",
+            "razed",
+            "razing",
+            "collapse",
+            "collapses",
+            "collapsed",
+            "collapsing",
+            "burn down",
+            "burns down",
+            "burned down",
+            "blow up",
+            "blows up",
+            "blown up",
+            "tear down",
+            "torn down",
+        ),
+        "construction": (
+            "build",
+            "builds",
+            "built",
+            "construct",
+            "constructs",
+            "constructed",
+            "constructing",
+            "construction",
+            "erect",
+            "erects",
+            "erected",
+            "erecting",
+            "rebuild",
+            "rebuilds",
+            "rebuilt",
+            "rebuilding",
+        ),
+    }
+    clauses = re.split(r"[.!?;\n]", description.lower())
+    unsupported = []
+    for kind, verbs in actions.items():
+        if any(
+            re.search(buildings, clause)
+            and (
+                any(affirmed_mentions(clause, verb) for verb in verbs)
+                or (kind == "construction" and re.search(r"\bbuilding\s+(?:a|an|the|new|another)\b", clause))
+            )
+            for clause in clauses
+        ):
+            unsupported.append(
+                f"Building {kind} is unsupported; scene illustrations do not alter city buildings."
+            )
+    return unsupported
+
+
 def compile_preview(state, source, prompt=None, source_event_id=None, policy=None, design=None):
     unsupported = []
     warnings = []
@@ -301,7 +367,8 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         if not recipes and not (design and design.parts):
             warnings.append(
                 "This premise is represented by a labeled abstract landmark. Citizens can remember and "
-                "discuss it; add details such as a market, visitors, wildlife or weather for specific effects."
+                "discuss it; physical changes beyond the listed effects are not simulated. "
+                "Add details such as a market, visitors, wildlife or weather for specific effects."
             )
     if source not in {"repeat", "policy"}:
         # Compose recipes without multiplying duplicate effects from overlapping phrases.
@@ -325,6 +392,20 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
             ).model_dump()
         )
         spec = EventSpec.model_validate({**spec.model_dump(), "effects": effects[:20]})
+    unsupported = unsupported_physical_requests(spec.description)
+    if unsupported:
+        warnings.extend(unsupported)
+        limitation = (
+            "This is a narrative illustration. Existing buildings are not destroyed and new buildings are "
+            "not constructed; only the listed simulation effects apply."
+        )
+        # Keep the original request in description for editing/repeat, but never
+        # turn its unsupported physical premise into an observed world fact.
+        message = f"Narrative request: {spec.description[:1700]}. {limitation}"
+        for effect in spec.effects:
+            if effect.type == "information":
+                effect.message = message
+        spec.title = f"Narrative request: {' '.join(spec.description.split())}"[:80]
     if not spec.scene:
         if design and design.parts:
             recipes = [
@@ -343,6 +424,10 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
                 "Its simulation effects are limited to the effects listed below."
             )
         spec.scene = build_scene(state, spec, recipes or matches(spec.description) or matches(spec.kind))
+    if unsupported:
+        for prop in spec.scene:
+            if not prop.label.startswith("Illustration: "):
+                prop.label = f"Illustration: {prop.label}"[:80]
     can_commit = bool(spec.effects)
     if can_commit:
         validate_spec(state, spec)
@@ -353,7 +438,11 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         source_event_id=source_event_id,
         based_on=state.ref(),
         expires_at=expiry(),
-        interpretation=f"{spec.description[:1900]} Citizens respond in their own way over {spec.duration_ticks} ticks.",
+        interpretation=(
+            f"{limitation} Narrative request: {spec.description[:1700]}"
+            if unsupported
+            else f"{spec.description[:1900]} Citizens respond in their own way over {spec.duration_ticks} ticks."
+        ),
         spec=spec,
         affected_agent_ids=[
             a

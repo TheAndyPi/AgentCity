@@ -21,7 +21,9 @@ def accept_invitation(state, actor, target, kind, proposal=None):
         ):
             if actor.summary.id not in interaction.accepted_ids:
                 interaction.accepted_ids.append(actor.summary.id)
-                interaction.status = "accepted"
+            interaction.status = (
+                "accepted" if set(interaction.participant_ids) <= set(interaction.accepted_ids) else "invited"
+            )
             return interaction, interaction.status == "accepted"
         if (
             interaction.kind == kind
@@ -68,7 +70,9 @@ def speak(state, actor, target, intent, decision_id, interaction):
         text=text,
         intent=intent.action,
         emotion=intent.emotion,
-        end_conversation=interaction.turns >= 3,
+        end_conversation=interaction.kind == "conversation"
+        and interaction.status == "accepted"
+        and interaction.turns >= 3,
     )
     actor.summary.path = []
     actor.plan = None
@@ -81,6 +85,8 @@ def speak(state, actor, target, intent, decision_id, interaction):
         target.summary.heading_rad = (actor.summary.heading_rad + math.pi) % (2 * math.pi)
     interaction.expires_tick = state.simulation.tick + 5
     interaction.turns += 1
+    if interaction.kind == "warning":
+        interaction.status = "ended"
     if dialogue.end_conversation:
         interaction.status = "ended"
         for citizen in (actor, target):
