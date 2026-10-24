@@ -1,0 +1,134 @@
+import type { WorldFrame } from "../api/types";
+import { AgentCityClient, websocketUrl } from "../api/client";
+import * as S from "../api/schemas";
+export type Connection =
+  | "connecting"
+  | "live"
+  | "reconnecting"
+  | "polling"
+  | "error"
+  | "mock";
+export class WorldStore {
+  private state: {
+    frame: WorldFrame | null;
+    connection: Connection;
+    error: string | null;
+  } = { frame: null, connection: "connecting", error: null };
+  private listeners = new Set<() => void>();
+  generation = 0;
+  private expectedId: string | null = null;
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+  getSnapshot = () => this.state;
+  update(patch: Partial<typeof this.state>) {
+    this.state = { ...this.state, ...patch };
+    this.listeners.forEach((l) => l());
+  }
+  accept(frame: WorldFrame, generation = this.generation) {
+    if (generation !== this.generation) return false;
+    if (this.expectedId && frame.simulation.id !== this.expectedId)
+      return false;
+    const current = this.state.frame;
+    if (current && current.simulation.id !== frame.simulation.id) return false;
+    if (current && frame.ref.revision <= current.ref.revision) return false;
+    this.update({ frame, error: null });
+    return true;
+  }
+  start(id: string, client: AgentCityClient) {
+    this.generation++;
+    this.expectedId = id;
+    const gen = this.generation;
+    this.update({
+      frame: null,
+      connection: client.mode === "mock" ? "mock" : "connecting",
+      error: null,
+    });
+    let closed = false;
+    let socket: WebSocket | undefined;
+    let retry: ReturnType<typeof setTimeout>;
+    let poll: ReturnType<typeof setInterval> | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let attempts = 0;
+    let lastTraffic = Date.now();
+    const fetchState = () =>
+      client
+        .state(id)
+        .then((f) => {
+          if (!closed) this.accept(f, gen);
+        })
+        .catch((e) => {
+          if (!closed) this.update({ error: e.message });
+        });
+    void fetchState();
+    const off = client.transport.subscribe?.(id, (f) => this.accept(f, gen));
+    const connect = () => {
+      if (closed || client.mode === "mock") return;
+      socket = new WebSocket(websocketUrl(id));
+      socket.onopen = () => {
+        if (closed) return;
+        lastTraffic = Date.now();
+        socket?.send(
+          JSON.stringify({
+            type: "hello",
+            schema_version: "1.0.0",
+            last_revision: this.state.frame?.ref.revision ?? null,
+          }),
+        );
+      };
+      socket.onmessage = (e) => {
+        if (closed || gen !== this.generation) return;
+        lastTraffic = Date.now();
+        try {
+          const m = S.serverMessage.parse(JSON.parse(e.data));
+          if (m.simulation_id !== id) return;
+          if (m.type === "snapshot" || m.type === "frame") {
+            this.accept(m.data, gen);
+            attempts = 0;
+            this.update({ connection: "live" });
+            if (poll) {
+              clearInterval(poll);
+              poll = undefined;
+            }
+          } else if (m.type === "error") this.update({ error: m.data.message });
+        } catch {
+          this.update({
+            connection: "error",
+            error:
+              "Invalid stream data. Last valid state preserved; requesting a fresh snapshot.",
+          });
+          socket?.close();
+          void fetchState();
+        }
+      };
+      socket.onclose = () => {
+        if (closed) return;
+        attempts++;
+        this.update({ connection: attempts >= 3 ? "polling" : "reconnecting" });
+        if (attempts >= 3 && !poll) poll = setInterval(fetchState, 2000);
+        retry = setTimeout(
+          connect,
+          Math.min(10000, 1000 * 2 ** (attempts - 1)) + Math.random() * 300,
+        );
+      };
+      socket.onerror = () => socket?.close();
+    };
+    connect();
+    if (client.mode === "live")
+      heartbeat = setInterval(() => {
+        if (Date.now() - lastTraffic > 45000) socket?.close();
+        else if (socket?.readyState === WebSocket.OPEN)
+          socket.send(JSON.stringify({ type: "ping" }));
+      }, 15000);
+    return () => {
+      closed = true;
+      this.generation++;
+      off?.();
+      clearTimeout(retry);
+      if (poll) clearInterval(poll);
+      if (heartbeat) clearInterval(heartbeat);
+      socket?.close();
+    };
+  }
+}

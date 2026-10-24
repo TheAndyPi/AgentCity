@@ -1,0 +1,555 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRight,
+  Check,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  Users,
+  Building2,
+  Clock,
+  MapPin,
+} from "lucide-react";
+import { useApp, messageOf, useQuery } from "../state/app";
+import { Button, Modal, Busy, ErrorBox, Field, Empty } from "./ui";
+import { ApiError } from "../api/client";
+import type {
+  Intervention,
+  ScenarioPreview,
+  Simulation,
+  Policies,
+} from "../api/types";
+import { pretty } from "../api/defaults";
+export type ScenarioSource = "random" | "repeat" | "custom" | "policy";
+export function PreviewCard({ preview }: { preview: ScenarioPreview }) {
+  return (
+    <div className="preview-card">
+      <div className="preview-title">
+        <Sparkles size={19} />
+        <span>INTERPRETED SCENARIO</span>
+      </div>
+      <h3>{preview.spec.title}</h3>
+      <p>{preview.interpretation}</p>
+      <svg
+        viewBox="0 0 280 85"
+        className="preview-map"
+        role="img"
+        aria-label="Planned affected region on the city map"
+      >
+        <defs>
+          <pattern
+            id="preview-grid"
+            width="15"
+            height="15"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M15 0H0V15"
+              stroke="currentColor"
+              opacity=".18"
+              fill="none"
+            />
+          </pattern>
+        </defs>
+        <rect width="280" height="85" fill="url(#preview-grid)" />
+        <polygon
+          points={preview.spec.affected_polygon
+            .map((p) => `${p.x * 2},${80 - p.y}`)
+            .join(" ")}
+          fill="#a58ce7"
+          fillOpacity=".2"
+          stroke="#bfa1ff"
+        />
+        <circle
+          cx={preview.spec.origin.x * 2}
+          cy={80 - preview.spec.origin.y}
+          r="3"
+          fill="#a9f4de"
+        />
+      </svg>
+      <div className="preview-facts">
+        <span>
+          <Users size={15} />
+          {preview.affected_agent_ids.length} citizens
+        </span>
+        <span>
+          <Building2 size={15} />
+          {preview.affected_building_ids.length} buildings
+        </span>
+        <span>
+          <Clock size={15} />
+          {preview.spec.duration_ticks} ticks
+        </span>
+        <span>
+          <MapPin size={15} />
+          Severity {preview.spec.severity}/100
+        </span>
+      </div>
+      <div className="supported-effects">
+        <h4>Planned, supported effects</h4>
+        {preview.spec.effects.map((e, i) => (
+          <p key={i}>
+            <Check size={14} />
+            {Object.entries(e)
+              .map(
+                ([k, v]) => `${pretty(k)}: ${v === null ? "none" : String(v)}`,
+              )
+              .join(" · ")}
+          </p>
+        ))}
+      </div>
+      {preview.warnings.map((w, i) => (
+        <p className="helper-text" key={i}>
+          {w}
+        </p>
+      ))}
+      {preview.unsupported_requests.length > 0 && (
+        <div className="warning">
+          <ShieldAlert size={18} />
+          <div>
+            <strong>Unsupported parts</strong>
+            {preview.unsupported_requests.map((u, i) => (
+              <p key={i}>{u}</p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+export default function ScenarioDialog({
+  simulation,
+  source,
+  onClose,
+  onUpdated,
+}: {
+  simulation: Simulation;
+  source: ScenarioSource;
+  onClose: () => void;
+  onUpdated: () => Promise<void>;
+}) {
+  const { client, notice } = useApp();
+  const [intervention, setIntervention] = useState<Intervention | null>(null),
+    [preview, setPreview] = useState<ScenarioPreview | null>(null),
+    [prompt, setPrompt] = useState(""),
+    [eventId, setEventId] = useState(""),
+    [busy, setBusy] = useState(true),
+    [error, setError] = useState(""),
+    [examples, setExamples] = useState(0);
+  const [policy, setPolicy] = useState<Policies>({
+    evacuation_order: false,
+    ration_units_per_agent: null,
+    aid_multiplier: 1,
+  });
+  const openKey = useRef(crypto.randomUUID()),
+    commitKey = useRef(crypto.randomUUID()),
+    previewKey = useRef(crypto.randomUUID()),
+    cancelKey = useRef(crypto.randomUUID());
+  const started = useRef(false);
+  const openingError = useRef<unknown>(null);
+  const events = useQuery(
+    () => client.events(simulation.id, simulation.revision),
+    [simulation.id],
+  );
+  const resolved = events.data?.filter((e) => e.status === "resolved") ?? [];
+  const enter = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const i = await client.intervene(simulation, openKey.current);
+      setIntervention(i);
+      await onUpdated();
+      if (source === "random") {
+        const p = await client.preview(
+          simulation.id,
+          {
+            intervention_id: i.id,
+            source,
+            source_event_id: null,
+            prompt: null,
+            policy: null,
+          },
+          previewKey.current,
+        );
+        setPreview(p);
+      }
+    } catch (e) {
+      openingError.current = e;
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (!started.current) {
+      started.current = true;
+      void enter();
+    }
+  }, []);
+  const cancel = async () => {
+    if (busy) return;
+    if (!intervention) {
+      if (
+        openingError.current instanceof ApiError &&
+        openingError.current.retryable
+      ) {
+        setBusy(true);
+        setError("");
+        try {
+          const recovered = await client.intervene(simulation, openKey.current);
+          setIntervention(recovered);
+          await client.cancel(simulation.id, recovered, cancelKey.current);
+          await onUpdated();
+          onClose();
+        } catch (e) {
+          setError(messageOf(e));
+          setBusy(false);
+        }
+        return;
+      }
+      onClose();
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await client.cancel(simulation.id, intervention, cancelKey.current);
+      await onUpdated();
+      onClose();
+    } catch (e) {
+      if (
+        e instanceof ApiError &&
+        ["PREVIEW_EXPIRED", "NOT_FOUND"].includes(e.code)
+      ) {
+        await onUpdated();
+        notice(
+          "The expired event editor is closed. Playback was not resumed by this action.",
+        );
+        onClose();
+        return;
+      }
+      if (e instanceof ApiError && e.code === "CONTROL_CONFLICT") {
+        const current = await client.simulation(simulation.id);
+        setIntervention({
+          ...intervention,
+          control_version: current.control_version,
+        });
+        cancelKey.current = crypto.randomUUID();
+      }
+      setError(messageOf(e));
+      setBusy(false);
+    }
+  };
+  const requestPreview = async () => {
+    if (!intervention) return;
+    setBusy(true);
+    setError("");
+    try {
+      const p = await client.preview(
+        simulation.id,
+        {
+          intervention_id: intervention.id,
+          source,
+          source_event_id: source === "repeat" ? eventId : null,
+          prompt: source === "custom" ? prompt : null,
+          policy: source === "policy" ? policy : null,
+        },
+        previewKey.current,
+      );
+      setPreview(p);
+      commitKey.current = crypto.randomUUID();
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const commit = async () => {
+    if (!preview || !intervention) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await client.commit(
+        simulation.id,
+        intervention,
+        preview,
+        commitKey.current,
+      );
+      await onUpdated();
+      notice(
+        result.simulation.status === "paused"
+          ? "Event queued. Event will begin once you press Play."
+          : "Event introduced. The city is running.",
+      );
+      onClose();
+    } catch (e) {
+      setError(messageOf(e));
+      setBusy(false);
+    }
+  };
+  const edit = () => {
+    setPreview(null);
+    previewKey.current = crypto.randomUUID();
+  };
+  const suggestions = [
+    [
+      "A neighborhood festival brings everyone together.",
+      "A sudden storm floods the western streets.",
+      "A power outage affects local businesses.",
+    ],
+    [
+      "A supply shortage tests the neighborhood.",
+      "A local aid drive opens at the community center.",
+      "An unverified warning spreads through the city.",
+    ],
+  ][examples % 2];
+  return (
+    <Modal
+      title={
+        source === "random"
+          ? "A little unexpected"
+          : source === "repeat"
+            ? "Revisit a turning point"
+            : source === "policy"
+              ? "Put a policy into practice"
+              : "What happens if…"
+      }
+      eyebrow={`${pretty(source)} event / ${intervention ? "CITY PAUSED" : "WAITING FOR SAFE PAUSE"}`}
+      onClose={() => void cancel()}
+      busy={busy}
+    >
+      {busy && !intervention ? (
+        <Busy text="Waiting for the city to pause safely…" />
+      ) : !intervention ? (
+        <>
+          <ErrorBox error={error} />
+          <Button onClick={() => void enter()}>Retry safe pause</Button>
+        </>
+      ) : (
+        <>
+          <p className="dialog-intro">
+            {source === "custom"
+              ? "Describe a change. Review the supported effects before introducing it to your city."
+              : source === "random"
+                ? "A new possibility for your neighborhood. Nothing changes until you confirm."
+                : "Review the planned effects before anything changes."}
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!busy) void requestPreview();
+            }}
+          >
+            {source === "custom" && (
+              <>
+                <Field label="Describe your event">
+                  <textarea
+                    autoFocus
+                    rows={4}
+                    maxLength={2000}
+                    value={prompt}
+                    placeholder="What if…"
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      edit();
+                    }}
+                    disabled={busy}
+                  />
+                </Field>
+                <div className="example-heading">
+                  <span>NEED A SPARK?</span>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => setExamples((n) => n + 1)}
+                  >
+                    <RefreshCw size={13} /> New ideas
+                  </button>
+                </div>
+                <div className="event-examples">
+                  {suggestions.map((s) => (
+                    <button
+                      type="button"
+                      key={s}
+                      onClick={() => {
+                        setPrompt(s);
+                        edit();
+                      }}
+                    >
+                      {s}
+                      <ArrowRight size={13} />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {source === "repeat" &&
+              (resolved.length ? (
+                <Field label="Resolved event">
+                  <select
+                    value={eventId}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setEventId(e.target.value);
+                      edit();
+                    }}
+                  >
+                    <option value="">Choose a previous event</option>
+                    {resolved.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.title}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <Empty title="No events to repeat yet">
+                  Resolve a major event in this city first.
+                </Empty>
+              ))}
+            {source === "policy" && (
+              <div className="policy-fields">
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={policy.evacuation_order}
+                    onChange={(e) => {
+                      setPolicy((p) => ({
+                        ...p,
+                        evacuation_order: e.target.checked,
+                      }));
+                      edit();
+                    }}
+                  />{" "}
+                  Broadcast evacuation order
+                </label>
+                <Field label="Aid multiplier (0–3)">
+                  <input
+                    type="number"
+                    min={0}
+                    max={3}
+                    step={0.1}
+                    value={policy.aid_multiplier}
+                    onChange={(e) => {
+                      setPolicy((p) => ({
+                        ...p,
+                        aid_multiplier: Number(e.target.value),
+                      }));
+                      edit();
+                    }}
+                  />
+                </Field>
+                <Field label="Ration units per citizen (blank for none)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={policy.ration_units_per_agent ?? ""}
+                    onChange={(e) => {
+                      setPolicy((p) => ({
+                        ...p,
+                        ration_units_per_agent:
+                          e.target.value === "" ? null : Number(e.target.value),
+                      }));
+                      edit();
+                    }}
+                  />
+                </Field>
+              </div>
+            )}
+            {preview && <PreviewCard preview={preview} />}{" "}
+            {error && intervention && <ErrorBox error={error} />}
+            <div className="modal-actions">
+              <Button
+                kind="ghost"
+                disabled={busy}
+                onClick={() => void cancel()}
+              >
+                Cancel
+              </Button>
+              {preview ? (
+                <Button
+                  disabled={busy || !preview.can_commit}
+                  onClick={() => void commit()}
+                >
+                  {busy ? "Confirming…" : "Confirm event"}
+                  <Check size={16} />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={
+                    busy ||
+                    (source === "custom" && !prompt.trim()) ||
+                    (source === "repeat" && !eventId)
+                  }
+                >
+                  {busy ? "Preparing preview…" : "Preview effects"}
+                  <ArrowRight size={16} />
+                </Button>
+              )}
+            </div>
+          </form>
+        </>
+      )}
+    </Modal>
+  );
+}
+export function InitialScenarioDialog({
+  simulation,
+  onUpdated,
+}: {
+  simulation: Simulation;
+  onUpdated: () => Promise<void>;
+}) {
+  const { client, notice } = useApp();
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const confirmKey = useRef(crypto.randomUUID()),
+    skipKey = useRef(crypto.randomUUID());
+  const decide = async (decision: "confirm" | "skip") => {
+    setBusy(true);
+    try {
+      await client.initial(
+        simulation,
+        decision,
+        decision === "confirm" ? confirmKey.current : skipKey.current,
+      );
+      await onUpdated();
+      notice(
+        decision === "confirm"
+          ? "Event queued. Event will begin once you press Play."
+          : "Opening scenario skipped. Your city is ready to explore.",
+      );
+    } catch (e) {
+      setError(messageOf(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal
+      title="Your opening what if"
+      eyebrow="REVIEW BEFORE YOU BEGIN"
+      onClose={() => void decide("skip")}
+      busy={busy}
+    >
+      <PreviewCard preview={simulation.initial_preview!} />
+      {error && <ErrorBox error={error} />}
+      <div className="modal-actions">
+        <Button
+          kind="ghost"
+          disabled={busy}
+          onClick={() => void decide("skip")}
+        >
+          Skip scenario
+        </Button>
+        <Button
+          disabled={busy || !simulation.initial_preview?.can_commit}
+          onClick={() => void decide("confirm")}
+        >
+          Confirm opening event
+          <Check size={16} />
+        </Button>
+      </div>
+    </Modal>
+  );
+}

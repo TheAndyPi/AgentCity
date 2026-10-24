@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentCity visual QA</title>
+    <style>
+      body {
+        margin: 0;
+        background: #100b1b;
+        color: #f3eefb;
+        font: 12px system-ui;
+      }
+      form {
+        padding: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      input,
+      select,
+      button {
+        background: #251b33;
+        color: #f3eefb;
+        border: 1px solid #554165;
+        border-radius: 4px;
+        padding: 7px;
+        max-width: 160px;
+      }
+      #stage {
+        margin: 10px;
+        overflow: hidden;
+      }
+      iframe {
+        border: 0;
+        transform-origin: top left;
+        background: #100b1b;
+      }
+      output {
+        display: block;
+        padding: 0 10px 10px;
+        font-size: 10px;
+        color: #c6a7fc;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="controls">
+      <label
+        >Route
+        <input name="route" value="/" aria-label="Preview route" /></label
+      ><label
+        >Viewport
+        <select name="size" aria-label="Preview viewport">
+          <option value="1440,900">1440 × 900</option>
+          <option value="1280,800">1280 × 800</option>
+          <option value="768,1024">768 × 1024</option>
+          <option value="390,844">390 × 844</option>
+        </select></label
+      ><label><input name="light" type="checkbox" />Light theme</label
+      ><button>Render preview</button>
+    </form>
+    <output id="report">Select a viewport and route.</output>
+    <div id="stage"><iframe title="Responsive QA preview"></iframe></div>
+    <script type="module">
+      const form = document.querySelector("form"),
+        frame = document.querySelector("iframe"),
+        stage = document.querySelector("#stage"),
+        report = document.querySelector("output");
+      function render() {
+        const [w, h] = form.size.value.split(",").map(Number),
+          scale = Math.min(1, (innerWidth - 20) / w);
+        frame.style.width = w + "px";
+        frame.style.height = h + "px";
+        frame.style.transform = `scale(${scale})`;
+        stage.style.height = h * scale + "px";
+        frame.src = form.route.value;
+      }
+      frame.addEventListener("load", () => {
+        const doc = frame.contentDocument;
+        doc.documentElement.dataset.theme = form.light.checked
+          ? "light"
+          : "dark";
+        setTimeout(() => {
+          doc.documentElement.dataset.theme=form.light.checked?"light":"dark";
+          const overflow =
+            doc.documentElement.scrollWidth > doc.documentElement.clientWidth;
+          report.textContent = `CSS viewport ${frame.contentWindow.innerWidth} × ${frame.contentWindow.innerHeight}. Horizontal document overflow: ${overflow ? "YES" : "none"}. Heading: ${doc.querySelector("h1")?.textContent ?? "loading city"}`;
+        }, 2000);
+      });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        render();
+      });
+      addEventListener("resize", render);
+      render();
+    </script>
+  </body>
+</html>
