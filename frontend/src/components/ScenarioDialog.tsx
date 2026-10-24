@@ -21,6 +21,7 @@ import type {
   EffectSpec,
 } from "../api/types";
 import { pretty } from "../api/defaults";
+import { ScenarioDiorama } from "../world/ScenarioScene";
 import {
   previewLayout,
   previewPoint,
@@ -28,6 +29,22 @@ import {
 } from "../world/previewGeometry";
 function describeEffect(effect: EffectSpec): string {
   switch (effect.type) {
+    case "wellbeing":
+      return (
+        [
+          effect.happiness_delta
+            ? `Happiness ${effect.happiness_delta > 0 ? "+" : ""}${effect.happiness_delta}`
+            : "",
+          effect.stress_delta
+            ? `stress ${effect.stress_delta > 0 ? "+" : ""}${effect.stress_delta}`
+            : "",
+          effect.health_delta
+            ? `health ${effect.health_delta > 0 ? "+" : ""}${effect.health_delta}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(", ") + " per tick for citizens in the area."
+      );
     case "information":
       return effect.reliability === 100
         ? "Citizens learn about your event, remember it, and can talk about it with one another."
@@ -66,6 +83,18 @@ export function PreviewCard({
       </div>
       <h3>{preview.spec.title}</h3>
       <p>{preview.interpretation}</p>
+      <ScenarioDiorama objects={preview.spec.scene ?? []} />
+      {!!preview.spec.scene?.length && (
+        <div className="scenario-prop-list">
+          {[...new Set(preview.spec.scene.map((o) => o.model))].map((model) => (
+            <span key={model}>
+              {model === "generated"
+                ? preview.spec.scene?.find((o) => o.model === model)?.label
+                : pretty(model)}
+            </span>
+          ))}
+        </div>
+      )}
       <svg
         viewBox="0 0 280 85"
         className="preview-map"
@@ -357,16 +386,21 @@ export default function ScenarioDialog({
   };
   const suggestions = [
     [
-      "A mysterious visitor arrives with a secret.",
-      "Two neighbors discover they are long-lost siblings.",
-      "Dinosaurs appear in the town square.",
+      "Dinosaurs appear in the town square for 20 ticks.",
+      "An alien spacecraft arrives during a neighborhood festival.",
+      "A farmers market and community garden open in the east.",
     ],
     [
-      "A supply shortage tests the neighborhood.",
-      "A local aid drive opens at the community center.",
-      "An unverified warning spreads through the city.",
+      "A snowstorm arrives while robots deliver community aid.",
+      "A medical clinic opens during a water shortage.",
+      "A mysterious portal brings visitors into the city.",
     ],
-  ][examples % 2];
+    [
+      "A peaceful protest starts beside a construction site.",
+      "Deer wander through a concert in the neighborhood.",
+      "A meteor reveals an ancient artifact.",
+    ],
+  ][examples % 3];
   return (
     <Modal
       title={

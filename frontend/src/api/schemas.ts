@@ -151,6 +151,12 @@ export const policies = obj({
 }).strict();
 export const effect = z.discriminatedUnion("type", [
   obj({
+    type: z.literal("wellbeing"),
+    happiness_delta: finite.min(-2).max(2),
+    stress_delta: finite.min(-2).max(2),
+    health_delta: finite.min(-2).max(2),
+  }).strict(),
+  obj({
     type: z.literal("hazard"),
     hazard: z.enum(["flood", "fire", "storm"]),
     severity: pct,
@@ -189,6 +195,52 @@ const kind = z.enum([
   "policy",
   "custom",
 ]);
+export const scenePart = obj({
+  shape: z.enum(["box", "sphere", "cone", "cylinder"]),
+  offset: obj({
+    x: finite.min(-8).max(8),
+    y: finite.min(0).max(10),
+    z: finite.min(-8).max(8),
+  }).strict(),
+  size: obj({
+    x: finite.min(0.1).max(8),
+    y: finite.min(0.1).max(8),
+    z: finite.min(0.1).max(8),
+  }).strict(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+}).strict();
+export const sceneObject = obj({
+  model: z.enum([
+    "flood",
+    "fire",
+    "cloud",
+    "crates",
+    "generator",
+    "broadcast",
+    "stage",
+    "stall",
+    "tree",
+    "dinosaur",
+    "spacecraft",
+    "robot",
+    "barrier",
+    "clinic",
+    "snow",
+    "heat",
+    "meteor",
+    "monument",
+    "portal",
+    "visitor",
+    "deer",
+    "generated",
+  ]),
+  label: name,
+  position: vec,
+  scale: finite.min(0.5).max(4),
+  rotation: finite.min(0).max(6.284),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  parts: z.array(scenePart).max(8).optional(),
+}).strict();
 export const eventSpec = obj({
   title: name,
   description: text,
@@ -199,6 +251,7 @@ export const eventSpec = obj({
   duration_ticks: count.min(1).max(1000),
   effects: z.array(effect).max(20),
   success_condition: z.enum(["duration_elapsed", "all_safe_or_duration"]),
+  scene: z.array(sceneObject).max(24).optional(),
 }).strict();
 export const preview: z.ZodType<T.ScenarioPreview> = obj({
   id,
@@ -447,6 +500,7 @@ export const event: z.ZodType<T.EventSummary> = obj({
   affected_polygon: polygon,
   pre_event_snapshot_id: id,
   summary: text,
+  scene: z.array(sceneObject).max(24).optional(),
 }).strict();
 export const eventReport: z.ZodType<T.EventReport> = obj({
   ref,

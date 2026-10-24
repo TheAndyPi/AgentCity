@@ -482,7 +482,10 @@ def create_app(config: AppConfig | None = None):
     )
     async def preview(request: Request, sid: str, body: c.PreviewRequest):
         service, _ = services(request)
-        return await write(request, body, lambda: service.preview(request.state.owner, sid, body), sid)
+        design = await service.prepare_scene(request.state.owner, sid, body, request.state.request_id)
+        return await write(
+            request, body, lambda: service.preview(request.state.owner, sid, body, design), sid
+        )
 
     @app.post(API + "/simulations/{sid}/interventions/{iid}/cancel", response_model=c.Success[c.Simulation])
     async def cancel(request: Request, sid: str, iid: str, body: c.ExpectedControl):

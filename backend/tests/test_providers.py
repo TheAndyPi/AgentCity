@@ -295,3 +295,107 @@ def test_missing_usage_metadata_is_explicitly_unavailable(client):
     assert response.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
     assert service.repo.meta["usage"][sid]["calls"] == 1
     assert service.repo.meta["usage"][sid]["budget_charge"] == 123
+
+
+def test_generated_scene_uses_bounded_structured_output_and_usage():
+    from app.prompts.outputs import SceneDesign
+
+    async def run():
+        usage = []
+
+        async def record(sid, counts):
+            usage.append(counts)
+
+        design = dict(
+            label="Whale",
+            parts=[
+                dict(
+                    shape="sphere",
+                    offset=dict(x=0, y=1, z=0),
+                    size=dict(x=4, y=2, z=2),
+                    color="#8bb9db",
+                )
+            ],
+        )
+
+        async def handler(request):
+            data = json.loads(request.content)
+            assert "parts" in data["generationConfig"]["responseJsonSchema"]["properties"]
+            assert data["generationConfig"]["maxOutputTokens"] == 512
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [{"content": {"parts": [{"text": json.dumps(design)}]}}],
+                    "usageMetadata": {"promptTokenCount": 30, "candidatesTokenCount": 40},
+                },
+            )
+
+        gateway = Gateway(
+            provider_config(), record, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        )
+        assert await gateway.scene("city", "A whale arrives", []) == SceneDesign.model_validate(design)
+        assert usage[0]["output_tokens"] == 40
+        await gateway.close()
+
+    asyncio.run(run())
+
+
+def test_scene_deadline_falls_back_and_releases_budget_reservation(monkeypatch):
+    monkeypatch.setattr("app.infrastructure.gemini.SCENE_TIMEOUT_SECONDS", 0.01)
+
+    async def run():
+        usage = []
+
+        async def record(sid, counts):
+            usage.append(counts)
+
+        async def handler(request):
+            await asyncio.sleep(1)
+            raise AssertionError("The scene deadline must cancel this request")
+
+        gateway = Gateway(
+            provider_config(), record, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        )
+        assert await gateway.scene("city", "A whale arrives", []) is None
+        assert gateway.reserved == 0
+        assert usage[0]["failed_calls"] == 1
+        assert gateway.diagnostics["timeouts"] == 1
+        await gateway.close()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("shape,size", [("executable_mesh", 1), ("box", 99)])
+def test_scene_rejects_unbounded_or_unknown_geometry(shape, size):
+    async def run():
+        async def record(sid, counts):
+            pass
+
+        async def handler(request):
+            design = dict(
+                label="Invalid object",
+                parts=[
+                    dict(
+                        shape=shape,
+                        offset=dict(x=0, y=1, z=0),
+                        size=dict(x=size, y=1, z=1),
+                        color="#8bb9db",
+                    )
+                ],
+            )
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [{"content": {"parts": [{"text": json.dumps(design)}]}}],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 10},
+                },
+            )
+
+        gateway = Gateway(
+            provider_config(), record, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        )
+        assert await gateway.scene("city", "An unfamiliar object arrives", []) is None
+        assert gateway.diagnostics["malformed"] == 1
+        await gateway.close()
+
+    asyncio.run(run())

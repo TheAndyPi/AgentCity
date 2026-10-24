@@ -31,6 +31,7 @@ from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.engine import list_tree, tick
 from app.simulation.game_master import apply_intent, make_intent
 from app.simulation.navigation import cell_at, distance, meeting_point, pathfind
+from app.simulation.scenario_scene import matches
 from app.simulation.scenarios import compile_preview, generate_map, queue_event, validate_spec
 from app.simulation.state import State, expired, expiry, now, uid
 
@@ -60,6 +61,7 @@ class Service:
         self.initializers = {}
         self.provider_tasks = {}
         self.provider_results = {}
+        self.scene_tasks = {}
         self.closed = False
         self.gateway = Gateway(config, self.record_usage)
         billed = self.repo.meta["usage"].get("global", {})
@@ -94,7 +96,12 @@ class Service:
 
     async def close(self):
         self.closed = True
-        tasks = [*self.runners.values(), *self.initializers.values(), *self.provider_tasks.values()]
+        tasks = [
+            *self.runners.values(),
+            *self.initializers.values(),
+            *self.provider_tasks.values(),
+            *self.scene_tasks.values(),
+        ]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -319,6 +326,21 @@ class Service:
                 ("ready", 100),
             ]
             for stage, progress in stages:
+                design = None
+                if stage == "scenario":
+                    head = self.heads.get(sid)
+                    premise = head.simulation.config.scenario_description if head else ""
+                    if (
+                        premise.strip()
+                        and self.config.gemini_enabled
+                        and head
+                        and head.simulation.initialization.stage
+                        in {"queued", "map", "population", "relationships"}
+                    ):
+                        # Provider work and usage recording run outside the writer lock.
+                        design = await self.gateway.scene(
+                            sid, premise, [r["model"] for r in matches(premise)]
+                        )
                 async with self.writer:
                     head = self.heads.get(sid)
                     if not head or head.simulation.status != "initializing":
@@ -381,7 +403,7 @@ class Service:
                     elif stage == "scenario":
                         if state.simulation.config.scenario_description.strip():
                             state.simulation.initial_preview = compile_preview(
-                                state, "initial", state.simulation.config.scenario_description
+                                state, "initial", state.simulation.config.scenario_description, design=design
                             )
                     elif stage == "ready":
                         for citizen in state.citizens.values():
@@ -815,11 +837,33 @@ class Service:
         require(not expired(state.intervention.expires_at), "PREVIEW_EXPIRED", "Intervention expired", 410)
         return state.intervention
 
-    def preview(self, owner, sid, body):
+    async def prepare_scene(self, owner, sid, body, request_id):
+        if body.source != "custom" or not self.config.gemini_enabled or not (body.prompt or "").strip():
+            return None
+        identity = f"{owner}:{request_id}"
+        if identity in self.repo.meta["idempotency"]:
+            return None
+        state = self.owned(owner, sid)
+        self.hold(state, body.intervention_id)
+        if len(self.scene_tasks) >= 64:
+            self.scene_tasks = {k: v for k, v in self.scene_tasks.items() if not v.done()}
+        if identity not in self.scene_tasks:
+            if len(self.scene_tasks) >= 64:
+                return None
+            self.scene_tasks[identity] = asyncio.create_task(
+                self.gateway.scene(sid, body.prompt or "", [r["model"] for r in matches(body.prompt or "")])
+            )
+        return await asyncio.shield(self.scene_tasks[identity])
+
+    def preview(self, owner, sid, body, design=None):
         state = self.owned(owner, sid).model_copy(deep=True)
         self.hold(state, body.intervention_id)
+        previous_editor = self.repo.meta.get("editors", {}).get(sid, {})
+        state.entity_sequence = max(state.entity_sequence, previous_editor.get("sequence", 0))
         try:
-            preview = compile_preview(state, body.source, body.prompt, body.source_event_id, body.policy)
+            preview = compile_preview(
+                state, body.source, body.prompt, body.source_event_id, body.policy, design
+            )
         except ValidationError as error:
             reasons = "; ".join(
                 f"{'.'.join(map(str, item['loc']))}: {item['msg']}" for item in error.errors()

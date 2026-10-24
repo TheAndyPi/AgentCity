@@ -30,6 +30,7 @@ import { groundColors, type GroundRect } from "./groundLayout";
 import { acknowledgedRoute, pointAlongRoute } from "./motion";
 import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
+import ScenarioScene from "./ScenarioScene";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -460,7 +461,13 @@ export default function World(props: Props) {
               <group key={h.event_id}>
                 <Polygon
                   points={h.polygon}
-                  color="#729be8"
+                  color={
+                    h.kind === "fire"
+                      ? "#eaa16d"
+                      : h.kind === "storm"
+                        ? "#a1adbf"
+                        : "#729be8"
+                  }
                   opacity={0.45}
                   elevation={0.5}
                 />
@@ -468,7 +475,13 @@ export default function World(props: Props) {
                   points={[...h.polygon, h.polygon[0]].map(
                     (p) => [p.x, 0.6, p.y] as [number, number, number],
                   )}
-                  color="#a4cbff"
+                  color={
+                    h.kind === "fire"
+                      ? "#ffc888"
+                      : h.kind === "storm"
+                        ? "#d4deeb"
+                        : "#a4cbff"
+                  }
                   lineWidth={1.5}
                 />
               </group>
@@ -480,6 +493,18 @@ export default function World(props: Props) {
             onSelect={props.onSelect}
             reducedMotion={props.reducedMotion}
           />
+          {props.frame.events
+            .filter((e) => e.status === "active")
+            .map((e) => (
+              <ScenarioScene
+                key={e.id}
+                objects={e.scene ?? []}
+                animated={
+                  !props.reducedMotion &&
+                  props.frame.simulation.status === "running"
+                }
+              />
+            ))}
           <Camera
             frame={props.frame}
             follow={props.follow}
@@ -749,6 +774,35 @@ function World2D(props: Props) {
       {patches("entrances", ground.entrances, groundColors.sidewalk)}
       {patches("curbs", ground.curbs, groundColors.curb)}
       {patches("markings", ground.markings, groundColors.markings)}
+      {frame.events
+        .filter((e) => e.status === "active")
+        .flatMap((e) =>
+          (e.scene ?? []).map((o, i) => (
+            <g key={`${e.id}:${i}`} data-scenario-model={o.model}>
+              <title>
+                {o.label} — {o.model}
+              </title>
+              <circle
+                cx={o.position.x}
+                cy={frame.map.height_m - o.position.y}
+                r={1.8 * o.scale}
+                fill={o.color}
+                stroke="#f3e9d1"
+                strokeWidth={0.2}
+              />
+              <text
+                x={o.position.x}
+                y={frame.map.height_m - o.position.y + 0.7}
+                textAnchor="middle"
+                fill="#26333c"
+                fontSize={2}
+                pointerEvents="none"
+              >
+                ✦
+              </text>
+            </g>
+          )),
+        )}
       {frame.map.buildings.map((b) => {
         const info = buildingInfo(b),
           bounds = buildingBounds(b);

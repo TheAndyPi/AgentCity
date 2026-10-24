@@ -2,7 +2,25 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from app.contracts import ID, EventSpec, Evidence, Intent, Model, Pct, Profile, RelationshipKind, Text, Vec2
+from app.contracts import (
+    ID,
+    EventSpec,
+    Evidence,
+    Intent,
+    Model,
+    Name,
+    Pct,
+    Profile,
+    RelationshipKind,
+    ScenePart,
+    Text,
+    Vec2,
+)
+
+
+class SceneDesign(Model):
+    label: Name
+    parts: Annotated[list[ScenePart], Field(max_length=8)]
 
 
 class MemoryProposal(Model):

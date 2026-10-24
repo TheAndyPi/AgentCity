@@ -271,6 +271,12 @@ export type AgentDetail = {
   metric_reasons: { metric: Metric; delta: number; evidence: Evidence }[];
 };
 export type EffectSpec =
+  | {
+      type: "wellbeing";
+      happiness_delta: number;
+      stress_delta: number;
+      health_delta: number;
+    }
   | { type: "hazard"; hazard: "flood" | "fire" | "storm"; severity: Pct }
   | {
       type: "resource_multiplier";
@@ -291,6 +297,43 @@ export type EffectSpec =
       ration_units_per_agent: number | null;
       aid_multiplier: number;
     };
+export type ScenePart = {
+  shape: "box" | "sphere" | "cone" | "cylinder";
+  offset: { x: number; y: number; z: number };
+  size: { x: number; y: number; z: number };
+  color: string;
+};
+export type SceneObject = {
+  model:
+    | "flood"
+    | "fire"
+    | "cloud"
+    | "crates"
+    | "generator"
+    | "broadcast"
+    | "stage"
+    | "stall"
+    | "tree"
+    | "dinosaur"
+    | "spacecraft"
+    | "robot"
+    | "barrier"
+    | "clinic"
+    | "snow"
+    | "heat"
+    | "meteor"
+    | "monument"
+    | "portal"
+    | "visitor"
+    | "deer"
+    | "generated";
+  label: string;
+  position: Vec2;
+  scale: number;
+  rotation: number;
+  color: string;
+  parts?: ScenePart[];
+};
 export type EventSpec = {
   title: string;
   description: string;
@@ -310,6 +353,7 @@ export type EventSpec = {
   duration_ticks: number;
   effects: EffectSpec[];
   success_condition: "duration_elapsed" | "all_safe_or_duration";
+  scene?: SceneObject[];
 };
 export type ScenarioPreview = {
   id: ID;
@@ -338,6 +382,7 @@ export type EventSummary = {
   affected_polygon: Vec2[];
   pre_event_snapshot_id: ID;
   summary: string;
+  scene?: SceneObject[];
 };
 export type EventReport = {
   ref: Ref;

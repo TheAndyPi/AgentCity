@@ -1433,6 +1433,35 @@ kbd {
   color: var(--green);
 }
 
+/* Scenario scene previews */
+.scenario-diorama {
+  border-color: var(--line);
+  background:
+    radial-gradient(ellipse at 50% 70%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 70%),
+    var(--input);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 10%, transparent);
+}
+.scenario-diorama-caption {
+  color: var(--cyan);
+  font: 600 11px var(--font-tech);
+  letter-spacing: 0.04em;
+}
+.scenario-diorama-caption > span,
+.scenario-scene-fallback {
+  color: var(--muted);
+}
+.scenario-prop-list > span {
+  font-size: 11px;
+  border-color: color-mix(in srgb, var(--pink) 35%, transparent);
+  color: var(--text);
+}
+.scenario-world-label {
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 25%, transparent);
+}
+
 /* Reduced motion: ambient art holds still, transitions are instant. */
 :root[data-motion="reduced"] .ambient-gear,
 :root[data-motion="reduced"] .ambient-wires,

@@ -1,5 +1,6 @@
 /** Frontend-only deterministic review fixtures. These are not simulation physics. */
 import type * as T from "./types";
+import { scenarioFixture } from "./scenarioFixtures";
 import { defaultConfig, defaultProfile, defaultSettings } from "./defaults";
 export const fixtureDate = "2026-10-24T10:00:00.000Z";
 export const baseline: T.Metrics = {
@@ -388,151 +389,9 @@ export function fixturePreview(
   source: T.ScenarioPreview["source"] = "random",
   prompt = "",
 ): T.ScenarioPreview {
-  const festival = /festival/i.test(prompt),
-    outage = /outage/i.test(prompt),
-    policy = source === "policy" || /policy|evacuation|ration/i.test(prompt),
-    shortage = /shortage/i.test(prompt),
-    misinformation = /misinformation/i.test(prompt),
-    storm = /storm|tornado/i.test(prompt),
-    fire = /fire/i.test(prompt),
-    aid = /aid/i.test(prompt),
-    recognized =
-      /festival|aid|flood|water|storm|tornado|fire|outage|power|shortage|supply|misinformation|warning|policy|evacuation|ration/i.test(
-        prompt,
-      );
-  const custom =
-    (source === "custom" || source === "initial") && !!prompt.trim();
-  const kind: T.EventSpec["kind"] =
-    custom && !recognized
-      ? "custom"
-      : festival
-        ? "festival"
-        : outage
-          ? "outage"
-          : policy
-            ? "policy"
-            : shortage
-              ? "shortage"
-              : misinformation
-                ? "misinformation"
-                : storm
-                  ? "storm"
-                  : fire
-                    ? "fire"
-                    : aid
-                      ? "custom"
-                      : "flood";
-  const title = custom
-    ? prompt.trim().replace(/\s+/g, " ").slice(0, 80).trim()
-    : festival
-      ? "A neighborhood festival"
-      : outage
-        ? "District power outage"
-        : policy
-          ? "Community aid policy"
-          : shortage
-            ? "Supply shortage"
-            : misinformation
-              ? "An unverified warning"
-              : storm
-                ? "A storm over West Quarter"
-                : fire
-                  ? "A fire in West Quarter"
-                  : aid
-                    ? "Community aid at the square"
-                    : "Rising water in West Quarter";
-  return {
-    id: `preview-${frame.simulation.id}-${frame.ref.revision}`,
-    simulation_id: frame.simulation.id,
-    source,
-    source_event_id: null,
-    based_on: frame.ref,
-    expires_at: new Date(Date.now() + 600000).toISOString(),
-    interpretation: festival
-      ? "Host a local festival at Community Square, creating opportunities for citizens to meet."
-      : outage
-        ? "Temporarily disable affected infrastructure. Citizens must adjust their routines."
-        : policy
-          ? "Introduce a community aid policy for this neighborhood."
-          : `Introduce ${kind} in West Quarter. Citizens will respond using their recorded traits, knowledge, and relationships.`,
-    spec: {
-      title,
-      description: prompt || "A fixture scenario for the frontend review.",
-      kind,
-      origin: { x: 25, y: 37 },
-      affected_polygon: area,
-      severity: 60,
-      duration_ticks: 8,
-      effects:
-        custom && !recognized
-          ? [
-              {
-                type: "information",
-                message: prompt.trim(),
-                reliability: 100,
-                delivery: "local",
-              },
-            ]
-          : festival
-            ? [{ type: "community", activity: "festival", capacity: 30 }]
-            : outage
-              ? [
-                  {
-                    type: "infrastructure",
-                    functional: false,
-                    capacity_multiplier: 0,
-                  },
-                ]
-              : policy
-                ? [
-                    {
-                      type: "policy",
-                      evacuation_order: true,
-                      ration_units_per_agent: null,
-                      aid_multiplier: 1.5,
-                    },
-                  ]
-                : shortage
-                  ? [
-                      {
-                        type: "resource_multiplier",
-                        resource: "food",
-                        multiplier: 0.5,
-                      },
-                    ]
-                  : misinformation
-                    ? [
-                        {
-                          type: "information",
-                          message: "An unverified warning",
-                          reliability: 25,
-                          delivery: "local",
-                        },
-                      ]
-                    : aid
-                      ? [{ type: "community", activity: "aid", capacity: 30 }]
-                      : [
-                          {
-                            type: "hazard",
-                            hazard: storm ? "storm" : fire ? "fire" : "flood",
-                            severity: 60,
-                          },
-                        ],
-      success_condition: "duration_elapsed",
-    },
-    affected_agent_ids: frame.agents.slice(0, 12).map((a) => a.id),
-    affected_building_ids: fixtureMap.buildings.slice(0, 6).map((b) => b.id),
-    warnings: [
-      "Planned effects only. Actual outcomes depend on committed citizen actions.",
-    ],
-    unsupported_requests: [],
-    can_commit:
-      source === "random" ||
-      source === "repeat" ||
-      source === "policy" ||
-      !!prompt.trim(),
-  };
+  return scenarioFixture(frame, source, prompt);
 }
+
 export const fixtureSettings = structuredClone(defaultSettings);
 // Fixed recorded poses. The adapter selects a sample; it does not compute navigation.
 export const recordedOffsets = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(

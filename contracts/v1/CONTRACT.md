@@ -385,3 +385,33 @@ Fixture set must include: initializing job; ready paused city; initial scenario 
 
 Frontend and backend independently run every valid fixture and deliberately invalid fixture through their validators. HTTP OpenAPI snapshot comparison and WebSocket schema checks must pass. Shared file hashes remain unchanged. Both agents include the exact contract version, test commands/results, known gaps, and a request/response trace in their handoff. Working incremental functionality is required; mock demonstrations and unavailable optional integrations must be labeled honestly.
 <!-- SHARED_CONTRACT_V1_END -->
+
+#### Coordinated scenario scene extension (snapshot revision 2)
+
+The scenario expansion adds `scene?: SceneObject[]` to EventSpec and EventSummary.
+Missing scene arrays in older saves and responses are treated as empty. New server
+responses include the array. Each scene contains at most 24 procedural props with
+`model`, `label`, `position: Vec2`, `scale` (0.5–4), `rotation` (0–6.284 radians),
+and a six-digit hex `color`. The model vocabulary is defined in the shared JSON
+schemas and rendered using built-in geometry. Positions must lie inside the map
+and the event polygon; the compiler places props on open walkable ground.
+
+EffectSpec also accepts `wellbeing` with finite `happiness_delta`, `stress_delta`
+and `health_delta`, each between -2 and 2 per tick. These apply only to active
+citizens in the event polygon. Health and metrics remain clamped to 0–100. Scene
+props are visual representations, not new citizens or navigation obstacles.
+They are shown while the event is active and retained in saved events, reports,
+repeats, and historical frames. Previewing never applies effects or advances the
+physical RNG. Unknown premises retain an information effect and a clearly
+identified abstract landmark. Existing endpoints, envelopes, and EventKind values
+retain version 1.0.0; the jointly updated Python, Zod, HTTP and stream snapshots
+record this additive extension as snapshot revision 2.
+
+SceneObject also accepts model `generated` and optional `parts` (at most eight).
+Each part has a `shape` (box, sphere, cone or cylinder), a local `offset` vector
+(x/z -8..8, y 0..10), full `size` vector (each 0.1..8), and six-digit hex `color`.
+Missing parts default to an empty array. Configured Gemini may propose these
+parts through a validated SceneDesign response; code places the object, and no
+provider output can execute code, load a URL, alter topology or change citizens.
+Provider work runs outside commit locks with existing usage/budget enforcement.
+Timeouts, malformed output or exhausted budgets use the explicit local fallback.
