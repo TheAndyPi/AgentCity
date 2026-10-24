@@ -1,0 +1,20 @@
+{
+  "model": "Failure",
+  "valid": true,
+  "revision": 0,
+  "data": {
+    "schema_version": "1.0.0",
+    "request_id": "462c083b-1fd0-4c4a-bfaa-bf047c5a119c",
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Request validation failed",
+      "retryable": false,
+      "details": [
+        {
+          "field": "body.config.population",
+          "reason": "Input should be greater than or equal to 10"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "model": "CreateSimulation",
+  "valid": false,
+  "revision": 0,
+  "data": {
+    "config": {
+      "name": "Bad",
+      "seed": 1
+    },
+    "extra": true
+  }
+}

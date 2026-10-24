@@ -1,0 +1,12 @@
+{
+  "model": "CommandRequest",
+  "valid": false,
+  "revision": 0,
+  "data": {
+    "request_id": "not-uuid",
+    "expected_control_version": 0,
+    "command": {
+      "type": "play"
+    }
+  }
+}

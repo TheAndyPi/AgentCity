@@ -1,0 +1,2 @@
+# Frozen integration artifacts are hashed as bytes; never normalize line endings.
+v1/** -text whitespace=cr-at-eol

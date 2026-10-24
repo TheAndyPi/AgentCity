@@ -1,0 +1,39 @@
+{
+  "model": "Decision",
+  "valid": true,
+  "revision": 6,
+  "data": {
+    "id": "decision_00000039",
+    "agent_id": "agent_00000028",
+    "tick": 0,
+    "source": "rules",
+    "intent": {
+      "action": "help",
+      "target_id": "agent_00000029",
+      "destination": null,
+      "parameters": {
+        "resource_kind": null,
+        "amount": null,
+        "message": null
+      },
+      "motivation": "Meet my current needs",
+      "emotion": "calm"
+    },
+    "observed_facts": [
+      "Position (1.0, 3.0) meters",
+      "Hunger 20.0, fatigue 15.0"
+    ],
+    "memory_ids": [],
+    "relationship_agent_ids": [
+      "agent_00000029",
+      "agent_00000030",
+      "agent_00000031"
+    ],
+    "concise_rationale": "Meet my current needs",
+    "outcome": "rejected",
+    "outcome_description": "Target is not currently visible",
+    "rejection_code": "UNOBSERVED_TARGET",
+    "effects": [],
+    "event_ids": []
+  }
+}

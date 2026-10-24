@@ -1,0 +1,124 @@
+{
+  "model": "EventReport",
+  "valid": true,
+  "revision": 14,
+  "data": {
+    "ref": {
+      "tick": 3,
+      "revision": 14
+    },
+    "event": {
+      "id": "event_00000042",
+      "title": "Flood intervention",
+      "kind": "flood",
+      "status": "resolved",
+      "queued_tick": 0,
+      "start_tick": 1,
+      "end_tick": 3,
+      "affected_agent_count": 2,
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "pre_event_snapshot_id": "snapshot_00000041",
+      "summary": "Resolved after 2 ticks; 2 initially exposed citizens now safe"
+    },
+    "spec": {
+      "title": "Flood intervention",
+      "description": "A flood severity 65 for 2 ticks",
+      "kind": "flood",
+      "origin": {
+        "x": 32.0,
+        "y": 36.0
+      },
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "severity": 65.0,
+      "duration_ticks": 2,
+      "effects": [
+        {
+          "type": "hazard",
+          "hazard": "flood",
+          "severity": 65.0
+        }
+      ],
+      "success_condition": "duration_elapsed"
+    },
+    "before": {
+      "happiness": 60.0,
+      "safety": 100.0,
+      "trust": 52.37173803911692,
+      "resources": 75.0,
+      "stress": 20.0
+    },
+    "after": {
+      "happiness": 59.79,
+      "safety": 99.74,
+      "trust": 52.40507137245025,
+      "resources": 75.20833333333333,
+      "stress": 20.52
+    },
+    "delta": {
+      "happiness": -0.21000000000000085,
+      "safety": -0.2600000000000051,
+      "trust": 0.03333333333333144,
+      "resources": 0.2083333333333286,
+      "stress": 0.5199999999999996
+    },
+    "affected_agent_ids": [
+      "agent_00000028",
+      "agent_00000036"
+    ],
+    "conflicts": 0,
+    "resources_consumed": 0.0,
+    "evacuated_count": 2,
+    "exposed_count": 0,
+    "consequences": [
+      {
+        "text": "Resolved after 2 ticks; 2 initially exposed citizens now safe",
+        "evidence": {
+          "event_ids": [
+            "event_00000042"
+          ],
+          "decision_ids": [],
+          "memory_ids": [],
+          "description": "Committed event interval measurements"
+        }
+      }
+    ],
+    "community_lessons": [],
+    "suggested_preparations": [
+      "Keep reachable shelter and essential supplies available"
+    ]
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "model": "AgentDetail",
+  "valid": true,
+  "revision": 6,
+  "data": {
+    "ref": {
+      "tick": 0,
+      "revision": 6
+    },
+    "agent": {
+      "id": "agent_00000028",
+      "name": "Alex 1",
+      "role": "teacher",
+      "position": {
+        "x": 49.0,
+        "y": 35.0
+      },
+      "heading_rad": 0.0,
+      "path": [],
+      "movement_speed_mps": 1.4,
+      "metrics": {
+        "happiness": 60.0,
+        "safety": 100.0,
+        "trust": 46.53670699102718,
+        "resources": 75.0,
+        "stress": 20.0
+      },
+      "emotion": "calm",
+      "action": "idle",
+      "action_target_id": null,
+      "latest_decision_id": null,
+      "thought_bubble": null,
+      "active": true
+    },
+    "profile": {
+      "name": "Alex 1",
+      "age": 32,
+      "role": "teacher",
+      "background": "A resident with local work and family responsibilities.",
+      "personality": "Independent and cautious",
+      "values": [
+        "security",
+        "independence"
+      ],
+      "traits": {
+        "curiosity": 28.703091551255305,
+        "empathy": 33.3876491528498,
+        "sociability": 53.85077098008523,
+        "trust": 58.333093726406716,
+        "cooperation": 28.20189273545557,
+        "risk_tolerance": 43.96047187853587
+      },
+      "primary_goal": "Keep my household safe and supplied",
+      "secondary_goals": [
+        "Maintain friendships",
+        "Finish my work"
+      ],
+      "desires": [
+        "A stable home"
+      ],
+      "fears": [
+        "Losing essential supplies"
+      ],
+      "personal_history": "Has lived in this settlement and knows its public facilities.",
+      "skills": [
+        "teacher"
+      ],
+      "intelligence": 71.7971084266321,
+      "mobility": 50.0,
+      "physical_attributes": "Walks at an ordinary pace",
+      "social_needs": 53.85077098008523
+    },
+    "home": {
+      "x": 49.0,
+      "y": 35.0
+    },
+    "needs": {
+      "hunger": 20.0,
+      "fatigue": 15.0,
+      "health": 100.0,
+      "social": 26.925385490042615
+    },
+    "inventory": {
+      "food": 3.0,
+      "water": 3.0,
+      "supplies": 3.0
+    },
+    "reputation": 50.0,
+    "beliefs": [],
+    "goals": [
+      "Keep my household safe and supplied",
+      "Maintain friendships",
+      "Finish my work"
+    ],
+    "memories": {
+      "items": [],
+      "next_cursor": null
+    },
+    "relationships": {
+      "items": [
+        {
+          "from_agent_id": "agent_00000028",
+          "to_agent_id": "agent_00000029",
+          "kind": "family",
+          "trust": 49.52764048508439,
+          "affection": 59.52764048508439,
+          "respect": 50.47235951491561,
+          "familiarity": 70.0,
+          "conflict": 10.472359514915606,
+          "desired_relationship": "Mutual support",
+          "shared_history": [],
+          "evidence": {
+            "event_ids": [],
+            "decision_ids": [],
+            "memory_ids": [],
+            "description": "Initial known relationship from household/community history"
+          }
+        },
+        {
+          "from_agent_id": "agent_00000028",
+          "to_agent_id": "agent_00000030",
+          "kind": "friend",
+          "trust": 45.49894756638827,
+          "affection": 30.498947566388267,
+          "respect": 54.50105243361173,
+          "familiarity": 30.0,
+          "conflict": 14.501052433611733,
+          "desired_relationship": "Mutual support",
+          "shared_history": [],
+          "evidence": {
+            "event_ids": [],
+            "decision_ids": [],
+            "memory_ids": [],
+            "description": "Initial known relationship from household/community history"
+          }
+        },
+        {
+          "from_agent_id": "agent_00000028",
+          "to_agent_id": "agent_00000031",
+          "kind": "acquaintance",
+          "trust": 44.58353292160888,
+          "affection": 29.583532921608878,
+          "respect": 55.41646707839112,
+          "familiarity": 30.0,
+          "conflict": 15.416467078391122,
+          "desired_relationship": "Mutual support",
+          "shared_history": [],
+          "evidence": {
+            "event_ids": [],
+            "decision_ids": [],
+            "memory_ids": [],
+            "description": "Initial known relationship from household/community history"
+          }
+        }
+      ],
+      "next_cursor": null
+    },
+    "decisions": {
+      "items": [],
+      "next_cursor": null
+    },
+    "major_event_ids": [],
+    "metric_reasons": []
+  }
+}

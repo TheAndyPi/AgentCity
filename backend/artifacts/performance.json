@@ -1,0 +1,65 @@
+{
+  "contract_version": "1.0.0",
+  "mode": "rules",
+  "platform": "measured locally; see Python/runtime lock",
+  "results": [
+    {
+      "population": 30,
+      "initialization_seconds": 0.19552690000273287,
+      "manual_ticks": 30,
+      "live_ticks": 10,
+      "http_step_p95_ms": 163.9075999992201,
+      "http_control_p95_ms": 97.99280000152066,
+      "achieved_live_ticks_per_second": 1.8793819081261585,
+      "tick_compute_p95_ms": 12.54749999861815,
+      "commit_p95_ms": 28.222699998877943,
+      "provider_queue_depth": 0,
+      "decision_sources": {
+        "rules": 1156
+      },
+      "rules_fraction": 1.0,
+      "usage": {
+        "simulation_id": "simulation_f893020b3dea411c901971ef5a12747d",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "calls": 0,
+        "failed_calls": 0,
+        "estimated_cost_usd": null,
+        "pricing_as_of": null
+      },
+      "socket_bytes": 5622055,
+      "persisted_bytes": 9179399,
+      "revisions": 59
+    },
+    {
+      "population": 100,
+      "initialization_seconds": 0.3197123999998439,
+      "manual_ticks": 30,
+      "live_ticks": 10,
+      "http_step_p95_ms": 375.7675000015297,
+      "http_control_p95_ms": 221.34160000132397,
+      "achieved_live_ticks_per_second": 1.8426566199632635,
+      "tick_compute_p95_ms": 58.42610000036075,
+      "commit_p95_ms": 59.63360000168905,
+      "provider_queue_depth": 0,
+      "decision_sources": {
+        "rules": 3761
+      },
+      "rules_fraction": 1.0,
+      "usage": {
+        "simulation_id": "simulation_195420002e874dd7b848de5abaadfd72",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "calls": 0,
+        "failed_calls": 0,
+        "estimated_cost_usd": null,
+        "pricing_as_of": null
+      },
+      "socket_bytes": 6244636,
+      "persisted_bytes": 21884454,
+      "revisions": 59
+    }
+  ]
+}

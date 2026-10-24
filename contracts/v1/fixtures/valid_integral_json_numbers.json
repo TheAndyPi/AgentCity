@@ -1,0 +1,12 @@
+{
+  "model": "CreateSimulation",
+  "valid": true,
+  "revision": 0,
+  "data": {
+    "config": {
+      "name": "Integral numbers",
+      "seed": 3.0,
+      "population": 10.0
+    }
+  }
+}

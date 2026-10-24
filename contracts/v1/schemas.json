@@ -1,0 +1,5321 @@
+{
+  "$defs": {
+    "Acknowledge": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "acknowledge_outcome",
+          "title": "Type",
+          "type": "string"
+        },
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "resume": {
+          "title": "Resume",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "event_id",
+        "resume"
+      ],
+      "title": "Acknowledge",
+      "type": "object"
+    },
+    "AddAgents": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "add_agents",
+          "title": "Type",
+          "type": "string"
+        },
+        "custom_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Custom Agent Ids",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "type",
+        "custom_agent_ids"
+      ],
+      "title": "AddAgents",
+      "type": "object"
+    },
+    "AgentDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "home": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "needs": {
+          "$ref": "#/$defs/Needs"
+        },
+        "inventory": {
+          "$ref": "#/$defs/Inventory"
+        },
+        "reputation": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Reputation",
+          "type": "number"
+        },
+        "beliefs": {
+          "items": {
+            "$ref": "#/$defs/Belief"
+          },
+          "title": "Beliefs",
+          "type": "array"
+        },
+        "goals": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Goals",
+          "type": "array"
+        },
+        "memories": {
+          "$ref": "#/$defs/Page_Memory_"
+        },
+        "relationships": {
+          "$ref": "#/$defs/Page_Relationship_"
+        },
+        "decisions": {
+          "$ref": "#/$defs/Page_Decision_"
+        },
+        "major_event_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Major Event Ids",
+          "type": "array"
+        },
+        "metric_reasons": {
+          "items": {
+            "$ref": "#/$defs/MetricReason"
+          },
+          "title": "Metric Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "agent",
+        "profile",
+        "home",
+        "needs",
+        "inventory",
+        "reputation",
+        "beliefs",
+        "goals",
+        "memories",
+        "relationships",
+        "decisions",
+        "major_event_ids",
+        "metric_reasons"
+      ],
+      "title": "AgentDetail",
+      "type": "object"
+    },
+    "AgentSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Role",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "heading_rad": {
+          "title": "Heading Rad",
+          "type": "number"
+        },
+        "path": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "title": "Path",
+          "type": "array"
+        },
+        "movement_speed_mps": {
+          "minimum": 0,
+          "title": "Movement Speed Mps",
+          "type": "number"
+        },
+        "metrics": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "emotion": {
+          "maxLength": 2000,
+          "title": "Emotion",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "idle",
+            "move",
+            "work",
+            "rest",
+            "consume",
+            "gather",
+            "talk",
+            "warn",
+            "help",
+            "trade",
+            "evacuate"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "action_target_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Action Target Id"
+        },
+        "latest_decision_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Latest Decision Id"
+        },
+        "thought_bubble": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Thought Bubble"
+        },
+        "active": {
+          "title": "Active",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "position",
+        "heading_rad",
+        "path",
+        "movement_speed_mps",
+        "metrics",
+        "emotion",
+        "action",
+        "action_target_id",
+        "latest_decision_id",
+        "thought_bubble",
+        "active"
+      ],
+      "title": "AgentSummary",
+      "type": "object"
+    },
+    "Archive": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "archive",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Archive",
+      "type": "object"
+    },
+    "Belief": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "text",
+        "confidence",
+        "evidence"
+      ],
+      "title": "Belief",
+      "type": "object"
+    },
+    "BranchRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "discriminator": {
+            "mapping": {
+              "revision": "#/$defs/RevisionSource",
+              "snapshot": "#/$defs/SnapshotSource",
+              "whole": "#/$defs/WholeSource"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/WholeSource"
+            },
+            {
+              "$ref": "#/$defs/RevisionSource"
+            },
+            {
+              "$ref": "#/$defs/SnapshotSource"
+            }
+          ],
+          "title": "Source"
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ],
+      "title": "BranchRequest",
+      "type": "object"
+    },
+    "BranchResult": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "simulation",
+        "snapshot"
+      ],
+      "title": "BranchResult",
+      "type": "object"
+    },
+    "Building": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "home",
+            "work",
+            "shop",
+            "shelter",
+            "hospital",
+            "community"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "footprint": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "minItems": 3,
+          "title": "Footprint",
+          "type": "array"
+        },
+        "entrance": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "height_m": {
+          "minimum": 0,
+          "title": "Height M",
+          "type": "number"
+        },
+        "capacity": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "occupancy": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Occupancy",
+          "type": "integer"
+        },
+        "functional": {
+          "title": "Functional",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "footprint",
+        "entrance",
+        "height_m",
+        "capacity",
+        "occupancy",
+        "functional"
+      ],
+      "title": "Building",
+      "type": "object"
+    },
+    "Capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1.0.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "auth_mode": {
+          "enum": [
+            "local",
+            "session"
+          ],
+          "title": "Auth Mode",
+          "type": "string"
+        },
+        "max_agents": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Max Agents",
+          "type": "integer"
+        },
+        "max_concurrent_running_simulations": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Max Concurrent Running Simulations",
+          "type": "integer"
+        },
+        "gemini": {
+          "title": "Gemini",
+          "type": "boolean"
+        },
+        "narration": {
+          "title": "Narration",
+          "type": "boolean"
+        },
+        "snowflake": {
+          "title": "Snowflake",
+          "type": "boolean"
+        },
+        "persistence": {
+          "enum": [
+            "local",
+            "postgres"
+          ],
+          "title": "Persistence",
+          "type": "string"
+        },
+        "replay": {
+          "title": "Replay",
+          "type": "boolean"
+        },
+        "branching": {
+          "title": "Branching",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "contract_version",
+        "auth_mode",
+        "max_agents",
+        "max_concurrent_running_simulations",
+        "gemini",
+        "narration",
+        "snowflake",
+        "persistence",
+        "replay",
+        "branching"
+      ],
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "Cell": {
+      "additionalProperties": false,
+      "properties": {
+        "col": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Col",
+          "type": "integer"
+        },
+        "row": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Row",
+          "type": "integer"
+        },
+        "elevation_m": {
+          "title": "Elevation M",
+          "type": "number"
+        },
+        "terrain": {
+          "enum": [
+            "land",
+            "road",
+            "water"
+          ],
+          "title": "Terrain",
+          "type": "string"
+        },
+        "walkable": {
+          "title": "Walkable",
+          "type": "boolean"
+        },
+        "zone_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Zone Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "col",
+        "row",
+        "elevation_m",
+        "terrain",
+        "walkable",
+        "zone_id"
+      ],
+      "title": "Cell",
+      "type": "object"
+    },
+    "CommandRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "expected_control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Control Version",
+          "type": "integer"
+        },
+        "command": {
+          "discriminator": {
+            "mapping": {
+              "acknowledge_outcome": "#/$defs/Acknowledge",
+              "add_agents": "#/$defs/AddAgents",
+              "archive": "#/$defs/Archive",
+              "override_agent": "#/$defs/OverrideAgent",
+              "pause": "#/$defs/Pause",
+              "play": "#/$defs/Play",
+              "save": "#/$defs/Save",
+              "set_speed": "#/$defs/SetSpeed",
+              "step": "#/$defs/Step",
+              "unarchive": "#/$defs/Unarchive"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Play"
+            },
+            {
+              "$ref": "#/$defs/Pause"
+            },
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "$ref": "#/$defs/SetSpeed"
+            },
+            {
+              "$ref": "#/$defs/Save"
+            },
+            {
+              "$ref": "#/$defs/Archive"
+            },
+            {
+              "$ref": "#/$defs/Unarchive"
+            },
+            {
+              "$ref": "#/$defs/AddAgents"
+            },
+            {
+              "$ref": "#/$defs/OverrideAgent"
+            },
+            {
+              "$ref": "#/$defs/Acknowledge"
+            }
+          ],
+          "title": "Command"
+        }
+      },
+      "required": [
+        "request_id",
+        "expected_control_version",
+        "command"
+      ],
+      "title": "CommandRequest",
+      "type": "object"
+    },
+    "CommandResult": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Snapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "affected_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Affected Agent Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "simulation",
+        "snapshot",
+        "affected_agent_ids"
+      ],
+      "title": "CommandResult",
+      "type": "object"
+    },
+    "CommitScenario": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Control Version",
+          "type": "integer"
+        },
+        "intervention_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Intervention Id",
+          "type": "string"
+        },
+        "preview_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Preview Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_control_version",
+        "intervention_id",
+        "preview_id"
+      ],
+      "title": "CommitScenario",
+      "type": "object"
+    },
+    "CommunityEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "community",
+          "title": "Type",
+          "type": "string"
+        },
+        "activity": {
+          "enum": [
+            "festival",
+            "aid"
+          ],
+          "title": "Activity",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Capacity",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "activity",
+        "capacity"
+      ],
+      "title": "CommunityEffect",
+      "type": "object"
+    },
+    "Config": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "sandbox",
+            "behavior_lab",
+            "crisis_lab",
+            "policy_lab"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "population": {
+          "maximum": 100,
+          "minimum": 10,
+          "title": "Population",
+          "type": "integer"
+        },
+        "population_traits": {
+          "$ref": "#/$defs/Traits"
+        },
+        "household_supplies": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Household Supplies",
+          "type": "number"
+        },
+        "personality_diversity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Personality Diversity",
+          "type": "number"
+        },
+        "environment": {
+          "$ref": "#/$defs/Environment"
+        },
+        "scenario_description": {
+          "maxLength": 4000,
+          "title": "Scenario Description",
+          "type": "string"
+        },
+        "custom_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Custom Agent Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "tick_seconds": {
+          "const": 10,
+          "title": "Tick Seconds",
+          "type": "integer"
+        },
+        "max_ticks": {
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Ticks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "seed",
+        "mode",
+        "population",
+        "population_traits",
+        "household_supplies",
+        "personality_diversity",
+        "environment",
+        "scenario_description",
+        "custom_agent_ids",
+        "tick_seconds",
+        "max_ticks"
+      ],
+      "title": "Config",
+      "type": "object"
+    },
+    "ConfigRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "mode": {
+          "default": "sandbox",
+          "enum": [
+            "sandbox",
+            "behavior_lab",
+            "crisis_lab",
+            "policy_lab"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "population": {
+          "default": 30,
+          "maximum": 100,
+          "minimum": 10,
+          "title": "Population",
+          "type": "integer"
+        },
+        "population_traits": {
+          "$ref": "#/$defs/TraitsRequest"
+        },
+        "household_supplies": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Household Supplies",
+          "type": "number"
+        },
+        "personality_diversity": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Personality Diversity",
+          "type": "number"
+        },
+        "environment": {
+          "$ref": "#/$defs/EnvironmentRequest"
+        },
+        "scenario_description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Scenario Description",
+          "type": "string"
+        },
+        "custom_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Custom Agent Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "tick_seconds": {
+          "const": 10,
+          "default": 10,
+          "title": "Tick Seconds",
+          "type": "integer"
+        },
+        "max_ticks": {
+          "default": 10000,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Ticks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "seed"
+      ],
+      "title": "ConfigRequest",
+      "type": "object"
+    },
+    "Consequence": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "text",
+        "evidence"
+      ],
+      "title": "Consequence",
+      "type": "object"
+    },
+    "CreateSimulation": {
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ConfigRequest"
+        }
+      },
+      "required": [
+        "config"
+      ],
+      "title": "CreateSimulation",
+      "type": "object"
+    },
+    "CustomAgent": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "profile",
+        "updated_at"
+      ],
+      "title": "CustomAgent",
+      "type": "object"
+    },
+    "Decision": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "source": {
+          "enum": [
+            "gemini",
+            "rules",
+            "replay"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "intent": {
+          "$ref": "#/$defs/Intent"
+        },
+        "observed_facts": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Observed Facts",
+          "type": "array"
+        },
+        "memory_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Memory Ids",
+          "type": "array"
+        },
+        "relationship_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Relationship Agent Ids",
+          "type": "array"
+        },
+        "concise_rationale": {
+          "maxLength": 2000,
+          "title": "Concise Rationale",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "modified",
+            "pending"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "outcome_description": {
+          "maxLength": 2000,
+          "title": "Outcome Description",
+          "type": "string"
+        },
+        "rejection_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rejection Code"
+        },
+        "effects": {
+          "items": {
+            "$ref": "#/$defs/EffectChange"
+          },
+          "title": "Effects",
+          "type": "array"
+        },
+        "event_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "agent_id",
+        "tick",
+        "source",
+        "intent",
+        "observed_facts",
+        "memory_ids",
+        "relationship_agent_ids",
+        "concise_rationale",
+        "outcome",
+        "outcome_description",
+        "rejection_code",
+        "effects",
+        "event_ids"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "DeleteSimulation": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation_name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Confirmation Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "confirmation_name"
+      ],
+      "title": "DeleteSimulation",
+      "type": "object"
+    },
+    "Deleted": {
+      "additionalProperties": false,
+      "properties": {
+        "deleted_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Deleted Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deleted_id"
+      ],
+      "title": "Deleted",
+      "type": "object"
+    },
+    "Dialogue": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "interaction_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Interaction Id",
+          "type": "string"
+        },
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "speaker_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Speaker Id",
+          "type": "string"
+        },
+        "recipient_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Recipient Ids",
+          "type": "array"
+        },
+        "audible_to_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Audible To Ids",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        },
+        "intent": {
+          "maxLength": 2000,
+          "title": "Intent",
+          "type": "string"
+        },
+        "emotion": {
+          "maxLength": 2000,
+          "title": "Emotion",
+          "type": "string"
+        },
+        "end_conversation": {
+          "title": "End Conversation",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "interaction_id",
+        "tick",
+        "speaker_id",
+        "recipient_ids",
+        "audible_to_ids",
+        "text",
+        "intent",
+        "emotion",
+        "end_conversation"
+      ],
+      "title": "Dialogue",
+      "type": "object"
+    },
+    "EffectChange": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After"
+        }
+      },
+      "required": [
+        "entity_id",
+        "field",
+        "before",
+        "after"
+      ],
+      "title": "EffectChange",
+      "type": "object"
+    },
+    "Environment": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_availability": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Resource Availability",
+          "type": "number"
+        },
+        "population_density": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Population Density",
+          "type": "number"
+        },
+        "infrastructure_capacity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Infrastructure Capacity",
+          "type": "number"
+        },
+        "initial_community_trust": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Initial Community Trust",
+          "type": "number"
+        },
+        "settlement": {
+          "enum": [
+            "urban",
+            "suburb"
+          ],
+          "title": "Settlement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_availability",
+        "population_density",
+        "infrastructure_capacity",
+        "initial_community_trust",
+        "settlement"
+      ],
+      "title": "Environment",
+      "type": "object"
+    },
+    "EnvironmentRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_availability": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Resource Availability",
+          "type": "number"
+        },
+        "population_density": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Population Density",
+          "type": "number"
+        },
+        "infrastructure_capacity": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Infrastructure Capacity",
+          "type": "number"
+        },
+        "initial_community_trust": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Initial Community Trust",
+          "type": "number"
+        },
+        "settlement": {
+          "default": "suburb",
+          "enum": [
+            "urban",
+            "suburb"
+          ],
+          "title": "Settlement",
+          "type": "string"
+        }
+      },
+      "title": "EnvironmentRequest",
+      "type": "object"
+    },
+    "Error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/$defs/ErrorDetail"
+          },
+          "title": "Details",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ],
+      "title": "Error",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "reason"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "error",
+          "title": "Type",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/Error"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at",
+        "type",
+        "data"
+      ],
+      "title": "ErrorMessage",
+      "type": "object"
+    },
+    "EventReport": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "event": {
+          "$ref": "#/$defs/EventSummary"
+        },
+        "spec": {
+          "$ref": "#/$defs/EventSpec"
+        },
+        "before": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "after": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "delta": {
+          "$ref": "#/$defs/MetricDeltas"
+        },
+        "affected_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Affected Agent Ids",
+          "type": "array"
+        },
+        "conflicts": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Conflicts",
+          "type": "integer"
+        },
+        "resources_consumed": {
+          "minimum": 0,
+          "title": "Resources Consumed",
+          "type": "number"
+        },
+        "evacuated_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Evacuated Count",
+          "type": "integer"
+        },
+        "exposed_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Exposed Count",
+          "type": "integer"
+        },
+        "consequences": {
+          "items": {
+            "$ref": "#/$defs/Consequence"
+          },
+          "title": "Consequences",
+          "type": "array"
+        },
+        "community_lessons": {
+          "items": {
+            "$ref": "#/$defs/Consequence"
+          },
+          "title": "Community Lessons",
+          "type": "array"
+        },
+        "suggested_preparations": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Suggested Preparations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "event",
+        "spec",
+        "before",
+        "after",
+        "delta",
+        "affected_agent_ids",
+        "conflicts",
+        "resources_consumed",
+        "evacuated_count",
+        "exposed_count",
+        "consequences",
+        "community_lessons",
+        "suggested_preparations"
+      ],
+      "title": "EventReport",
+      "type": "object"
+    },
+    "EventSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "flood",
+            "fire",
+            "storm",
+            "shortage",
+            "outage",
+            "misinformation",
+            "festival",
+            "policy",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "affected_polygon": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "minItems": 3,
+          "title": "Affected Polygon",
+          "type": "array"
+        },
+        "severity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Severity",
+          "type": "number"
+        },
+        "duration_ticks": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Duration Ticks",
+          "type": "integer"
+        },
+        "effects": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "community": "#/$defs/CommunityEffect",
+                "hazard": "#/$defs/HazardEffect",
+                "information": "#/$defs/InformationEffect",
+                "infrastructure": "#/$defs/InfrastructureEffect",
+                "policy": "#/$defs/PolicyEffect",
+                "resource_multiplier": "#/$defs/ResourceEffect"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HazardEffect"
+              },
+              {
+                "$ref": "#/$defs/ResourceEffect"
+              },
+              {
+                "$ref": "#/$defs/InfrastructureEffect"
+              },
+              {
+                "$ref": "#/$defs/InformationEffect"
+              },
+              {
+                "$ref": "#/$defs/CommunityEffect"
+              },
+              {
+                "$ref": "#/$defs/PolicyEffect"
+              }
+            ]
+          },
+          "maxItems": 20,
+          "title": "Effects",
+          "type": "array"
+        },
+        "success_condition": {
+          "enum": [
+            "duration_elapsed",
+            "all_safe_or_duration"
+          ],
+          "title": "Success Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "kind",
+        "origin",
+        "affected_polygon",
+        "severity",
+        "duration_ticks",
+        "effects",
+        "success_condition"
+      ],
+      "title": "EventSpec",
+      "type": "object"
+    },
+    "EventSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Title",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "flood",
+            "fire",
+            "storm",
+            "shortage",
+            "outage",
+            "misinformation",
+            "festival",
+            "policy",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "active",
+            "resolved",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "queued_tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Queued Tick",
+          "type": "integer"
+        },
+        "start_tick": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Tick"
+        },
+        "end_tick": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Tick"
+        },
+        "affected_agent_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Affected Agent Count",
+          "type": "integer"
+        },
+        "affected_polygon": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "minItems": 3,
+          "title": "Affected Polygon",
+          "type": "array"
+        },
+        "pre_event_snapshot_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Pre Event Snapshot Id",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "status",
+        "queued_tick",
+        "start_tick",
+        "end_tick",
+        "affected_agent_count",
+        "affected_polygon",
+        "pre_event_snapshot_id",
+        "summary"
+      ],
+      "title": "EventSummary",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "event_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Event Ids",
+          "type": "array"
+        },
+        "decision_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decision Ids",
+          "type": "array"
+        },
+        "memory_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Memory Ids",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_ids",
+        "decision_ids",
+        "memory_ids",
+        "description"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "ExpectedControl": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Control Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expected_control_version"
+      ],
+      "title": "ExpectedControl",
+      "type": "object"
+    },
+    "ExpectedVersion": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expected_version"
+      ],
+      "title": "ExpectedVersion",
+      "type": "object"
+    },
+    "Export": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/WorldFrame"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "agents": {
+          "items": {
+            "$ref": "#/$defs/AgentDetail"
+          },
+          "title": "Agents",
+          "type": "array"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventReport"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/Decision"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "dialogue": {
+          "items": {
+            "$ref": "#/$defs/Dialogue"
+          },
+          "title": "Dialogue",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricPoint"
+          },
+          "title": "Metrics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "simulation",
+        "frames",
+        "agents",
+        "events",
+        "decisions",
+        "dialogue",
+        "metrics"
+      ],
+      "title": "Export",
+      "type": "object"
+    },
+    "Failure": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        },
+        "error": {
+          "$ref": "#/$defs/Error"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "error"
+      ],
+      "title": "Failure",
+      "type": "object"
+    },
+    "Hazard": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "flood",
+            "fire",
+            "storm"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "minItems": 3,
+          "title": "Polygon",
+          "type": "array"
+        },
+        "severity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Severity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "event_id",
+        "kind",
+        "polygon",
+        "severity"
+      ],
+      "title": "Hazard",
+      "type": "object"
+    },
+    "HazardEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "hazard",
+          "title": "Type",
+          "type": "string"
+        },
+        "hazard": {
+          "enum": [
+            "flood",
+            "fire",
+            "storm"
+          ],
+          "title": "Hazard",
+          "type": "string"
+        },
+        "severity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Severity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "hazard",
+        "severity"
+      ],
+      "title": "HazardEffect",
+      "type": "object"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "degraded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "details": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Details",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "details"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "HeartbeatData": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "initializing",
+            "paused",
+            "running",
+            "completed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "status"
+      ],
+      "title": "HeartbeatData",
+      "type": "object"
+    },
+    "HeartbeatMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "heartbeat",
+          "title": "Type",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/HeartbeatData"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at",
+        "type",
+        "data"
+      ],
+      "title": "HeartbeatMessage",
+      "type": "object"
+    },
+    "Hello": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "hello",
+          "title": "Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "last_revision": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Revision"
+        }
+      },
+      "required": [
+        "type",
+        "schema_version",
+        "last_revision"
+      ],
+      "title": "Hello",
+      "type": "object"
+    },
+    "InformationEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "information",
+          "title": "Type",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "title": "Message",
+          "type": "string"
+        },
+        "reliability": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Reliability",
+          "type": "number"
+        },
+        "delivery": {
+          "enum": [
+            "local",
+            "broadcast"
+          ],
+          "title": "Delivery",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "message",
+        "reliability",
+        "delivery"
+      ],
+      "title": "InformationEffect",
+      "type": "object"
+    },
+    "InfrastructureEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "infrastructure",
+          "title": "Type",
+          "type": "string"
+        },
+        "functional": {
+          "title": "Functional",
+          "type": "boolean"
+        },
+        "capacity_multiplier": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Capacity Multiplier",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "functional",
+        "capacity_multiplier"
+      ],
+      "title": "InfrastructureEffect",
+      "type": "object"
+    },
+    "InitialResult": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "event": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Snapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "simulation",
+        "event",
+        "snapshot"
+      ],
+      "title": "InitialResult",
+      "type": "object"
+    },
+    "InitialScenario": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Control Version",
+          "type": "integer"
+        },
+        "preview_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "confirm",
+            "skip"
+          ],
+          "title": "Decision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_control_version",
+        "preview_id",
+        "decision"
+      ],
+      "title": "InitialScenario",
+      "type": "object"
+    },
+    "InitializationMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "initialization",
+          "title": "Type",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/Simulation"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at",
+        "type",
+        "data"
+      ],
+      "title": "InitializationMessage",
+      "type": "object"
+    },
+    "Intent": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "idle",
+            "move",
+            "work",
+            "rest",
+            "consume",
+            "gather",
+            "talk",
+            "warn",
+            "help",
+            "trade",
+            "evacuate"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Id"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Vec2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parameters": {
+          "$ref": "#/$defs/Parameters"
+        },
+        "motivation": {
+          "maxLength": 2000,
+          "title": "Motivation",
+          "type": "string"
+        },
+        "emotion": {
+          "maxLength": 2000,
+          "title": "Emotion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "target_id",
+        "destination",
+        "parameters",
+        "motivation",
+        "emotion"
+      ],
+      "title": "Intent",
+      "type": "object"
+    },
+    "Intervention": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "based_on": {
+          "$ref": "#/$defs/Ref"
+        },
+        "was_running": {
+          "title": "Was Running",
+          "type": "boolean"
+        },
+        "control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Control Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "simulation_id",
+        "expires_at",
+        "based_on",
+        "was_running",
+        "control_version"
+      ],
+      "title": "Intervention",
+      "type": "object"
+    },
+    "Inventory": {
+      "additionalProperties": false,
+      "properties": {
+        "food": {
+          "minimum": 0,
+          "title": "Food",
+          "type": "number"
+        },
+        "water": {
+          "minimum": 0,
+          "title": "Water",
+          "type": "number"
+        },
+        "supplies": {
+          "minimum": 0,
+          "title": "Supplies",
+          "type": "number"
+        }
+      },
+      "required": [
+        "food",
+        "water",
+        "supplies"
+      ],
+      "title": "Inventory",
+      "type": "object"
+    },
+    "Job": {
+      "additionalProperties": false,
+      "properties": {
+        "stage": {
+          "enum": [
+            "queued",
+            "map",
+            "population",
+            "relationships",
+            "scenario",
+            "persistence",
+            "ready",
+            "failed"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "progress": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Progress",
+          "type": "number"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "stage",
+        "progress",
+        "message",
+        "error"
+      ],
+      "title": "Job",
+      "type": "object"
+    },
+    "Login": {
+      "additionalProperties": false,
+      "properties": {
+        "passphrase": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Passphrase",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passphrase"
+      ],
+      "title": "Login",
+      "type": "object"
+    },
+    "LoginResult": {
+      "additionalProperties": false,
+      "properties": {
+        "csrf_token": {
+          "title": "Csrf Token",
+          "type": "string"
+        }
+      },
+      "required": [
+        "csrf_token"
+      ],
+      "title": "LoginResult",
+      "type": "object"
+    },
+    "MapData": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "seed": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "width_m": {
+          "minimum": 0,
+          "title": "Width M",
+          "type": "number"
+        },
+        "height_m": {
+          "minimum": 0,
+          "title": "Height M",
+          "type": "number"
+        },
+        "cell_size_m": {
+          "minimum": 0,
+          "title": "Cell Size M",
+          "type": "number"
+        },
+        "columns": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "rows": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/Cell"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "zones": {
+          "items": {
+            "$ref": "#/$defs/Zone"
+          },
+          "title": "Zones",
+          "type": "array"
+        },
+        "buildings": {
+          "items": {
+            "$ref": "#/$defs/Building"
+          },
+          "title": "Buildings",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/ResourceSource"
+          },
+          "title": "Resources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "seed",
+        "width_m",
+        "height_m",
+        "cell_size_m",
+        "columns",
+        "rows",
+        "cells",
+        "zones",
+        "buildings",
+        "resources"
+      ],
+      "title": "MapData",
+      "type": "object"
+    },
+    "Memory": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        },
+        "importance": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Importance",
+          "type": "number"
+        },
+        "source": {
+          "enum": [
+            "observed",
+            "heard",
+            "reflection",
+            "injected"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "subject_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Subject Ids",
+          "type": "array"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "id",
+        "tick",
+        "text",
+        "importance",
+        "source",
+        "subject_ids",
+        "evidence"
+      ],
+      "title": "Memory",
+      "type": "object"
+    },
+    "MetricDeltas": {
+      "additionalProperties": false,
+      "properties": {
+        "happiness": {
+          "title": "Happiness",
+          "type": "number"
+        },
+        "safety": {
+          "title": "Safety",
+          "type": "number"
+        },
+        "trust": {
+          "title": "Trust",
+          "type": "number"
+        },
+        "resources": {
+          "title": "Resources",
+          "type": "number"
+        },
+        "stress": {
+          "title": "Stress",
+          "type": "number"
+        }
+      },
+      "required": [
+        "happiness",
+        "safety",
+        "trust",
+        "resources",
+        "stress"
+      ],
+      "title": "MetricDeltas",
+      "type": "object"
+    },
+    "MetricPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "values": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "cooperation_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Cooperation Count",
+          "type": "integer"
+        },
+        "conflict_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Conflict Count",
+          "type": "integer"
+        },
+        "resources_consumed": {
+          "minimum": 0,
+          "title": "Resources Consumed",
+          "type": "number"
+        },
+        "evacuated_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Evacuated Count",
+          "type": "integer"
+        },
+        "exposed_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Exposed Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tick",
+        "revision",
+        "values",
+        "cooperation_count",
+        "conflict_count",
+        "resources_consumed",
+        "evacuated_count",
+        "exposed_count"
+      ],
+      "title": "MetricPoint",
+      "type": "object"
+    },
+    "MetricReason": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "enum": [
+            "happiness",
+            "safety",
+            "trust",
+            "resources",
+            "stress"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "metric",
+        "delta",
+        "evidence"
+      ],
+      "title": "MetricReason",
+      "type": "object"
+    },
+    "MetricSeries": {
+      "additionalProperties": false,
+      "properties": {
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MetricPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "MetricSeries",
+      "type": "object"
+    },
+    "Metrics": {
+      "additionalProperties": false,
+      "properties": {
+        "happiness": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Happiness",
+          "type": "number"
+        },
+        "safety": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Safety",
+          "type": "number"
+        },
+        "trust": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trust",
+          "type": "number"
+        },
+        "resources": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Resources",
+          "type": "number"
+        },
+        "stress": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Stress",
+          "type": "number"
+        }
+      },
+      "required": [
+        "happiness",
+        "safety",
+        "trust",
+        "resources",
+        "stress"
+      ],
+      "title": "Metrics",
+      "type": "object"
+    },
+    "NarrationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "source_type": {
+          "enum": [
+            "event",
+            "decision",
+            "dialogue"
+          ],
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_type",
+        "source_id"
+      ],
+      "title": "NarrationRequest",
+      "type": "object"
+    },
+    "NarrationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "audio_url": {
+          "title": "Audio Url",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Expires At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "audio_url",
+        "expires_at"
+      ],
+      "title": "NarrationResult",
+      "type": "object"
+    },
+    "Needs": {
+      "additionalProperties": false,
+      "properties": {
+        "hunger": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "fatigue": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Fatigue",
+          "type": "number"
+        },
+        "health": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Health",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "fatigue",
+        "health",
+        "social"
+      ],
+      "title": "Needs",
+      "type": "object"
+    },
+    "OverrideAgent": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "override_agent",
+          "title": "Type",
+          "type": "string"
+        },
+        "agent_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "happiness",
+              "safety",
+              "trust",
+              "resources",
+              "stress"
+            ]
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Goal"
+        },
+        "memory_text": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Memory Text"
+        },
+        "intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Intent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "agent_id",
+        "metrics",
+        "goal",
+        "memory_text",
+        "intent"
+      ],
+      "title": "OverrideAgent",
+      "type": "object"
+    },
+    "Overview": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "metrics": {
+          "$ref": "#/$defs/MetricPoint"
+        },
+        "top_events": {
+          "items": {
+            "$ref": "#/$defs/TopEvent"
+          },
+          "title": "Top Events",
+          "type": "array"
+        },
+        "improvements": {
+          "items": {
+            "$ref": "#/$defs/MetricReason"
+          },
+          "title": "Improvements",
+          "type": "array"
+        },
+        "metric_reasons": {
+          "items": {
+            "$ref": "#/$defs/OverviewReason"
+          },
+          "title": "Metric Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "metrics",
+        "top_events",
+        "improvements",
+        "metric_reasons"
+      ],
+      "title": "Overview",
+      "type": "object"
+    },
+    "OverviewReason": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "enum": [
+            "happiness",
+            "safety",
+            "trust",
+            "resources",
+            "stress"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "metric",
+        "text",
+        "evidence"
+      ],
+      "title": "OverviewReason",
+      "type": "object"
+    },
+    "Page_Decision_": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Decision"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "title": "Page[Decision]",
+      "type": "object"
+    },
+    "Page_Memory_": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Memory"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "title": "Page[Memory]",
+      "type": "object"
+    },
+    "Page_Relationship_": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Relationship"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor"
+      ],
+      "title": "Page[Relationship]",
+      "type": "object"
+    },
+    "Parameters": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "food",
+                "water",
+                "supplies"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resource Kind"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Amount"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Message"
+        }
+      },
+      "required": [
+        "resource_kind",
+        "amount",
+        "message"
+      ],
+      "title": "Parameters",
+      "type": "object"
+    },
+    "Pause": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "pause",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Pause",
+      "type": "object"
+    },
+    "Ping": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "ping",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Ping",
+      "type": "object"
+    },
+    "Play": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "play",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Play",
+      "type": "object"
+    },
+    "Policies": {
+      "additionalProperties": false,
+      "properties": {
+        "evacuation_order": {
+          "title": "Evacuation Order",
+          "type": "boolean"
+        },
+        "ration_units_per_agent": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ration Units Per Agent"
+        },
+        "aid_multiplier": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Aid Multiplier",
+          "type": "number"
+        }
+      },
+      "required": [
+        "evacuation_order",
+        "ration_units_per_agent",
+        "aid_multiplier"
+      ],
+      "title": "Policies",
+      "type": "object"
+    },
+    "PolicyEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "policy",
+          "title": "Type",
+          "type": "string"
+        },
+        "evacuation_order": {
+          "title": "Evacuation Order",
+          "type": "boolean"
+        },
+        "ration_units_per_agent": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ration Units Per Agent"
+        },
+        "aid_multiplier": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Aid Multiplier",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "evacuation_order",
+        "ration_units_per_agent",
+        "aid_multiplier"
+      ],
+      "title": "PolicyEffect",
+      "type": "object"
+    },
+    "PreviewRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "intervention_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Intervention Id",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "random",
+            "repeat",
+            "custom",
+            "policy"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_event_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Event Id"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Prompt"
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Policies"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "intervention_id",
+        "source",
+        "source_event_id",
+        "prompt",
+        "policy"
+      ],
+      "title": "PreviewRequest",
+      "type": "object"
+    },
+    "Profile": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "age": {
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Age",
+          "type": "integer"
+        },
+        "role": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Role",
+          "type": "string"
+        },
+        "background": {
+          "maxLength": 2000,
+          "title": "Background",
+          "type": "string"
+        },
+        "personality": {
+          "maxLength": 2000,
+          "title": "Personality",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Values",
+          "type": "array"
+        },
+        "traits": {
+          "$ref": "#/$defs/Traits"
+        },
+        "primary_goal": {
+          "maxLength": 2000,
+          "title": "Primary Goal",
+          "type": "string"
+        },
+        "secondary_goals": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Secondary Goals",
+          "type": "array"
+        },
+        "desires": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Desires",
+          "type": "array"
+        },
+        "fears": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Fears",
+          "type": "array"
+        },
+        "personal_history": {
+          "maxLength": 2000,
+          "title": "Personal History",
+          "type": "string"
+        },
+        "skills": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "intelligence": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Intelligence",
+          "type": "number"
+        },
+        "mobility": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Mobility",
+          "type": "number"
+        },
+        "physical_attributes": {
+          "maxLength": 2000,
+          "title": "Physical Attributes",
+          "type": "string"
+        },
+        "social_needs": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Social Needs",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "age",
+        "role",
+        "background",
+        "personality",
+        "values",
+        "traits",
+        "primary_goal",
+        "secondary_goals",
+        "desires",
+        "fears",
+        "personal_history",
+        "skills",
+        "intelligence",
+        "mobility",
+        "physical_attributes",
+        "social_needs"
+      ],
+      "title": "Profile",
+      "type": "object"
+    },
+    "ProfileRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "ProfileRequest",
+      "type": "object"
+    },
+    "ProfileUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "expected_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "profile",
+        "expected_version"
+      ],
+      "title": "ProfileUpdate",
+      "type": "object"
+    },
+    "Ref": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tick",
+        "revision"
+      ],
+      "title": "Ref",
+      "type": "object"
+    },
+    "Relationship": {
+      "additionalProperties": false,
+      "properties": {
+        "from_agent_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "From Agent Id",
+          "type": "string"
+        },
+        "to_agent_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "To Agent Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "family",
+            "friend",
+            "acquaintance",
+            "rival",
+            "romantic",
+            "stranger"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "trust": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trust",
+          "type": "number"
+        },
+        "affection": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Affection",
+          "type": "number"
+        },
+        "respect": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Respect",
+          "type": "number"
+        },
+        "familiarity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Familiarity",
+          "type": "number"
+        },
+        "conflict": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Conflict",
+          "type": "number"
+        },
+        "desired_relationship": {
+          "maxLength": 2000,
+          "title": "Desired Relationship",
+          "type": "string"
+        },
+        "shared_history": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Shared History",
+          "type": "array"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "from_agent_id",
+        "to_agent_id",
+        "kind",
+        "trust",
+        "affection",
+        "respect",
+        "familiarity",
+        "conflict",
+        "desired_relationship",
+        "shared_history",
+        "evidence"
+      ],
+      "title": "Relationship",
+      "type": "object"
+    },
+    "ResourceEffect": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "resource_multiplier",
+          "title": "Type",
+          "type": "string"
+        },
+        "resource": {
+          "enum": [
+            "food",
+            "water",
+            "supplies"
+          ],
+          "title": "Resource",
+          "type": "string"
+        },
+        "multiplier": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Multiplier",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "resource",
+        "multiplier"
+      ],
+      "title": "ResourceEffect",
+      "type": "object"
+    },
+    "ResourceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "food",
+            "water",
+            "supplies"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "available_units": {
+          "minimum": 0,
+          "title": "Available Units",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "position",
+        "available_units"
+      ],
+      "title": "ResourceSource",
+      "type": "object"
+    },
+    "RevisionSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "revision",
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "revision"
+      ],
+      "title": "RevisionSource",
+      "type": "object"
+    },
+    "Save": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "save",
+          "title": "Type",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "manual",
+            "navigation"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 2000,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "reason",
+        "label"
+      ],
+      "title": "Save",
+      "type": "object"
+    },
+    "ScenarioPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "random",
+            "repeat",
+            "custom",
+            "policy",
+            "initial"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_event_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Event Id"
+        },
+        "based_on": {
+          "$ref": "#/$defs/Ref"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "interpretation": {
+          "maxLength": 2000,
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/EventSpec"
+        },
+        "affected_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Affected Agent Ids",
+          "type": "array"
+        },
+        "affected_building_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Affected Building Ids",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "unsupported_requests": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "title": "Unsupported Requests",
+          "type": "array"
+        },
+        "can_commit": {
+          "title": "Can Commit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "simulation_id",
+        "source",
+        "source_event_id",
+        "based_on",
+        "expires_at",
+        "interpretation",
+        "spec",
+        "affected_agent_ids",
+        "affected_building_ids",
+        "warnings",
+        "unsupported_requests",
+        "can_commit"
+      ],
+      "title": "ScenarioPreview",
+      "type": "object"
+    },
+    "ScenarioResult": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "event": {
+          "$ref": "#/$defs/EventSummary"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": [
+        "simulation",
+        "event",
+        "snapshot"
+      ],
+      "title": "ScenarioResult",
+      "type": "object"
+    },
+    "SessionInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "authenticated": {
+          "title": "Authenticated",
+          "type": "boolean"
+        },
+        "csrf_token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Csrf Token"
+        }
+      },
+      "required": [
+        "authenticated",
+        "csrf_token"
+      ],
+      "title": "SessionInfo",
+      "type": "object"
+    },
+    "SetSpeed": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "set_speed",
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "enum": [
+            0.25,
+            0.5,
+            1,
+            2,
+            5,
+            10
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "SetSpeed",
+      "type": "object"
+    },
+    "Settings": {
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "enum": [
+            "dark",
+            "light"
+          ],
+          "title": "Theme",
+          "type": "string"
+        },
+        "view_mode": {
+          "enum": [
+            "3d",
+            "2d"
+          ],
+          "title": "View Mode",
+          "type": "string"
+        },
+        "autosave": {
+          "title": "Autosave",
+          "type": "boolean"
+        },
+        "reduce_motion": {
+          "title": "Reduce Motion",
+          "type": "boolean"
+        },
+        "shortcuts": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Shortcuts",
+          "type": "object"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "theme",
+        "view_mode",
+        "autosave",
+        "reduce_motion",
+        "shortcuts",
+        "version"
+      ],
+      "title": "Settings",
+      "type": "object"
+    },
+    "SettingsUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expected Version",
+          "type": "integer"
+        },
+        "settings": {
+          "$ref": "#/$defs/SettingsValues"
+        }
+      },
+      "required": [
+        "expected_version",
+        "settings"
+      ],
+      "title": "SettingsUpdate",
+      "type": "object"
+    },
+    "SettingsValues": {
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "enum": [
+            "dark",
+            "light"
+          ],
+          "title": "Theme",
+          "type": "string"
+        },
+        "view_mode": {
+          "enum": [
+            "3d",
+            "2d"
+          ],
+          "title": "View Mode",
+          "type": "string"
+        },
+        "autosave": {
+          "title": "Autosave",
+          "type": "boolean"
+        },
+        "reduce_motion": {
+          "title": "Reduce Motion",
+          "type": "boolean"
+        },
+        "shortcuts": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Shortcuts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "theme",
+        "view_mode",
+        "autosave",
+        "reduce_motion",
+        "shortcuts"
+      ],
+      "title": "SettingsValues",
+      "type": "object"
+    },
+    "SignedOut": {
+      "additionalProperties": false,
+      "properties": {
+        "signed_out": {
+          "const": true,
+          "title": "Signed Out",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "signed_out"
+      ],
+      "title": "SignedOut",
+      "type": "object"
+    },
+    "Simulation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "config": {
+          "$ref": "#/$defs/Config"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "initializing",
+            "paused",
+            "running",
+            "completed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "pause_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "manual",
+                "intervention",
+                "outcome",
+                "loaded",
+                "error"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pause Reason"
+        },
+        "archived": {
+          "title": "Archived",
+          "type": "boolean"
+        },
+        "tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "revision": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "control_version": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Control Version",
+          "type": "integer"
+        },
+        "sim_time_seconds": {
+          "minimum": 0,
+          "title": "Sim Time Seconds",
+          "type": "number"
+        },
+        "speed_multiplier": {
+          "enum": [
+            0.25,
+            0.5,
+            1,
+            2,
+            5,
+            10
+          ],
+          "title": "Speed Multiplier"
+        },
+        "achieved_ticks_per_second": {
+          "minimum": 0,
+          "title": "Achieved Ticks Per Second",
+          "type": "number"
+        },
+        "agent_count": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Agent Count",
+          "type": "integer"
+        },
+        "parent_simulation_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Simulation Id"
+        },
+        "fork_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latest_snapshot_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Latest Snapshot Id"
+        },
+        "saved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Saved At"
+        },
+        "pending_outcome_event_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Pending Outcome Event Ids",
+          "type": "array"
+        },
+        "initialization": {
+          "$ref": "#/$defs/Job"
+        },
+        "initial_preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScenarioPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "config",
+        "created_at",
+        "updated_at",
+        "status",
+        "pause_reason",
+        "archived",
+        "tick",
+        "revision",
+        "control_version",
+        "sim_time_seconds",
+        "speed_multiplier",
+        "achieved_ticks_per_second",
+        "agent_count",
+        "parent_simulation_id",
+        "fork_ref",
+        "latest_snapshot_id",
+        "saved_at",
+        "pending_outcome_event_ids",
+        "initialization",
+        "initial_preview"
+      ],
+      "title": "Simulation",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "created_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Created At",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "initial",
+            "manual",
+            "autosave",
+            "navigation",
+            "pre_event",
+            "branch"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 2000,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "simulation_id",
+        "ref",
+        "created_at",
+        "reason",
+        "label"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    },
+    "SnapshotMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "snapshot",
+            "frame"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/WorldFrame"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at",
+        "type",
+        "data"
+      ],
+      "title": "SnapshotMessage",
+      "type": "object"
+    },
+    "SnapshotSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "snapshot",
+          "title": "Kind",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "snapshot_id"
+      ],
+      "title": "SnapshotSource",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "step",
+          "title": "Type",
+          "type": "string"
+        },
+        "count": {
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "count"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "StreamBase": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at"
+      ],
+      "title": "StreamBase",
+      "type": "object"
+    },
+    "Template": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "config": {
+          "$ref": "#/$defs/Config"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "config"
+      ],
+      "title": "Template",
+      "type": "object"
+    },
+    "Templates": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Template"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "Templates",
+      "type": "object"
+    },
+    "TimelinePoint": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "sim_time_seconds": {
+          "minimum": 0,
+          "title": "Sim Time Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ref",
+        "sim_time_seconds"
+      ],
+      "title": "TimelinePoint",
+      "type": "object"
+    },
+    "TopEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Title",
+          "type": "string"
+        },
+        "impact_score": {
+          "title": "Impact Score",
+          "type": "number"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "required": [
+        "event_id",
+        "title",
+        "impact_score",
+        "evidence"
+      ],
+      "title": "TopEvent",
+      "type": "object"
+    },
+    "Traits": {
+      "additionalProperties": false,
+      "properties": {
+        "curiosity": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Curiosity",
+          "type": "number"
+        },
+        "empathy": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Empathy",
+          "type": "number"
+        },
+        "sociability": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Sociability",
+          "type": "number"
+        },
+        "trust": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trust",
+          "type": "number"
+        },
+        "cooperation": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Cooperation",
+          "type": "number"
+        },
+        "risk_tolerance": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Risk Tolerance",
+          "type": "number"
+        }
+      },
+      "required": [
+        "curiosity",
+        "empathy",
+        "sociability",
+        "trust",
+        "cooperation",
+        "risk_tolerance"
+      ],
+      "title": "Traits",
+      "type": "object"
+    },
+    "TraitsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "curiosity": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Curiosity",
+          "type": "number"
+        },
+        "empathy": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Empathy",
+          "type": "number"
+        },
+        "sociability": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Sociability",
+          "type": "number"
+        },
+        "trust": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trust",
+          "type": "number"
+        },
+        "cooperation": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Cooperation",
+          "type": "number"
+        },
+        "risk_tolerance": {
+          "default": 50,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Risk Tolerance",
+          "type": "number"
+        }
+      },
+      "title": "TraitsRequest",
+      "type": "object"
+    },
+    "Unarchive": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "unarchive",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Unarchive",
+      "type": "object"
+    },
+    "Usage": {
+      "additionalProperties": false,
+      "properties": {
+        "simulation_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Simulation Id"
+        },
+        "input_tokens": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "cached_tokens": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Cached Tokens",
+          "type": "integer"
+        },
+        "calls": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "failed_calls": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Failed Calls",
+          "type": "integer"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimated Cost Usd"
+        },
+        "pricing_as_of": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pricing As Of"
+        }
+      },
+      "required": [
+        "simulation_id",
+        "input_tokens",
+        "output_tokens",
+        "cached_tokens",
+        "calls",
+        "failed_calls",
+        "estimated_cost_usd",
+        "pricing_as_of"
+      ],
+      "title": "Usage",
+      "type": "object"
+    },
+    "Vec2": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Vec2",
+      "type": "object"
+    },
+    "WholeSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "whole",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "WholeSource",
+      "type": "object"
+    },
+    "WorldFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "map": {
+          "$ref": "#/$defs/MapData"
+        },
+        "agents": {
+          "items": {
+            "$ref": "#/$defs/AgentSummary"
+          },
+          "title": "Agents",
+          "type": "array"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventSummary"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "policies": {
+          "$ref": "#/$defs/Policies"
+        },
+        "metrics": {
+          "$ref": "#/$defs/MetricPoint"
+        },
+        "recent_dialogue": {
+          "items": {
+            "$ref": "#/$defs/Dialogue"
+          },
+          "title": "Recent Dialogue",
+          "type": "array"
+        },
+        "active_hazards": {
+          "items": {
+            "$ref": "#/$defs/Hazard"
+          },
+          "title": "Active Hazards",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "simulation",
+        "map",
+        "agents",
+        "events",
+        "policies",
+        "metrics",
+        "recent_dialogue",
+        "active_hazards"
+      ],
+      "title": "WorldFrame",
+      "type": "object"
+    },
+    "Zone": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+          "title": "Name",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "$ref": "#/$defs/Vec2"
+          },
+          "minItems": 3,
+          "title": "Polygon",
+          "type": "array"
+        },
+        "metrics": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "population": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Population",
+          "type": "integer"
+        },
+        "population_density_per_km2": {
+          "minimum": 0,
+          "title": "Population Density Per Km2",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "polygon",
+        "metrics",
+        "population",
+        "population_density_per_km2"
+      ],
+      "title": "Zone",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-contract-version": "1.0.0",
+  "x-types": {
+    "Acknowledge": {
+      "$ref": "#/$defs/Acknowledge"
+    },
+    "AddAgents": {
+      "$ref": "#/$defs/AddAgents"
+    },
+    "AgentDetail": {
+      "$ref": "#/$defs/AgentDetail"
+    },
+    "AgentSummary": {
+      "$ref": "#/$defs/AgentSummary"
+    },
+    "Archive": {
+      "$ref": "#/$defs/Archive"
+    },
+    "Belief": {
+      "$ref": "#/$defs/Belief"
+    },
+    "BranchRequest": {
+      "$ref": "#/$defs/BranchRequest"
+    },
+    "BranchResult": {
+      "$ref": "#/$defs/BranchResult"
+    },
+    "Building": {
+      "$ref": "#/$defs/Building"
+    },
+    "Capabilities": {
+      "$ref": "#/$defs/Capabilities"
+    },
+    "Cell": {
+      "$ref": "#/$defs/Cell"
+    },
+    "CommandRequest": {
+      "$ref": "#/$defs/CommandRequest"
+    },
+    "CommandResult": {
+      "$ref": "#/$defs/CommandResult"
+    },
+    "CommitScenario": {
+      "$ref": "#/$defs/CommitScenario"
+    },
+    "CommunityEffect": {
+      "$ref": "#/$defs/CommunityEffect"
+    },
+    "Config": {
+      "$ref": "#/$defs/Config"
+    },
+    "ConfigRequest": {
+      "$ref": "#/$defs/ConfigRequest"
+    },
+    "Consequence": {
+      "$ref": "#/$defs/Consequence"
+    },
+    "CreateSimulation": {
+      "$ref": "#/$defs/CreateSimulation"
+    },
+    "CustomAgent": {
+      "$ref": "#/$defs/CustomAgent"
+    },
+    "Decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "DeleteSimulation": {
+      "$ref": "#/$defs/DeleteSimulation"
+    },
+    "Deleted": {
+      "$ref": "#/$defs/Deleted"
+    },
+    "Dialogue": {
+      "$ref": "#/$defs/Dialogue"
+    },
+    "EffectChange": {
+      "$ref": "#/$defs/EffectChange"
+    },
+    "Environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "EnvironmentRequest": {
+      "$ref": "#/$defs/EnvironmentRequest"
+    },
+    "Error": {
+      "$ref": "#/$defs/Error"
+    },
+    "ErrorDetail": {
+      "$ref": "#/$defs/ErrorDetail"
+    },
+    "ErrorMessage": {
+      "$ref": "#/$defs/ErrorMessage"
+    },
+    "EventReport": {
+      "$ref": "#/$defs/EventReport"
+    },
+    "EventSpec": {
+      "$ref": "#/$defs/EventSpec"
+    },
+    "EventSummary": {
+      "$ref": "#/$defs/EventSummary"
+    },
+    "Evidence": {
+      "$ref": "#/$defs/Evidence"
+    },
+    "ExpectedControl": {
+      "$ref": "#/$defs/ExpectedControl"
+    },
+    "ExpectedVersion": {
+      "$ref": "#/$defs/ExpectedVersion"
+    },
+    "Export": {
+      "$ref": "#/$defs/Export"
+    },
+    "Failure": {
+      "$ref": "#/$defs/Failure"
+    },
+    "Hazard": {
+      "$ref": "#/$defs/Hazard"
+    },
+    "HazardEffect": {
+      "$ref": "#/$defs/HazardEffect"
+    },
+    "Health": {
+      "$ref": "#/$defs/Health"
+    },
+    "HeartbeatData": {
+      "$ref": "#/$defs/HeartbeatData"
+    },
+    "HeartbeatMessage": {
+      "$ref": "#/$defs/HeartbeatMessage"
+    },
+    "Hello": {
+      "$ref": "#/$defs/Hello"
+    },
+    "InformationEffect": {
+      "$ref": "#/$defs/InformationEffect"
+    },
+    "InfrastructureEffect": {
+      "$ref": "#/$defs/InfrastructureEffect"
+    },
+    "InitialResult": {
+      "$ref": "#/$defs/InitialResult"
+    },
+    "InitialScenario": {
+      "$ref": "#/$defs/InitialScenario"
+    },
+    "InitializationMessage": {
+      "$ref": "#/$defs/InitializationMessage"
+    },
+    "Intent": {
+      "$ref": "#/$defs/Intent"
+    },
+    "Intervention": {
+      "$ref": "#/$defs/Intervention"
+    },
+    "Inventory": {
+      "$ref": "#/$defs/Inventory"
+    },
+    "Job": {
+      "$ref": "#/$defs/Job"
+    },
+    "Login": {
+      "$ref": "#/$defs/Login"
+    },
+    "LoginResult": {
+      "$ref": "#/$defs/LoginResult"
+    },
+    "MapData": {
+      "$ref": "#/$defs/MapData"
+    },
+    "Memory": {
+      "$ref": "#/$defs/Memory"
+    },
+    "MetricDeltas": {
+      "$ref": "#/$defs/MetricDeltas"
+    },
+    "MetricPoint": {
+      "$ref": "#/$defs/MetricPoint"
+    },
+    "MetricReason": {
+      "$ref": "#/$defs/MetricReason"
+    },
+    "MetricSeries": {
+      "$ref": "#/$defs/MetricSeries"
+    },
+    "Metrics": {
+      "$ref": "#/$defs/Metrics"
+    },
+    "NarrationRequest": {
+      "$ref": "#/$defs/NarrationRequest"
+    },
+    "NarrationResult": {
+      "$ref": "#/$defs/NarrationResult"
+    },
+    "Needs": {
+      "$ref": "#/$defs/Needs"
+    },
+    "OverrideAgent": {
+      "$ref": "#/$defs/OverrideAgent"
+    },
+    "Overview": {
+      "$ref": "#/$defs/Overview"
+    },
+    "OverviewReason": {
+      "$ref": "#/$defs/OverviewReason"
+    },
+    "Parameters": {
+      "$ref": "#/$defs/Parameters"
+    },
+    "Pause": {
+      "$ref": "#/$defs/Pause"
+    },
+    "Ping": {
+      "$ref": "#/$defs/Ping"
+    },
+    "Play": {
+      "$ref": "#/$defs/Play"
+    },
+    "Policies": {
+      "$ref": "#/$defs/Policies"
+    },
+    "PolicyEffect": {
+      "$ref": "#/$defs/PolicyEffect"
+    },
+    "PreviewRequest": {
+      "$ref": "#/$defs/PreviewRequest"
+    },
+    "Profile": {
+      "$ref": "#/$defs/Profile"
+    },
+    "ProfileRequest": {
+      "$ref": "#/$defs/ProfileRequest"
+    },
+    "ProfileUpdate": {
+      "$ref": "#/$defs/ProfileUpdate"
+    },
+    "Ref": {
+      "$ref": "#/$defs/Ref"
+    },
+    "Relationship": {
+      "$ref": "#/$defs/Relationship"
+    },
+    "ResourceEffect": {
+      "$ref": "#/$defs/ResourceEffect"
+    },
+    "ResourceSource": {
+      "$ref": "#/$defs/ResourceSource"
+    },
+    "RevisionSource": {
+      "$ref": "#/$defs/RevisionSource"
+    },
+    "Save": {
+      "$ref": "#/$defs/Save"
+    },
+    "ScenarioPreview": {
+      "$ref": "#/$defs/ScenarioPreview"
+    },
+    "ScenarioResult": {
+      "$ref": "#/$defs/ScenarioResult"
+    },
+    "SessionInfo": {
+      "$ref": "#/$defs/SessionInfo"
+    },
+    "SetSpeed": {
+      "$ref": "#/$defs/SetSpeed"
+    },
+    "Settings": {
+      "$ref": "#/$defs/Settings"
+    },
+    "SettingsUpdate": {
+      "$ref": "#/$defs/SettingsUpdate"
+    },
+    "SettingsValues": {
+      "$ref": "#/$defs/SettingsValues"
+    },
+    "SignedOut": {
+      "$ref": "#/$defs/SignedOut"
+    },
+    "Simulation": {
+      "$ref": "#/$defs/Simulation"
+    },
+    "Snapshot": {
+      "$ref": "#/$defs/Snapshot"
+    },
+    "SnapshotMessage": {
+      "$ref": "#/$defs/SnapshotMessage"
+    },
+    "SnapshotSource": {
+      "$ref": "#/$defs/SnapshotSource"
+    },
+    "Step": {
+      "$ref": "#/$defs/Step"
+    },
+    "StreamBase": {
+      "$ref": "#/$defs/StreamBase"
+    },
+    "Template": {
+      "$ref": "#/$defs/Template"
+    },
+    "Templates": {
+      "$ref": "#/$defs/Templates"
+    },
+    "TimelinePoint": {
+      "$ref": "#/$defs/TimelinePoint"
+    },
+    "TopEvent": {
+      "$ref": "#/$defs/TopEvent"
+    },
+    "Traits": {
+      "$ref": "#/$defs/Traits"
+    },
+    "TraitsRequest": {
+      "$ref": "#/$defs/TraitsRequest"
+    },
+    "Unarchive": {
+      "$ref": "#/$defs/Unarchive"
+    },
+    "Usage": {
+      "$ref": "#/$defs/Usage"
+    },
+    "Vec2": {
+      "$ref": "#/$defs/Vec2"
+    },
+    "WholeSource": {
+      "$ref": "#/$defs/WholeSource"
+    },
+    "WorldFrame": {
+      "$ref": "#/$defs/WorldFrame"
+    },
+    "Zone": {
+      "$ref": "#/$defs/Zone"
+    }
+  }
+}

@@ -1,0 +1,481 @@
+{
+  "contract_version": "1.0.0",
+  "mode": "rules",
+  "simulation_id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+  "restored_simulation_id": "simulation_21a92425ee89491893437e613b2e107c",
+  "report": {
+    "ref": {
+      "tick": 7,
+      "revision": 14
+    },
+    "event": {
+      "id": "event_00000063",
+      "title": "Flood intervention",
+      "kind": "flood",
+      "status": "resolved",
+      "queued_tick": 0,
+      "start_tick": 1,
+      "end_tick": 7,
+      "affected_agent_count": 3,
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "pre_event_snapshot_id": "snapshot_00000062",
+      "summary": "Resolved after 6 ticks; 3 initially exposed citizens now safe"
+    },
+    "spec": {
+      "title": "Flood intervention",
+      "description": "A flood severity 65 for 6 ticks",
+      "kind": "flood",
+      "origin": {
+        "x": 32.0,
+        "y": 36.0
+      },
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "severity": 65.0,
+      "duration_ticks": 6,
+      "effects": [
+        {
+          "type": "hazard",
+          "hazard": "flood",
+          "severity": 65.0
+        }
+      ],
+      "success_condition": "duration_elapsed"
+    },
+    "before": {
+      "happiness": 60.0,
+      "safety": 100.0,
+      "trust": 50.10653579843747,
+      "resources": 75.0,
+      "stress": 20.0
+    },
+    "after": {
+      "happiness": 60.59166666666667,
+      "safety": 99.935,
+      "trust": 50.380133299377384,
+      "resources": 76.94444444444444,
+      "stress": 20.13
+    },
+    "delta": {
+      "happiness": 0.5916666666666686,
+      "safety": -0.06499999999999773,
+      "trust": 0.2735975009399141,
+      "resources": 1.9444444444444429,
+      "stress": 0.129999999999999
+    },
+    "affected_agent_ids": [
+      "agent_00000031",
+      "agent_00000041",
+      "agent_00000051"
+    ],
+    "conflicts": 0,
+    "resources_consumed": 0.0,
+    "evacuated_count": 3,
+    "exposed_count": 0,
+    "consequences": [
+      {
+        "text": "Resolved after 6 ticks; 3 initially exposed citizens now safe",
+        "evidence": {
+          "event_ids": [
+            "event_00000063"
+          ],
+          "decision_ids": [],
+          "memory_ids": [],
+          "description": "Committed event interval measurements"
+        }
+      }
+    ],
+    "community_lessons": [],
+    "suggested_preparations": [
+      "Keep reachable shelter and essential supplies available"
+    ]
+  },
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations",
+      "request_id": "c404f153-f264-4c38-88c9-2df138aaca0d",
+      "request": {
+        "config": {
+          "name": "AgentCity demo",
+          "seed": 42,
+          "population": 30,
+          "scenario_description": "A flood severity 65 for 6 ticks"
+        }
+      },
+      "status": 202,
+      "result": {
+        "schema_version": "1.0.0",
+        "request_id": "c404f153-f264-4c38-88c9-2df138aaca0d",
+        "data": {
+          "id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+          "name": "AgentCity demo",
+          "config": {
+            "name": "AgentCity demo",
+            "seed": 42,
+            "mode": "sandbox",
+            "population": 30,
+            "population_traits": {
+              "curiosity": 50.0,
+              "empathy": 50.0,
+              "sociability": 50.0,
+              "trust": 50.0,
+              "cooperation": 50.0,
+              "risk_tolerance": 50.0
+            },
+            "household_supplies": 50.0,
+            "personality_diversity": 50.0,
+            "environment": {
+              "resource_availability": 50.0,
+              "population_density": 50.0,
+              "infrastructure_capacity": 50.0,
+              "initial_community_trust": 50.0,
+              "settlement": "suburb"
+            },
+            "scenario_description": "A flood severity 65 for 6 ticks",
+            "custom_agent_ids": [],
+            "tick_seconds": 10,
+            "max_ticks": 10000
+          },
+          "created_at": "2026-10-24T11:27:24.433177Z",
+          "updated_at": "2026-10-24T11:27:24.433177Z",
+          "status": "initializing",
+          "pause_reason": null,
+          "archived": false,
+          "tick": 0,
+          "revision": 0,
+          "control_version": 0,
+          "sim_time_seconds": 0.0,
+          "speed_multiplier": 1,
+          "achieved_ticks_per_second": 0.0,
+          "agent_count": 0,
+          "parent_simulation_id": null,
+          "fork_ref": null,
+          "latest_snapshot_id": null,
+          "saved_at": null,
+          "pending_outcome_event_ids": [],
+          "initialization": {
+            "stage": "queued",
+            "progress": 0.0,
+            "message": "Initialization queued",
+            "error": null
+          },
+          "initial_preview": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_2d03a9262a054c95aa720b9c950b74f1/initial-scenario",
+      "request_id": "57d0f305-c2a3-400f-9d5b-ef83dd16fcf5",
+      "request": {
+        "preview_id": "preview_00000060",
+        "decision": "confirm",
+        "expected_control_version": 0
+      },
+      "status": 200,
+      "result": {
+        "schema_version": "1.0.0",
+        "request_id": "57d0f305-c2a3-400f-9d5b-ef83dd16fcf5",
+        "data": {
+          "simulation": {
+            "id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+            "name": "AgentCity demo",
+            "config": {
+              "name": "AgentCity demo",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50.0,
+                "empathy": 50.0,
+                "sociability": 50.0,
+                "trust": 50.0,
+                "cooperation": 50.0,
+                "risk_tolerance": 50.0
+              },
+              "household_supplies": 50.0,
+              "personality_diversity": 50.0,
+              "environment": {
+                "resource_availability": 50.0,
+                "population_density": 50.0,
+                "infrastructure_capacity": 50.0,
+                "initial_community_trust": 50.0,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 65 for 6 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T11:27:24.433177Z",
+            "updated_at": "2026-10-24T11:27:24.686192Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 0,
+            "revision": 7,
+            "control_version": 1,
+            "sim_time_seconds": 0.0,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0.0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T11:27:24.686230Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100.0,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "event": {
+            "id": "event_00000063",
+            "title": "Flood intervention",
+            "kind": "flood",
+            "status": "queued",
+            "queued_tick": 0,
+            "start_tick": null,
+            "end_tick": null,
+            "affected_agent_count": 3,
+            "affected_polygon": [
+              {
+                "x": 0.0,
+                "y": 0.0
+              },
+              {
+                "x": 64.0,
+                "y": 0.0
+              },
+              {
+                "x": 64.0,
+                "y": 72.0
+              },
+              {
+                "x": 0.0,
+                "y": 72.0
+              }
+            ],
+            "pre_event_snapshot_id": "snapshot_00000062",
+            "summary": "Event will begin on the next simulation tick"
+          },
+          "snapshot": {
+            "id": "snapshot_00000062",
+            "simulation_id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+            "ref": {
+              "tick": 0,
+              "revision": 6
+            },
+            "created_at": "2026-10-24T11:27:24.686230Z",
+            "reason": "pre_event",
+            "label": "Before Flood intervention"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_2d03a9262a054c95aa720b9c950b74f1/commands",
+      "request_id": "938efbd4-04c9-4305-9441-40b3764d5081",
+      "request": {
+        "request_id": "938efbd4-04c9-4305-9441-40b3764d5081",
+        "expected_control_version": 1,
+        "command": {
+          "type": "step",
+          "count": 10
+        }
+      },
+      "status": 200,
+      "result": {
+        "schema_version": "1.0.0",
+        "request_id": "938efbd4-04c9-4305-9441-40b3764d5081",
+        "data": {
+          "simulation": {
+            "id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+            "name": "AgentCity demo",
+            "config": {
+              "name": "AgentCity demo",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50.0,
+                "empathy": 50.0,
+                "sociability": 50.0,
+                "trust": 50.0,
+                "cooperation": 50.0,
+                "risk_tolerance": 50.0
+              },
+              "household_supplies": 50.0,
+              "personality_diversity": 50.0,
+              "environment": {
+                "resource_availability": 50.0,
+                "population_density": 50.0,
+                "infrastructure_capacity": 50.0,
+                "initial_community_trust": 50.0,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 65 for 6 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T11:27:24.433177Z",
+            "updated_at": "2026-10-24T11:27:24.984003Z",
+            "status": "paused",
+            "pause_reason": "outcome",
+            "archived": false,
+            "tick": 7,
+            "revision": 14,
+            "control_version": 3,
+            "sim_time_seconds": 70.0,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0.0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T11:27:24.686230Z",
+            "pending_outcome_event_ids": [
+              "event_00000063"
+            ],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100.0,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_2d03a9262a054c95aa720b9c950b74f1/branches",
+      "request_id": "09c4ac70-f55e-45e1-ad08-3d4e103d49c8",
+      "request": {
+        "name": "Restored pre-flood copy",
+        "source": {
+          "kind": "snapshot",
+          "snapshot_id": "snapshot_00000062"
+        }
+      },
+      "status": 201,
+      "result": {
+        "schema_version": "1.0.0",
+        "request_id": "09c4ac70-f55e-45e1-ad08-3d4e103d49c8",
+        "data": {
+          "simulation": {
+            "id": "simulation_21a92425ee89491893437e613b2e107c",
+            "name": "Restored pre-flood copy",
+            "config": {
+              "name": "Restored pre-flood copy",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50.0,
+                "empathy": 50.0,
+                "sociability": 50.0,
+                "trust": 50.0,
+                "cooperation": 50.0,
+                "risk_tolerance": 50.0
+              },
+              "household_supplies": 50.0,
+              "personality_diversity": 50.0,
+              "environment": {
+                "resource_availability": 50.0,
+                "population_density": 50.0,
+                "infrastructure_capacity": 50.0,
+                "initial_community_trust": 50.0,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 65 for 6 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T11:27:25.155977Z",
+            "updated_at": "2026-10-24T11:27:25.155995Z",
+            "status": "paused",
+            "pause_reason": "loaded",
+            "archived": false,
+            "tick": 0,
+            "revision": 7,
+            "control_version": 0,
+            "sim_time_seconds": 0.0,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0.0,
+            "agent_count": 30,
+            "parent_simulation_id": "simulation_2d03a9262a054c95aa720b9c950b74f1",
+            "fork_ref": {
+              "tick": 0,
+              "revision": 6
+            },
+            "latest_snapshot_id": "snapshot_00000063",
+            "saved_at": "2026-10-24T11:27:25.156070Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100.0,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": {
+            "id": "snapshot_00000063",
+            "simulation_id": "simulation_21a92425ee89491893437e613b2e107c",
+            "ref": {
+              "tick": 0,
+              "revision": 7
+            },
+            "created_at": "2026-10-24T11:27:25.156070Z",
+            "reason": "branch",
+            "label": "Branch from simulation_2d03a9262a054c95aa720b9c950b74f1 at revision 6"
+          }
+        }
+      }
+    }
+  ]
+}
