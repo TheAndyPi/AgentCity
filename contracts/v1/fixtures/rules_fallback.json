@@ -1,0 +1,46 @@
+{
+  "model": "Decision",
+  "valid": true,
+  "revision": 12,
+  "data": {
+    "id": "decision_00000046",
+    "agent_id": "agent_00000028",
+    "tick": 1,
+    "source": "rules",
+    "intent": {
+      "action": "evacuate",
+      "target_id": "building_00000003",
+      "destination": {
+        "x": 65.0,
+        "y": 19.0
+      },
+      "parameters": {
+        "resource_kind": null,
+        "amount": null,
+        "message": null
+      },
+      "motivation": "Reach a known safe facility",
+      "emotion": "alert"
+    },
+    "observed_facts": [
+      "Position (49.0, 35.0) meters",
+      "Hunger 20.0, fatigue 15.0",
+      "Observed Cameron 9 (agent_00000036) at (49.0, 35.0), 0.0m away, doing idle",
+      "Observed flood: Flood intervention"
+    ],
+    "memory_ids": [
+      "memory_00000044"
+    ],
+    "relationship_agent_ids": [
+      "agent_00000029",
+      "agent_00000030",
+      "agent_00000031"
+    ],
+    "concise_rationale": "Reach a known safe facility",
+    "outcome": "accepted",
+    "outcome_description": "Path accepted; movement is bounded by speed and tick duration",
+    "rejection_code": null,
+    "effects": [],
+    "event_ids": []
+  }
+}

@@ -1,0 +1,312 @@
+import pytest
+from conftest import command, commit_preview, create_city, preview
+
+from app import contracts as c
+from app.infrastructure.gemini import context_for
+from app.simulation.agents import connect, perception, remember, social_delta
+from app.simulation.engine import tick
+from app.simulation.game_master import advance_movement, apply_intent, make_intent
+from app.simulation.navigation import distance, pathfind, simple_polygon
+from app.simulation.scenarios import compile_preview, rectangle
+
+
+def world(client):
+    sid = create_city(client)["id"]
+    return client.app.state.service.owned("demo_owner", sid).model_copy(deep=True)
+
+
+def nearby_pair(state):
+    a, b = list(state.citizens.values())[:2]
+    a.summary.position = c.Vec2(x=33, y=33)
+    b.summary.position = c.Vec2(x=34, y=33)
+    a.summary.path = []
+    b.summary.path = []
+    return a, b
+
+
+def totals(state):
+    return {
+        kind: sum(getattr(citizen.inventory, kind) for citizen in state.citizens.values())
+        + sum(r.available_units for r in state.map.resources if r.kind == kind)
+        for kind in ("food", "water", "supplies")
+    }
+
+
+def test_path_obstacles_and_speed_bound(client):
+    state = world(client)
+    citizen = next(iter(state.citizens.values()))
+    origin = citizen.summary.position.model_copy()
+    destination = c.Vec2(x=1, y=1)
+    path = pathfind(state.map, origin, destination)
+    assert path
+    citizen.summary.path = path
+    advance_movement(state, citizen)
+    assert distance(origin, citizen.summary.position) <= citizen.summary.movement_speed_mps * 10 + 1e-8
+    for point in citizen.summary.path:
+        cell = state.map.cells[int(point.y // 2) * 64 + int(point.x // 2)]
+        assert cell.walkable
+    water = next(cell for cell in state.map.cells if cell.terrain == "water")
+    assert pathfind(state.map, origin, c.Vec2(x=water.col * 2 + 1, y=water.row * 2 + 1)) is None
+    assert pathfind(state.map, origin, c.Vec2(x=999, y=1)) is None
+    # A fractional destination within the same cell does not move via a cell centre.
+    citizen.summary.position = c.Vec2(x=1.2, y=1.3)
+    assert pathfind(state.map, citizen.summary.position, c.Vec2(x=1.4, y=1.5))
+
+
+def test_invalid_help_has_no_side_effects(client):
+    state = world(client)
+    a, b = list(state.citizens.values())[:2]
+    a.summary.position = c.Vec2(x=1, y=1)
+    b.summary.position = c.Vec2(x=100, y=1)
+    inventory = a.inventory.model_dump()
+    health = b.needs.health
+    result = apply_intent(state, a, make_intent("help", target=b.summary.id))
+    assert result.outcome == "rejected"
+    assert result.rejection_code in {"UNOBSERVED_TARGET", "OUT_OF_RANGE"}
+    assert result.effects == []
+    assert a.inventory.model_dump() == inventory
+    assert b.needs.health == health
+
+
+def test_competing_resource_claims_conserve_stock(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    source = state.map.resources[0]
+    a.summary.position = source.position.model_copy()
+    b.summary.position = source.position.model_copy()
+    source.available_units = 1
+    before = totals(state)
+    intent = make_intent("gather", target=source.id, kind=source.kind, amount=1)
+    first = apply_intent(state, a, intent)
+    second = apply_intent(state, b, intent)
+    assert first.outcome == "accepted"
+    assert second.rejection_code == "RESOURCE_CONTESTED"
+    assert source.available_units == 0
+    assert totals(state) == pytest.approx(before)
+    assert state.counters["conflict_count"] == 1
+
+
+def test_trade_needs_explicit_acceptance_and_is_conserved(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    before = totals(state)
+    ia, ib = a.inventory.model_dump(), b.inventory.model_dump()
+    offered = apply_intent(state, a, make_intent("trade", target=b.summary.id, kind="food", amount=1))
+    assert offered.outcome == "accepted"
+    assert a.inventory.model_dump() == ia and b.inventory.model_dump() == ib
+    accepted = apply_intent(state, b, make_intent("trade", target=a.summary.id, kind="water", amount=1))
+    assert accepted.outcome == "accepted"
+    assert a.inventory.food == ia["food"] - 1
+    assert a.inventory.water == ia["water"] + 1
+    assert totals(state) == pytest.approx(before)
+    assert state.counters["cooperation_count"] == 1
+
+
+def test_trade_failure_cannot_partly_accept_or_transfer(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    apply_intent(state, a, make_intent("trade", target=b.summary.id, kind="food", amount=1))
+    a.inventory.food = 0
+    before = totals(state)
+    interaction = next(iter(state.interactions.values()))
+    result = apply_intent(state, b, make_intent("trade", target=a.summary.id, kind="water", amount=1))
+    assert result.outcome == "rejected"
+    assert interaction.status == "invited" and interaction.accepted_ids == [a.summary.id]
+    assert totals(state) == pytest.approx(before)
+
+
+def test_directed_relationships_apply_evidence_once(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    connect(state, a, b)
+    connect(state, b, a)
+    reverse = b.relationships[a.summary.id].model_dump()
+    before = a.relationships[b.summary.id].trust
+    social_delta(state, a, b, "decision_evidence", 3)
+    assert a.relationships[b.summary.id].trust == min(100, before + 3)
+    after = a.relationships[b.summary.id].model_dump()
+    social_delta(state, a, b, "decision_evidence", 3)
+    assert a.relationships[b.summary.id].model_dump() == after
+    assert b.relationships[a.summary.id].model_dump() == reverse
+
+
+def test_perception_hides_private_and_remote_information(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    remember(state, b, "SECRET PRIVATE MEMORY", importance=100)
+    b.goals = ["SECRET PRIVATE GOAL"]
+    context = context_for(state, a)
+    assert "SECRET PRIVATE" not in str(context)
+    b.summary.position = c.Vec2(x=110, y=110)
+    assert b.summary.id not in perception(state, a)["nearby_ids"]
+    assert "110" not in str(context_for(state, a)["observed_facts"])
+    # Opaque building footprint blocks sight even inside the 20m sight range.
+    building = state.map.buildings[0]
+    x, y = building.footprint[0].x, building.footprint[0].y
+    a.summary.position = c.Vec2(x=x - 1, y=y + 1)
+    b.summary.position = c.Vec2(x=x + 5, y=y + 1)
+    assert distance(a.summary.position, b.summary.position) < 20
+    assert b.summary.id not in perception(state, a)["nearby_ids"]
+
+
+def test_hearing_scope_and_sender_provenance(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    connect(state, b, a)
+    b.relationships[a.summary.id].trust = 21
+    a.profile.traits.trust = 99
+    remote = list(state.citizens.values())[2]
+    remote.summary.position = c.Vec2(x=100, y=100)
+    before = len(remote.memories)
+    result = apply_intent(state, a, make_intent("warn", target=b.summary.id, message="A local warning"))
+    assert result.outcome == "accepted"
+    assert b.memories[-1].source == "heard"
+    assert a.summary.id in b.memories[-1].subject_ids
+    assert remote.summary.id not in state.dialogue[-1].audible_to_ids
+    assert len(remote.memories) == before
+    assert b.beliefs[-1].confidence == 21
+
+
+def test_information_effect_does_not_reveal_omniscient_event_label(client):
+    from app.simulation.scenarios import queue_event
+
+    state = world(client)
+    preview = compile_preview(state, "custom", "A rumor in the whole city for 2 ticks")
+    event = queue_event(state, preview, state.snapshots[0].id, False)
+    tick(state)
+    citizen = next(iter(state.citizens.values()))
+    context = context_for(state, citizen)
+    assert not any("misinformation" in fact for fact in context["observed_facts"])
+    assert not any(
+        memory.source == "observed" and event.id in memory.evidence.event_ids for memory in citizen.memories
+    )
+    assert any(
+        memory.source == "heard" and event.id in memory.evidence.event_ids for memory in citizen.memories
+    )
+
+
+@pytest.mark.parametrize(
+    "kind", ["flood", "fire", "storm", "shortage", "outage", "misinformation", "festival", "policy"]
+)
+def test_all_scenario_families_complete(client, kind):
+    sid = create_city(client)["id"]
+    hold, p = preview(client, sid, f"A {kind} for 1 tick")
+    assert p["can_commit"]
+    committed = commit_preview(client, sid, hold, p)
+    assert committed.status_code == 201, committed.text
+    event = committed.json()["data"]["event"]
+    response = command(client, sid, "step", count=3)
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["simulation"]["pause_reason"] == "outcome"
+    report = client.get(f"/api/v1/simulations/{sid}/events/{event['id']}").json()["data"]
+    assert report["spec"]["kind"] == kind
+    assert report["event"]["status"] == "resolved"
+
+
+def test_seeded_ticks_and_checkpoint_roundtrip(client):
+    state = world(client)
+    copy = state.model_copy(deep=True)
+    for _ in range(4):
+        tick(state)
+        tick(copy)
+    assert state.model_dump() == copy.model_dump()
+    from app.simulation.state import State
+
+    assert State.model_validate_json(state.model_dump_json()).model_dump() == state.model_dump()
+
+
+def test_metric_formulas_and_polygon_validation(client):
+    state = world(client)
+    from app.simulation.agents import update_metrics
+
+    a, b = nearby_pair(state)
+    a.inventory = c.Inventory(food=1, water=2, supplies=3)
+    a.target_inventory_units = 12
+    a.needs.health = 70
+    update_metrics(state)
+    assert a.summary.metrics.resources == 50
+    assert a.summary.metrics.safety == 70
+    assert state.metric_points[-1].values.happiness == pytest.approx(
+        sum(c.summary.metrics.happiness for c in state.citizens.values()) / 10
+    )
+    assert simple_polygon(rectangle(0, 0, 10, 10))
+    assert not simple_polygon([c.Vec2(x=0, y=0), c.Vec2(x=10, y=10), c.Vec2(x=0, y=10), c.Vec2(x=10, y=0)])
+
+
+def test_temporary_policy_and_outage_restore_baselines(client):
+    state = world(client)
+    from app.simulation.scenarios import queue_event
+
+    p = compile_preview(state, "custom", "An outage and policy for 1 tick")
+    before = [b.model_dump() for b in state.map.buildings]
+    queue_event(state, p, state.snapshots[0].id, False)
+    tick(state)
+    assert any(not b.functional for b in state.map.buildings)
+    assert state.policies.evacuation_order
+    tick(state)
+    assert [b.functional for b in state.map.buildings] == [b["functional"] for b in before]
+    assert [b.capacity for b in state.map.buildings] == [b["capacity"] for b in before]
+    assert not state.policies.evacuation_order
+
+
+def test_coordinated_aid_records_explicit_acceptances(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    helper = list(state.citizens.values())[2]
+    helper.summary.position = c.Vec2(x=33, y=34)
+    b.needs.health = 70
+    first = apply_intent(state, a, make_intent("help", target=b.summary.id))
+    assert first.outcome == "accepted"
+    group = next(group for group in state.interactions.values() if group.kind == "aid_group")
+    assert helper.summary.id in group.participant_ids
+    assert group.accepted_ids == [a.summary.id]
+    second = apply_intent(state, helper, make_intent("help", target=b.summary.id))
+    assert second.outcome == "accepted"
+    assert set(group.accepted_ids) == {a.summary.id, helper.summary.id}
+    assert state.counters["cooperation_count"] == 2
+
+
+def test_evacuations_reserve_finite_facility_capacity(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    building = next(building for building in state.map.buildings if building.kind == "shelter")
+    building.capacity = 1
+    for other in state.citizens.values():
+        other.summary.position = c.Vec2(x=1, y=1)
+    intent = make_intent("evacuate", target=building.id, destination=building.entrance)
+    first = apply_intent(state, a, intent)
+    second = apply_intent(state, b, intent)
+    assert first.outcome == "accepted"
+    assert second.rejection_code == "CAPACITY"
+
+
+def test_zone_border_counts_each_citizen_once(client):
+    state = world(client)
+    from app.simulation.agents import update_metrics
+
+    next(iter(state.citizens.values())).summary.position = c.Vec2(x=64, y=64)
+    update_metrics(state)
+    assert sum(zone.population for zone in state.map.zones) == len(state.citizens)
+
+
+def test_conversations_reuse_invitation_accept_and_end_with_bounded_turns(client):
+    state = world(client)
+    a, b = nearby_pair(state)
+    for actor, target in [(a, b), (b, a), (a, b), (b, a)]:
+        assert apply_intent(state, actor, make_intent("talk", target=target.summary.id)).outcome == "accepted"
+    conversations = [i for i in state.interactions.values() if i.kind == "conversation"]
+    assert len(conversations) == 1
+    assert set(conversations[0].accepted_ids) == {a.summary.id, b.summary.id}
+    assert conversations[0].turns == 4 and conversations[0].status == "ended"
+    assert state.dialogue[-1].end_conversation
+
+
+def test_leaving_rejects_unaccepted_invitation(client):
+    from app.simulation.interactions import expire_interactions
+
+    state = world(client)
+    a, b = nearby_pair(state)
+    apply_intent(state, a, make_intent("talk", target=b.summary.id))
+    b.summary.position = c.Vec2(x=100, y=100)
+    expire_interactions(state)
+    assert next(iter(state.interactions.values())).status == "rejected"

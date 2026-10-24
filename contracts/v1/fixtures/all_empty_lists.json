@@ -1,0 +1,9 @@
+{
+  "model": "Page[Memory]",
+  "valid": true,
+  "revision": 6,
+  "data": {
+    "items": [],
+    "next_cursor": null
+  }
+}

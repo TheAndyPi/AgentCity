@@ -1,0 +1,23 @@
+{
+  "model": "Relationship",
+  "valid": true,
+  "revision": 6,
+  "data": {
+    "from_agent_id": "agent_00000029",
+    "to_agent_id": "agent_00000028",
+    "kind": "family",
+    "trust": 17,
+    "affection": 69.24718333725791,
+    "respect": 40.75281666274209,
+    "familiarity": 70.0,
+    "conflict": 0.7528166627420916,
+    "desired_relationship": "Mutual support",
+    "shared_history": [],
+    "evidence": {
+      "event_ids": [],
+      "decision_ids": [],
+      "memory_ids": [],
+      "description": "Initial known relationship from household/community history"
+    }
+  }
+}

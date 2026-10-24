@@ -1,0 +1,15 @@
+{
+  "model": "Failure",
+  "valid": true,
+  "revision": 15,
+  "data": {
+    "schema_version": "1.0.0",
+    "request_id": "ffd7f068-603e-4e34-809a-44c422bc8418",
+    "error": {
+      "code": "PREVIEW_STALE",
+      "message": "World changed after preview",
+      "retryable": false,
+      "details": []
+    }
+  }
+}

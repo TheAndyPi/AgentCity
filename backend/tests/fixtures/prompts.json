@@ -1,0 +1,161 @@
+{
+  "persona": {
+    "name": "Alex 1",
+    "age": 32,
+    "role": "teacher",
+    "background": "A resident with local work and family responsibilities.",
+    "personality": "Independent and cautious",
+    "values": [
+      "security",
+      "independence"
+    ],
+    "traits": {
+      "curiosity": 28.703091551255305,
+      "empathy": 33.3876491528498,
+      "sociability": 53.85077098008523,
+      "trust": 58.333093726406716,
+      "cooperation": 28.20189273545557,
+      "risk_tolerance": 43.96047187853587
+    },
+    "primary_goal": "Keep my household safe and supplied",
+    "secondary_goals": [
+      "Maintain friendships",
+      "Finish my work"
+    ],
+    "desires": [
+      "A stable home"
+    ],
+    "fears": [
+      "Losing essential supplies"
+    ],
+    "personal_history": "Has lived in this settlement and knows its public facilities.",
+    "skills": [
+      "teacher"
+    ],
+    "intelligence": 71.7971084266321,
+    "mobility": 50.0,
+    "physical_attributes": "Walks at an ordinary pace",
+    "social_needs": 53.85077098008523
+  },
+  "decision": {
+    "action": "rest",
+    "target_id": null,
+    "destination": null,
+    "parameters": {
+      "resource_kind": null,
+      "amount": null,
+      "message": null
+    },
+    "motivation": "Meet my current needs",
+    "emotion": "calm"
+  },
+  "interaction": {
+    "message": "Can I help?",
+    "intent": "offer support",
+    "emotion": "concerned",
+    "physical_action": null,
+    "end_conversation": false
+  },
+  "game_master": {
+    "action_outcomes": [],
+    "position_changes": [],
+    "world_changes": [],
+    "interaction_results": [],
+    "relationship_events": [],
+    "observable_events": []
+  },
+  "reflection": {
+    "new_memories": [],
+    "belief_changes": [],
+    "relationship_changes": [],
+    "goal_changes": [],
+    "social_desires": [],
+    "emotional_state": "calm"
+  },
+  "world_events": {
+    "events": [
+      {
+        "title": "Flood intervention",
+        "description": "A flood severity 65 for 2 ticks",
+        "kind": "flood",
+        "origin": {
+          "x": 32.0,
+          "y": 36.0
+        },
+        "affected_polygon": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "x": 64.0,
+            "y": 0.0
+          },
+          {
+            "x": 64.0,
+            "y": 72.0
+          },
+          {
+            "x": 0.0,
+            "y": 72.0
+          }
+        ],
+        "severity": 65.0,
+        "duration_ticks": 2,
+        "effects": [
+          {
+            "type": "hazard",
+            "hazard": "flood",
+            "severity": 65.0
+          }
+        ],
+        "success_condition": "duration_elapsed"
+      }
+    ]
+  },
+  "planning": {
+    "primary_objective": "Rest",
+    "planned_actions": [
+      {
+        "intent": {
+          "action": "rest",
+          "target_id": null,
+          "destination": null,
+          "parameters": {
+            "resource_kind": null,
+            "amount": null,
+            "message": null
+          },
+          "motivation": "Meet my current needs",
+          "emotion": "calm"
+        },
+        "priority": 50
+      }
+    ],
+    "social_objectives": [],
+    "expected_outcome": "Recover some energy",
+    "reconsider_if": [
+      "A nearby threat appears"
+    ]
+  },
+  "perception": {
+    "observations": [],
+    "recognized_people": [],
+    "social_opportunities": [],
+    "potential_threats": [],
+    "interpretations": [],
+    "uncertainties": [],
+    "emotional_reaction": "calm"
+  },
+  "social": {
+    "relationship_type": "acquaintance",
+    "trust": 50,
+    "affection": 35,
+    "respect": 50,
+    "familiarity": 30,
+    "conflict": 10,
+    "desired_relationship": "Mutual support",
+    "social_intentions": [],
+    "private_feelings": "Cautious curiosity"
+  }
+}

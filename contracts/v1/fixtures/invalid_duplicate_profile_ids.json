@@ -1,0 +1,15 @@
+{
+  "model": "CreateSimulation",
+  "valid": false,
+  "revision": 0,
+  "data": {
+    "config": {
+      "name": "Duplicate profiles",
+      "seed": 3,
+      "custom_agent_ids": [
+        "same_id",
+        "same_id"
+      ]
+    }
+  }
+}

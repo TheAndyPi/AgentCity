@@ -1,0 +1,67 @@
+{
+  "model": "ScenarioPreview",
+  "valid": true,
+  "revision": 6,
+  "data": {
+    "id": "preview_00000038",
+    "simulation_id": "simulation_9e16d799201b4226a72fb619ef5cbcf8",
+    "source": "initial",
+    "source_event_id": null,
+    "based_on": {
+      "tick": 0,
+      "revision": 6
+    },
+    "expires_at": "2026-10-24T10:57:54.358495Z",
+    "interpretation": "Flood intervention: severity 50, 5 ticks; 1 supported effect(s).",
+    "spec": {
+      "title": "Flood intervention",
+      "description": "A flood for 5 ticks",
+      "kind": "flood",
+      "origin": {
+        "x": 32.0,
+        "y": 36.0
+      },
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "severity": 50.0,
+      "duration_ticks": 5,
+      "effects": [
+        {
+          "type": "hazard",
+          "hazard": "flood",
+          "severity": 50.0
+        }
+      ],
+      "success_condition": "duration_elapsed"
+    },
+    "affected_agent_ids": [
+      "agent_00000029",
+      "agent_00000037"
+    ],
+    "affected_building_ids": [
+      "building_00000005",
+      "building_00000008"
+    ],
+    "warnings": [
+      "Bounded keyword compiler: only the displayed effects, polygon, severity and tick duration will execute. Other prose is not executable."
+    ],
+    "unsupported_requests": [],
+    "can_commit": true
+  }
+}

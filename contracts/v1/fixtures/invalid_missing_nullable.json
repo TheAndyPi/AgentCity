@@ -1,0 +1,15 @@
+{
+  "model": "Intent",
+  "valid": false,
+  "revision": 0,
+  "data": {
+    "action": "rest",
+    "parameters": {
+      "resource_kind": null,
+      "amount": null,
+      "message": null
+    },
+    "motivation": "Rest",
+    "emotion": "calm"
+  }
+}

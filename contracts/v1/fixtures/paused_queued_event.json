@@ -1,0 +1,103 @@
+{
+  "model": "ScenarioResult",
+  "valid": true,
+  "revision": 10,
+  "data": {
+    "simulation": {
+      "id": "simulation_7267ab9c6ae642a3a0f4f63f88819b25",
+      "name": "Fixture city",
+      "config": {
+        "name": "Fixture city",
+        "seed": 24,
+        "mode": "sandbox",
+        "population": 10,
+        "population_traits": {
+          "curiosity": 50.0,
+          "empathy": 50.0,
+          "sociability": 50.0,
+          "trust": 50.0,
+          "cooperation": 50.0,
+          "risk_tolerance": 50.0
+        },
+        "household_supplies": 50.0,
+        "personality_diversity": 50.0,
+        "environment": {
+          "resource_availability": 50.0,
+          "population_density": 50.0,
+          "infrastructure_capacity": 50.0,
+          "initial_community_trust": 50.0,
+          "settlement": "suburb"
+        },
+        "scenario_description": "",
+        "custom_agent_ids": [],
+        "tick_seconds": 10,
+        "max_ticks": 10000
+      },
+      "created_at": "2026-10-24T10:47:53.443454Z",
+      "updated_at": "2026-10-24T10:47:53.854096Z",
+      "status": "paused",
+      "pause_reason": "manual",
+      "archived": false,
+      "tick": 0,
+      "revision": 10,
+      "control_version": 4,
+      "sim_time_seconds": 0.0,
+      "speed_multiplier": 1,
+      "achieved_ticks_per_second": 0.0,
+      "agent_count": 10,
+      "parent_simulation_id": null,
+      "fork_ref": null,
+      "latest_snapshot_id": "snapshot_00000041",
+      "saved_at": "2026-10-24T10:47:53.854124Z",
+      "pending_outcome_event_ids": [],
+      "initialization": {
+        "stage": "ready",
+        "progress": 100.0,
+        "message": "Ready complete",
+        "error": null
+      },
+      "initial_preview": null
+    },
+    "event": {
+      "id": "event_00000042",
+      "title": "Flood intervention",
+      "kind": "flood",
+      "status": "queued",
+      "queued_tick": 0,
+      "start_tick": null,
+      "end_tick": null,
+      "affected_agent_count": 2,
+      "affected_polygon": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 0.0
+        },
+        {
+          "x": 64.0,
+          "y": 72.0
+        },
+        {
+          "x": 0.0,
+          "y": 72.0
+        }
+      ],
+      "pre_event_snapshot_id": "snapshot_00000041",
+      "summary": "Event will begin on the next simulation tick"
+    },
+    "snapshot": {
+      "id": "snapshot_00000041",
+      "simulation_id": "simulation_7267ab9c6ae642a3a0f4f63f88819b25",
+      "ref": {
+        "tick": 0,
+        "revision": 9
+      },
+      "created_at": "2026-10-24T10:47:53.854124Z",
+      "reason": "pre_event",
+      "label": "Before Flood intervention"
+    }
+  }
+}
