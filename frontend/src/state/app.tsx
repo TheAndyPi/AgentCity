@@ -3,6 +3,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -39,6 +41,12 @@ export function AppProvider({
     [],
   );
   useEffect(() => {
+    const expired = () => setNeedsLogin(true);
+    window.addEventListener("agentcity:session-expired", expired);
+    return () =>
+      window.removeEventListener("agentcity:session-expired", expired);
+  }, []);
+  useEffect(() => {
     void client
       .capabilities()
       .then(setCapabilities)
@@ -51,7 +59,12 @@ export function AppProvider({
         return client.settings();
       })
       .then((s) => {
-        if (s) setSettings(s);
+        if (s)
+          setSettings({
+            ...s,
+            reduce_motion:
+              s.version === 0 ? defaultSettings.reduce_motion : s.reduce_motion,
+          });
       })
       .catch(notifyError);
   }, [client, notifyError]);
@@ -151,24 +164,62 @@ export const messageOf = (e: unknown) =>
     : e instanceof Error
       ? e.message
       : String(e);
-export function useQuery<T>(load: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null),
-    [error, setError] = useState(""),
-    [refresh, setRefresh] = useState(0);
+export function useQuery<T>(
+  load: () => Promise<T>,
+  deps: unknown[],
+  retainKey?: string,
+) {
+  const scope = useMemo(() => ({ active: true }), [retainKey]);
+  const sequence = useRef(0);
+  const [result, setResult] = useState({
+    scope,
+    data: null as T | null,
+    error: "",
+    sequence: 0,
+  });
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    scope.active = true;
+    return () => {
+      scope.active = false;
+    };
+  }, [scope]);
   useEffect(() => {
     let active = true;
-    setData(null);
-    setError("");
-    load()
-      .then((d) => {
-        if (active) setData(d);
-      })
-      .catch((e) => {
-        if (active) setError(messageOf(e));
+    const request = ++sequence.current;
+    setResult((current) => ({
+      scope,
+      data:
+        retainKey !== undefined && current.scope === scope
+          ? current.data
+          : null,
+      error: "",
+      sequence: current.scope === scope ? current.sequence : 0,
+    }));
+    const settle = (data: T | null, error: string) => {
+      if (!scope.active || (!active && retainKey === undefined)) return;
+      setResult((current) => {
+        // Slow refreshes may finish after the next tick, but must never rewind data.
+        if (current.scope === scope && current.sequence > request)
+          return current;
+        return {
+          scope,
+          data: error && current.scope === scope ? current.data : data,
+          error,
+          sequence: request,
+        };
       });
+    };
+    load()
+      .then((data) => settle(data, ""))
+      .catch((error) => settle(null, messageOf(error)));
     return () => {
       active = false;
     };
-  }, [...deps, refresh]);
-  return { data, error, reload: () => setRefresh((n) => n + 1) };
+  }, [...deps, refresh, scope]);
+  return {
+    data: result.scope === scope ? result.data : null,
+    error: result.scope === scope ? result.error : "",
+    reload: () => setRefresh((n) => n + 1),
+  };
 }

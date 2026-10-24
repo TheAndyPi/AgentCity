@@ -235,11 +235,11 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         aliases = {
             "flood": ["flood"],
             "fire": ["fire", "wildfire"],
-            "storm": ["storm", "hurricane"],
+            "storm": ["storm", "hurricane", "tornado"],
             "shortage": ["shortage", "scarcity", "drought"],
             "outage": ["outage", "blackout"],
-            "misinformation": ["rumor", "rumour", "misinformation"],
-            "festival": ["festival", "celebration", "community aid"],
+            "misinformation": ["rumor", "rumour", "misinformation", "unverified warning"],
+            "festival": ["festival", "celebration", "community aid", "aid drive"],
             "policy": ["ration", "evacuation order", "policy"],
         }
         kinds = [
@@ -295,14 +295,15 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         warnings.append(
             "Bounded keyword compiler: only the displayed effects, polygon, severity and tick duration will execute. Other prose is not executable."
         )
-        if "community aid" in text:
+        if "community aid" in text or "aid drive" in text:
             spec.effects = [
-                dict(type="community", activity="aid", capacity=state.simulation.agent_count)
+                effect.model_copy(update={"activity": "aid", "capacity": state.simulation.agent_count})
                 if getattr(effect, "type", None) == "community"
                 else effect
                 for effect in spec.effects
             ]
             spec = EventSpec.model_validate(spec.model_dump())
+            spec.title = "Community aid intervention"
     can_commit = bool(spec.effects)
     if can_commit:
         validate_spec(state, spec)

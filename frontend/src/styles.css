@@ -4769,6 +4769,11 @@ input[type="range"] {
 :root[data-theme="light"] .version-label {
   color: #8b7498;
 }
+.engine-mode {
+  display: table;
+  margin: 4px 0 0 auto;
+  background: var(--surface);
+}
 @media (max-width: 640px) {
   .transport-bar {
     gap: 0;

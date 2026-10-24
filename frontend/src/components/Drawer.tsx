@@ -84,6 +84,11 @@ export default function Drawer({
   setFollow: (id: string | null) => void;
 }) {
   const top = stack[stack.length - 1];
+  const queryScope = JSON.stringify([
+    frame.simulation.id,
+    readOnly ? revision : "live",
+    top.type,
+  ]);
   const ref = useRef<HTMLElement>(null),
     opener = useRef<HTMLElement | null>(document.activeElement as HTMLElement);
   useEffect(() => {
@@ -130,6 +135,7 @@ export default function Drawer({
           <SearchPanel frame={frame} onPush={onPush} />
         ) : top.type === "agent" ? (
           <AgentInspector
+            queryScope={queryScope}
             frame={frame}
             revision={revision}
             id={top.id}
@@ -141,22 +147,34 @@ export default function Drawer({
           />
         ) : top.type === "decision" ? (
           <DecisionPanel
+            queryScope={queryScope}
             frame={frame}
             revision={revision}
             id={top.id}
             onPush={onPush}
           />
         ) : top.type === "events" ? (
-          <EventsPanel frame={frame} revision={revision} onPush={onPush} />
+          <EventsPanel
+            queryScope={queryScope}
+            frame={frame}
+            revision={revision}
+            onPush={onPush}
+          />
         ) : top.type === "event" ? (
           <EventPanel
+            queryScope={queryScope}
             frame={frame}
             revision={revision}
             id={top.id}
             onPush={onPush}
           />
         ) : top.type === "overview" ? (
-          <OverviewPanel frame={frame} revision={revision} onPush={onPush} />
+          <OverviewPanel
+            queryScope={queryScope}
+            frame={frame}
+            revision={revision}
+            onPush={onPush}
+          />
         ) : top.type === "overlays" ? (
           <OverlayPanel
             overlay={overlay}
@@ -167,9 +185,15 @@ export default function Drawer({
         ) : top.type === "agents" ? (
           <AgentPicker onCommand={onCommand} />
         ) : top.type === "feed" ? (
-          <FeedPanel frame={frame} revision={revision} onPush={onPush} />
+          <FeedPanel
+            queryScope={queryScope}
+            frame={frame}
+            revision={revision}
+            onPush={onPush}
+          />
         ) : (
           <ComparePanel
+            queryScope={queryScope}
             frame={frame}
             revision={revision}
             otherId={top.otherId}
@@ -241,6 +265,7 @@ function SearchPanel({
   );
 }
 function AgentInspector({
+  queryScope,
   frame,
   revision,
   id,
@@ -250,6 +275,7 @@ function AgentInspector({
   setFollow,
   readOnly,
 }: {
+  queryScope: string;
   readOnly: boolean;
   frame: WorldFrame;
   revision: number;
@@ -263,16 +289,18 @@ function AgentInspector({
   const result = useQuery(
     () => client.agent(frame.simulation.id, id, revision),
     [frame.simulation.id, id, revision],
+    JSON.stringify([queryScope, id]),
   );
   const [tab, setTab] = useState("story");
-  if (result.error)
+  if (result.error && !result.data)
     return <ErrorBox error={result.error} retry={result.reload} />;
   if (!result.data) return <Busy text="Reading this citizen’s story…" />;
   const d = result.data,
     a = d.agent;
   return (
     <>
-      <div className="agent-heading">
+      {result.error && <ErrorBox error={result.error} retry={result.reload} />}
+      <div className="agent-heading" data-revision={d.ref.revision}>
         <Avatar name={a.name} large />
         <div>
           <h2>{a.name}</h2>
@@ -369,7 +397,7 @@ function AgentInspector({
             <CollectionMore
               detail={d}
               collection="decisions"
-              revision={revision}
+              revision={d.ref.revision}
               simulationId={frame.simulation.id}
             />
           )}
@@ -427,7 +455,7 @@ function AgentInspector({
             <CollectionMore
               detail={d}
               collection="memories"
-              revision={revision}
+              revision={d.ref.revision}
               simulationId={frame.simulation.id}
             />
           )}
@@ -475,7 +503,7 @@ function AgentInspector({
             <CollectionMore
               detail={d}
               collection="relationships"
-              revision={revision}
+              revision={d.ref.revision}
               simulationId={frame.simulation.id}
             />
           )}
@@ -747,11 +775,13 @@ function EvidenceLinks({
   );
 }
 function DecisionPanel({
+  queryScope,
   frame,
   revision,
   id,
   onPush,
 }: {
+  queryScope: string;
   frame: WorldFrame;
   revision: number;
   id: string;
@@ -761,6 +791,7 @@ function DecisionPanel({
   const r = useQuery(
     () => client.decision(frame.simulation.id, id, revision),
     [frame.simulation.id, id, revision],
+    JSON.stringify([queryScope, id]),
   );
   return r.error ? (
     <ErrorBox error={r.error} retry={r.reload} />
@@ -848,10 +879,12 @@ function DecisionContent({
   );
 }
 function EventsPanel({
+  queryScope,
   frame,
   revision,
   onPush,
 }: {
+  queryScope: string;
   frame: WorldFrame;
   revision: number;
   onPush: (n: DrawerNode) => void;
@@ -860,6 +893,7 @@ function EventsPanel({
   const r = useQuery(
     () => client.events(frame.simulation.id, revision),
     [frame.simulation.id, revision],
+    queryScope,
   );
   return r.error ? (
     <ErrorBox error={r.error} />
@@ -890,11 +924,13 @@ function EventsPanel({
   );
 }
 function EventPanel({
+  queryScope,
   frame,
   revision,
   id,
   onPush,
 }: {
+  queryScope: string;
   frame: WorldFrame;
   revision: number;
   id: string;
@@ -904,6 +940,7 @@ function EventPanel({
   const r = useQuery(
     () => client.report(frame.simulation.id, id, revision),
     [frame.simulation.id, id, revision],
+    JSON.stringify([queryScope, id]),
   );
   return r.error ? (
     <ErrorBox error={r.error} retry={r.reload} />
@@ -954,10 +991,12 @@ function EventPanel({
   );
 }
 function OverviewPanel({
+  queryScope,
   frame,
   revision,
   onPush,
 }: {
+  queryScope: string;
   frame: WorldFrame;
   revision: number;
   onPush: (n: DrawerNode) => void;
@@ -966,6 +1005,7 @@ function OverviewPanel({
   const r = useQuery(
     () => client.overview(frame.simulation.id, revision),
     [frame.simulation.id, revision],
+    queryScope,
   );
   return r.error ? (
     <ErrorBox error={r.error} />
@@ -1161,10 +1201,12 @@ function AgentPicker({
   );
 }
 function FeedPanel({
+  queryScope,
   frame,
   revision,
   onPush,
 }: {
+  queryScope: string;
   frame: WorldFrame;
   revision: number;
   onPush: (n: DrawerNode) => void;
@@ -1173,6 +1215,7 @@ function FeedPanel({
   const r = useQuery(
     () => client.dialogue(frame.simulation.id, revision),
     [frame.simulation.id, revision],
+    queryScope,
   );
   return r.error ? (
     <ErrorBox error={r.error} />
@@ -1199,10 +1242,12 @@ function FeedPanel({
   );
 }
 export function ComparePanel({
+  queryScope,
   frame,
   revision,
   otherId,
 }: {
+  queryScope?: string;
   frame: WorldFrame;
   revision: number;
   otherId?: string;
@@ -1217,15 +1262,21 @@ export function ComparePanel({
   );
   const [selected, setSelected] = useState(otherId ?? "");
   const [metric, setMetric] = useState<Metric>("happiness");
-  const data = useQuery(async () => {
-    if (!selected) return null;
-    const [a, b, sim] = await Promise.all([
-      client.metrics(frame.simulation.id, revision),
-      client.metrics(selected),
-      client.simulation(selected),
-    ]);
-    return { a: a.points, b: b.points, sim };
-  }, [selected, frame.simulation.id, revision]);
+  const data = useQuery(
+    async () => {
+      if (!selected) return null;
+      const [a, b, sim] = await Promise.all([
+        client.metrics(frame.simulation.id, revision),
+        client.metrics(selected),
+        client.simulation(selected),
+      ]);
+      return { a: a.points, b: b.points, sim };
+    },
+    [selected, frame.simulation.id, revision],
+    queryScope === undefined
+      ? undefined
+      : JSON.stringify([queryScope, selected]),
+  );
   const shared =
     data.data &&
     (data.data.sim.parent_simulation_id === frame.simulation.id

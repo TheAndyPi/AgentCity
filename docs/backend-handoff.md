@@ -1,5 +1,10 @@
 # AgentCity backend handoff
 
+> Historical independent backend baseline. Frontend integration, shared Zod
+> parity and browser/proxy checks are now complete. See the current
+> [integration handoff](integration-handoff.md); its results supersede the old
+> frontend absence and test counts below. Provider and storage limits still apply.
+
 Contract: **1.0.0**. Built from the three supplied prompt files against an empty
 application checkout. The standalone normative contract is preserved verbatim;
 all three embedded copies were identical. Root README/frontend/deployment/CI
@@ -7,14 +12,14 @@ files were preserved. No deployment or external messaging was performed.
 
 ## Implemented and verified
 
-| Milestone | Delivered evidence |
-|---|---|
-| B0 — baseline | `contracts/v1/CONTRACT.md`, manifest, DTO/stream schemas, OpenAPI and 32 shared valid/invalid fixtures; `docs/ownership.md` and `decisions.md` |
-| B1 — live core | FastAPI HTTP/WS, durable staged initialization, seeded 64×64 map, valid entrances/resources, A*, autonomous rules, play/pause/step/speed and one bounded runner per world |
-| B2 — explanation | Profiles, needs/inventory/goals, local sight/hearing, bounded memory retrieval and summaries, directed social evidence, legal decisions, invitations/acceptance/decline/bounded dialogue, conserved trades/help and voluntary aid groups |
-| B3 — complete scenario flow | Initial/random/repeat/custom/policy preview, pause hold, unique replaced-preview tokens, atomic pre-event snapshot/confirm, queued/active/resolved events, interval reports, outcome pause and prior-intent acknowledgment, restored-copy undo |
-| B4 — management/history | Exact revision reads, pinned pagination, snapshots/lineage/branch prefix independence, navigation saves, archive/delete, copied custom-profile versions, settings/shortcuts, overview, metrics and exhaustive JSON/CSV exports |
-| B5 — reliability | Recovery/checksums/orphan-write faults, restart pause, persisted idempotency, single-writer process lock, shutdown commit join, owner/origin/CSRF checks, full-frame reconnect and slow-socket isolation, real Uvicorn smoke test, load measurements and demo traces |
+| Milestone                   | Delivered evidence                                                                                                                                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B0 — baseline               | `contracts/v1/CONTRACT.md`, manifest, DTO/stream schemas, OpenAPI and 32 shared valid/invalid fixtures; `docs/ownership.md` and `decisions.md`                                                                                                                       |
+| B1 — live core              | FastAPI HTTP/WS, durable staged initialization, seeded 64×64 map, valid entrances/resources, A\*, autonomous rules, play/pause/step/speed and one bounded runner per world                                                                                           |
+| B2 — explanation            | Profiles, needs/inventory/goals, local sight/hearing, bounded memory retrieval and summaries, directed social evidence, legal decisions, invitations/acceptance/decline/bounded dialogue, conserved trades/help and voluntary aid groups                             |
+| B3 — complete scenario flow | Initial/random/repeat/custom/policy preview, pause hold, unique replaced-preview tokens, atomic pre-event snapshot/confirm, queued/active/resolved events, interval reports, outcome pause and prior-intent acknowledgment, restored-copy undo                       |
+| B4 — management/history     | Exact revision reads, pinned pagination, snapshots/lineage/branch prefix independence, navigation saves, archive/delete, copied custom-profile versions, settings/shortcuts, overview, metrics and exhaustive JSON/CSV exports                                       |
+| B5 — reliability            | Recovery/checksums/orphan-write faults, restart pause, persisted idempotency, single-writer process lock, shutdown commit join, owner/origin/CSRF checks, full-frame reconnect and slow-socket isolation, real Uvicorn smoke test, load measurements and demo traces |
 
 All normative HTTP operations are present; a test compares the actual operation
 set to the contract's endpoint table. Narration is the specified explicit 501.
@@ -75,15 +80,15 @@ the source history survives. These artifacts explicitly identify **rules mode**.
 `backend/artifacts/performance.json` records a 30-manual-tick plus 10-live-tick
 sample at each population with full-frame streaming enabled:
 
-| Measurement | 30 citizens | 100 citizens |
-|---|---:|---:|
-| Initialization | 0.20 s | 0.32 s |
-| HTTP control p95 | 98 ms | 221 ms |
-| HTTP single-step p95 | 164 ms | 376 ms |
-| Tick compute p95 | 12.5 ms | 58.4 ms |
-| Durable commit p95 | 28.2 ms | 59.6 ms |
-| Observed live ticks/second | 1.88 | 1.84 |
-| Retained disk after 59 revisions | 9.18 MB | 21.88 MB |
+| Measurement                      | 30 citizens | 100 citizens |
+| -------------------------------- | ----------: | -----------: |
+| Initialization                   |      0.20 s |       0.32 s |
+| HTTP control p95                 |       98 ms |       221 ms |
+| HTTP single-step p95             |      164 ms |       376 ms |
+| Tick compute p95                 |     12.5 ms |      58.4 ms |
+| Durable commit p95               |     28.2 ms |      59.6 ms |
+| Observed live ticks/second       |        1.88 |         1.84 |
+| Retained disk after 59 revisions |     9.18 MB |     21.88 MB |
 
 The default-population command target of p95 <200 ms is met in this sample.
 Observed cadence is below the ideal two ticks/second; faster speed selections

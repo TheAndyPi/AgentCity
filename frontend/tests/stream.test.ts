@@ -60,6 +60,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("stream generations, fallback and REST races", () => {
+  it("a replaced socket cannot publish late frames or close the new connection", async () => {
+    const store = new WorldStore();
+    const stop = store.start(
+      "preview-eden",
+      new AgentCityClient({
+        mode: "live",
+        request: async () => envelope(at(1)),
+      }),
+    );
+    const previous = Socket.all[0];
+    previous.open();
+    previous.close();
+    await vi.advanceTimersByTimeAsync(1400);
+    const current = Socket.all.at(-1)!;
+    current.open();
+    current.emit(message(at(8)));
+    previous.emit(message(at(99)));
+    previous.onerror?.();
+    expect(current.readyState).toBe(Socket.OPEN);
+    expect(store.getSnapshot().frame?.ref.revision).toBe(8);
+    expect(store.getSnapshot().connection).toBe("live");
+    stop();
+  });
   it("sends versioned hello and never replaces a newer frame with a late REST response", async () => {
     let resolve!: (value: unknown) => void;
     const transport: Transport = {

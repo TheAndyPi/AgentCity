@@ -193,6 +193,48 @@ def test_pagination_is_pinned_to_revision(client):
     )
 
 
+def test_invalid_natural_language_controls_are_validation_errors_and_keep_hold(client):
+    sid = create_city(client)["id"]
+    simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
+    hold = write(
+        client,
+        f"/simulations/{sid}/interventions",
+        dict(expected_control_version=simulation["control_version"]),
+    ).json()["data"]
+    response = write(
+        client,
+        f"/simulations/{sid}/scenario-previews",
+        dict(
+            intervention_id=hold["id"],
+            source="custom",
+            source_event_id=None,
+            prompt="A flood severity 200 for 0 ticks",
+            policy=None,
+        ),
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    current = client.get(f"/api/v1/simulations/{sid}").json()["data"]
+    assert current["pause_reason"] == "intervention" and current["tick"] == 0
+
+
+def test_every_advertised_template_compiles_to_a_supported_initial_preview(client):
+    from app import contracts as c
+    from app.simulation.scenarios import compile_preview
+
+    templates = client.get("/api/v1/templates").json()["data"]["items"]
+    assert len(templates) >= 6
+    simulation = create_city(client)
+    state = client.app.state.service.heads[simulation["id"]]
+    for template in templates:
+        c.Config.model_validate(template["config"])
+        if template["config"]["scenario_description"]:
+            result = compile_preview(
+                state.model_copy(deep=True), "initial", template["config"]["scenario_description"]
+            )
+            assert result.can_commit
+
+
 def test_slow_socket_does_not_block_ticks_and_is_disconnected(client):
     import asyncio
     from types import SimpleNamespace

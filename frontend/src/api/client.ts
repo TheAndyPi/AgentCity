@@ -43,6 +43,8 @@ export class AgentCityClient {
     const failed = S.failure.safeParse(response);
     if (failed.success) {
       const e = failed.data.error;
+      if (e.code === "UNAUTHENTICATED" && typeof window !== "undefined")
+        window.dispatchEvent(new Event("agentcity:session-expired"));
       throw new ApiError(e.code, e.message, e.retryable, e.details);
     }
     const result = S.success(schema).safeParse(response);
@@ -396,12 +398,37 @@ export function websocketUrl(
 export class LiveTransport implements Transport {
   readonly mode = "live" as const;
   csrf: string | null = null;
+  private sessionReady: Promise<void> | null = null;
   async request(
     method: string,
     path: string,
     body?: unknown,
     key?: string,
   ): Promise<unknown> {
+    if (
+      method !== "GET" &&
+      !(method === "POST" && path === "/session") &&
+      !this.csrf
+    ) {
+      this.sessionReady ??= this.request("GET", "/session")
+        .then((result) => {
+          const failed = S.failure.safeParse(result);
+          if (failed.success)
+            throw new ApiError(
+              failed.data.error.code,
+              failed.data.error.message,
+            );
+          if (!this.csrf)
+            throw new ApiError(
+              "UNAUTHENTICATED",
+              "Sign in before changing your city.",
+            );
+        })
+        .finally(() => {
+          this.sessionReady = null;
+        });
+      await this.sessionReady;
+    }
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;

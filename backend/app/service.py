@@ -10,6 +10,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import ValidationError
+
 from app import contracts as c
 from app.data.repository import Repository, encode
 from app.infrastructure.errors import DomainError, require
@@ -741,7 +743,19 @@ class Service:
     def preview(self, owner, sid, body):
         state = self.owned(owner, sid).model_copy(deep=True)
         self.hold(state, body.intervention_id)
-        preview = compile_preview(state, body.source, body.prompt, body.source_event_id, body.policy)
+        try:
+            preview = compile_preview(state, body.source, body.prompt, body.source_event_id, body.policy)
+        except ValidationError as error:
+            reasons = "; ".join(
+                f"{'.'.join(map(str, item['loc']))}: {item['msg']}" for item in error.errors()
+            )
+            raise DomainError(
+                "VALIDATION_ERROR",
+                "Scenario controls are outside the supported ranges",
+                422,
+                field="prompt",
+                reason=reasons,
+            ) from error
         # Editing has no world revision, so preview IDs cannot come from a copied counter.
         preview.id = uid("preview")
         # Preview tokens are durable metadata, with no world revision or physics changes.

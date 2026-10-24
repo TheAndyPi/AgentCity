@@ -57,7 +57,7 @@ import ScenarioDialog, {
 import OutcomeDialog from "../components/OutcomeDialog";
 export default function Simulation() {
   const { id } = useParams();
-  const { client, settings, notice } = useApp();
+  const { client, settings, capabilities, notice } = useApp();
   const navigate = useNavigate();
   const store = useMemo(() => new WorldStore(), [id]);
   const live = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -146,6 +146,10 @@ export default function Simulation() {
   );
   const navigationAllowed = useRef(false),
     savingBlockedNavigation = useRef(false);
+  useEffect(() => {
+    navigationAllowed.current = false;
+    savingBlockedNavigation.current = false;
+  }, [id]);
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       currentLocation.pathname !== nextLocation.pathname &&
@@ -291,7 +295,18 @@ export default function Simulation() {
   const enterReplay = async () => {
     try {
       if (revision === null) await execute({ type: "pause" });
-      const list = await client.timeline(id!);
+      const [allRevisions, snapshots] = await Promise.all([
+        client.timeline(id!),
+        client.snapshots(id!),
+      ]);
+      const firstReady = Math.min(
+        ...snapshots
+          .filter((s) => s.reason === "initial")
+          .map((s) => s.ref.revision),
+        latest.current!.revision,
+      );
+      // Initialization revisions are real progress records, but have no WorldFrame.
+      const list = allRevisions.filter((p) => p.ref.revision >= firstReady);
       setTimeline(list);
       if (list.length) {
         setRevision(list[Math.max(0, list.length - 2)].ref.revision);
@@ -703,6 +718,17 @@ export default function Simulation() {
                   : live.connection.toUpperCase()}
           </span>
         </div>
+        <span
+          className="pill engine-mode"
+          aria-label="Decision engine"
+          title="Each citizen decision records whether it came from Gemini or deterministic rules."
+        >
+          {client.mode === "mock"
+            ? "Recorded fixtures"
+            : capabilities?.gemini
+              ? "Gemini + rules"
+              : "Rules engine"}
+        </span>
         <div className="quick-stats glass">
           {(Object.keys(metricLabels) as (keyof typeof metricLabels)[]).map(
             (k) => (
@@ -981,13 +1007,18 @@ export default function Simulation() {
         <ScenarioDialog
           key={`${id}-${source}`}
           simulation={live.frame!.simulation}
+          map={live.frame!.map}
           source={source}
           onClose={() => setSource(null)}
           onUpdated={refresh}
         />
       )}
       {!source && !readOnly && s.initial_preview && (
-        <InitialScenarioDialog simulation={s} onUpdated={refresh} />
+        <InitialScenarioDialog
+          simulation={s}
+          map={frame.map}
+          onUpdated={refresh}
+        />
       )}
       {!source && !readOnly && s.pending_outcome_event_ids[0] && (
         <OutcomeDialog

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Modal, Busy, ErrorBox, Button } from "./ui";
 import { useApp, useQuery, messageOf } from "../state/app";
 import { metricLabels } from "../api/defaults";
+import { metricDelta } from "../api/format";
 import type { EventReport, Metric, Simulation } from "../api/types";
 export function ReportMetrics({ report }: { report: EventReport }) {
   return (
@@ -17,8 +18,8 @@ export function ReportMetrics({ report }: { report: EventReport }) {
       {(Object.keys(metricLabels) as Metric[]).map((k) => (
         <div className="report-row" key={k}>
           <span>{metricLabels[k]}</span>
-          <span>{report.before[k].toFixed(0)}</span>
-          <strong>{report.after[k].toFixed(0)}</strong>
+          <span>{report.before[k].toFixed(2)}</span>
+          <strong>{report.after[k].toFixed(2)}</strong>
           <span
             className={
               (k === "stress" ? report.delta[k] < 0 : report.delta[k] > 0)
@@ -28,8 +29,7 @@ export function ReportMetrics({ report }: { report: EventReport }) {
                   : "negative"
             }
           >
-            {report.delta[k] > 0 ? "+" : ""}
-            {report.delta[k].toFixed(0)}
+            {metricDelta(report.delta[k])}
           </span>
         </div>
       ))}
@@ -160,6 +160,11 @@ export default function OutcomeDialog({
             {report.data.community_lessons.map((c, i) => (
               <p key={i}>{c.text}</p>
             ))}
+            {!report.data.community_lessons.length && (
+              <p className="muted">
+                No community lessons were recorded for this event.
+              </p>
+            )}
           </div>
           {report.data.suggested_preparations.length > 0 && (
             <div className="suggestions">

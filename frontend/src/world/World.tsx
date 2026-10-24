@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useId,
   type ReactNode,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -19,6 +20,8 @@ import type { OrbitControls as OrbitControlsType } from "three-stdlib";
 import type { AgentSummary, Metric, Vec2, WorldFrame } from "../api/types";
 import { colors } from "../api/defaults";
 import { subscribeToContextLoss } from "./contextLoss";
+import Ground, { useGround } from "./Ground";
+import { groundColors, type GroundRect } from "./groundLayout";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -139,40 +142,6 @@ function PerformanceReadout({
         citizens
       </output>
     </Html>
-  );
-}
-function Cells({ frame }: { frame: WorldFrame }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
-  const cells = useMemo(
-    () => frame.map.cells.filter((c) => c.terrain !== "land"),
-    [frame.map],
-  );
-  useEffect(() => {
-    if (!ref.current) return;
-    const o = new THREE.Object3D(),
-      color = new THREE.Color();
-    cells.forEach((c, i) => {
-      o.position.set(
-        (c.col + 0.5) * frame.map.cell_size_m,
-        -0.02,
-        (c.row + 0.5) * frame.map.cell_size_m,
-      );
-      o.scale.set(frame.map.cell_size_m, 0.08, frame.map.cell_size_m);
-      o.updateMatrix();
-      ref.current!.setMatrixAt(i, o.matrix);
-      ref.current!.setColorAt(
-        i,
-        color.set(c.terrain === "water" ? "#393d62" : "#292437"),
-      );
-    });
-    ref.current.instanceMatrix.needsUpdate = true;
-    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
-  }, [cells, frame.map]);
-  return (
-    <instancedMesh ref={ref} args={[undefined, undefined, cells.length]}>
-      <boxGeometry />
-      <meshStandardMaterial roughness={1} />
-    </instancedMesh>
   );
 }
 function Buildings({ frame }: { frame: WorldFrame }) {
@@ -598,32 +567,7 @@ export default function World(props: Props) {
             color="#f5e7ff"
           />
           <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
-          <mesh
-            position={[
-              props.frame.map.width_m / 2,
-              -0.15,
-              props.frame.map.height_m / 2,
-            ]}
-          >
-            <boxGeometry
-              args={[props.frame.map.width_m, 0.2, props.frame.map.height_m]}
-            />
-            <meshStandardMaterial color="#45404e" roughness={1} />
-          </mesh>
-          <gridHelper
-            args={[
-              Math.max(props.frame.map.width_m, props.frame.map.height_m),
-              16,
-              "#53485e",
-              "#3c354b",
-            ]}
-            position={[
-              props.frame.map.width_m / 2,
-              0.02,
-              props.frame.map.height_m / 2,
-            ]}
-          />
-          <Cells frame={props.frame} />
+          <Ground map={props.frame.map} />
           <Buildings frame={props.frame} />
           {props.overlay &&
             props.frame.map.zones.map((z) => (
@@ -691,6 +635,8 @@ function World2D(props: Props) {
     onCameraReady,
     onUnfollow,
   } = props;
+  const ground = useGround(frame.map);
+  const patternId = useId().replace(/:/g, "");
   const [view, setView] = useState({
     x: -8,
     y: -8,
@@ -748,6 +694,24 @@ function World2D(props: Props) {
   }, [frame.agents, props.follow, onUnfollow, frame.map.height_m]);
   const polygon = (p: Vec2[]) =>
     p.map((p) => `${p.x},${frame.map.height_m - p.y}`).join(" ");
+  const patches = (name: string, pieces: GroundRect[], fill: string) => (
+    <g data-ground={name} fill={fill} pointerEvents="none">
+      {pieces.map((p, i) => (
+        <rect
+          key={i}
+          x={p.x - p.width / 2}
+          y={frame.map.height_m - p.y - p.depth / 2}
+          width={p.width}
+          height={p.depth}
+          transform={
+            p.angle
+              ? `rotate(${(-p.angle * 180) / Math.PI} ${p.x} ${frame.map.height_m - p.y})`
+              : undefined
+          }
+        />
+      ))}
+    </g>
+  );
   return (
     <svg
       className="world-2d"
@@ -781,25 +745,54 @@ function World2D(props: Props) {
         if (!drag.current?.moved && e.target === e.currentTarget) onEmpty();
       }}
     >
+      <defs>
+        <pattern
+          id={`${patternId}-grass`}
+          width="4"
+          height="4"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect width="4" height="4" fill={groundColors.grass} />
+          <path
+            d="M.5 1l.15-.4M2 2l-.1-.45M3.2 3.6l.15-.5M.7 3.3l-.1-.3"
+            stroke="#91ad70"
+            strokeWidth=".08"
+            opacity=".45"
+          />
+          <path
+            d="M3 .7l.1-.3M1.6 3.3l.2-.35"
+            stroke="#315c38"
+            strokeWidth=".1"
+            opacity=".5"
+          />
+        </pattern>
+        <pattern
+          id={`${patternId}-asphalt`}
+          width="2"
+          height="2"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect width="2" height="2" fill={groundColors.asphalt} />
+          <path
+            d="M.3 .3h.1M1.2 .7h.12M.7 1.5h.1M1.7 1.7h.1"
+            stroke="#879099"
+            strokeWidth=".06"
+            opacity=".4"
+          />
+        </pattern>
+      </defs>
       <rect
         width={frame.map.width_m}
         height={frame.map.height_m}
-        fill="#393143"
+        fill={`url(#${patternId}-grass)`}
         pointerEvents="none"
       />
-      {frame.map.cells
-        .filter((c) => c.terrain !== "land")
-        .map((c) => (
-          <rect
-            key={`${c.col}-${c.row}`}
-            x={c.col * frame.map.cell_size_m}
-            y={frame.map.height_m - (c.row + 1) * frame.map.cell_size_m}
-            width={frame.map.cell_size_m}
-            height={frame.map.cell_size_m}
-            fill={c.terrain === "water" ? "#42466b" : "#242031"}
-            pointerEvents="none"
-          />
-        ))}
+      {patches("water", ground.water, groundColors.water)}
+      {patches("roads", ground.roads, `url(#${patternId}-asphalt)`)}
+      {patches("sidewalks", ground.sidewalks, groundColors.sidewalk)}
+      {patches("entrances", ground.entrances, groundColors.sidewalk)}
+      {patches("curbs", ground.curbs, groundColors.curb)}
+      {patches("markings", ground.markings, groundColors.markings)}
       {frame.map.buildings.map((b, i) => (
         <polygon
           key={b.id}
@@ -816,7 +809,11 @@ function World2D(props: Props) {
             key={z.id}
             points={polygon(z.polygon)}
             fill={overlay === "density" ? "#bfa4ff" : colors[overlay]}
-            opacity={overlay === "density" ? 0.3 : z.metrics[overlay] / 200}
+            opacity={
+              overlay === "density"
+                ? Math.min(1, z.population_density_per_km2 / 10000) * 0.55
+                : z.metrics[overlay] / 200
+            }
             pointerEvents="none"
           />
         ))}

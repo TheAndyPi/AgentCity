@@ -19,6 +19,10 @@ and same-volume replacement. Tests inject failure before manifest replacement
 on Windows; actual power-loss/filesystem-controller guarantees were not tested.
 
 Recovery verifies the manifest, object hashes and contiguous revision numbers.
+It checks each unique compressed object and its tick/revision reference without
+constructing every historical Python object graph. Restored heads receive full
+State validation at startup, and historical reads fully validate their requested
+State on demand. Invalid heads fall back to a valid prefix and degrade readiness.
 Incomplete temporary/orphan objects are ignored. A damaged referenced revision
 retains its valid prefix, marks readiness degraded and blocks mutations until
 operator recovery. An invalid manifest checksum fails startup clearly rather

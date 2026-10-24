@@ -1,0 +1,55 @@
+# Installed dependencies and virtual environments.
+node_modules/
+/.venv/
+/backend/.venv/
+
+# Temporary files and tool caches.
+/.tmp/
+/tmp/
+/temp/
+/backend/.tmp/
+.cache/
+.npm/
+node-compile-cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.tsbuildinfo
+*.tmp
+*.temp
+*.log
+
+# Generated builds, coverage and browser test output.
+/dist/
+/build/
+/frontend/dist/
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/.vite/
+/coverage/
+/htmlcov/
+/backend/htmlcov/
+.coverage
+.coverage.*
+
+# Runtime cities and generated test/demo stores. Keep backend/app/data/ as source.
+/backend/data/
+/backend/artifacts/load-data/
+
+# Local secrets and overrides; shared environment examples stay eligible.
+.env
+.env.local
+.env.*.local
+
+# OS and editor scratch files.
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~

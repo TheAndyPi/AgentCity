@@ -65,11 +65,15 @@ export class WorldStore {
     const off = client.transport.subscribe?.(id, (f) => this.accept(f, gen));
     const connect = () => {
       if (closed || client.mode === "mock") return;
-      socket = new WebSocket(websocketUrl(id));
-      socket.onopen = () => {
-        if (closed) return;
+      const current = new WebSocket(websocketUrl(id));
+      socket = current;
+      let ended = false;
+      const active = () =>
+        !closed && !ended && gen === this.generation && socket === current;
+      current.onopen = () => {
+        if (!active()) return;
         lastTraffic = Date.now();
-        socket?.send(
+        current.send(
           JSON.stringify({
             type: "hello",
             schema_version: "1.0.0",
@@ -77,8 +81,8 @@ export class WorldStore {
           }),
         );
       };
-      socket.onmessage = (e) => {
-        if (closed || gen !== this.generation) return;
+      current.onmessage = (e) => {
+        if (!active()) return;
         lastTraffic = Date.now();
         try {
           const m = S.serverMessage.parse(JSON.parse(e.data));
@@ -98,12 +102,13 @@ export class WorldStore {
             error:
               "Invalid stream data. Last valid state preserved; requesting a fresh snapshot.",
           });
-          socket?.close();
+          current.close();
           void fetchState();
         }
       };
-      socket.onclose = () => {
-        if (closed) return;
+      current.onclose = () => {
+        if (!active()) return;
+        ended = true;
         attempts++;
         this.update({ connection: attempts >= 3 ? "polling" : "reconnecting" });
         if (attempts >= 3 && !poll) poll = setInterval(fetchState, 2000);
@@ -112,7 +117,9 @@ export class WorldStore {
           Math.min(10000, 1000 * 2 ** (attempts - 1)) + Math.random() * 300,
         );
       };
-      socket.onerror = () => socket?.close();
+      current.onerror = () => {
+        if (active()) current.close();
+      };
     };
     connect();
     if (client.mode === "live")

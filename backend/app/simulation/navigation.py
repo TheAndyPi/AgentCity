@@ -89,9 +89,12 @@ def pathfind(map_data, origin, destination, blocked=frozenset()):
             x, y = nxt
             if not (0 <= x < map_data.columns and 0 <= y < map_data.rows) or nxt in blocked:
                 continue
-            if not map_data.cells[y * map_data.columns + x].walkable:
+            next_cell = map_data.cells[y * map_data.columns + x]
+            if not next_cell.walkable:
                 continue
-            cost = costs[current] + 1
+            # Prefer maintained public streets over cutting across lawns. Land
+            # remains available for a destination approach or a blocked-road detour.
+            cost = costs[current] + (1 if next_cell.terrain == "road" else 4)
             if cost < costs.get(nxt, math.inf):
                 costs[nxt], parents[nxt] = cost, current
                 heapq.heappush(queue, (cost + abs(x - end[0]) + abs(y - end[1]), nxt))

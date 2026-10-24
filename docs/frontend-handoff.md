@@ -1,5 +1,10 @@
 # AgentCity frontend handoff
 
+> Historical independent frontend baseline. Integration is now implemented and
+> verified with the real backend; the current results, run commands and remaining
+> limits are in [integration-handoff.md](integration-handoff.md). The baseline
+> claims below about missing backend/contracts and default mock mode are superseded.
+
 Contract: **1.0.0**, from the three supplied Markdown documents. Implementation ownership: `frontend/**`, this file, and `docs/frontend-contract-requests.md`. The initial repository had only an initial README and no frontend, backend, shared schemas, tests, or API integration. No existing application was replaced. Root README, root package configuration, deployment, backend and protected contract paths were not edited.
 
 ## Delivered

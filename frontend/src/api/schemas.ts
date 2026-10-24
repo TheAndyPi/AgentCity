@@ -1,17 +1,26 @@
 import { z } from "zod";
 import type * as T from "./types";
+import { defaultConfig, defaultTraits } from "./defaults";
 const obj = z.object;
 const finite = z.number().finite();
 const count = finite.int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const pct = finite.min(0).max(100);
-const id = z.string().min(1);
+const id = z.string().min(1).max(200);
 const text = z.string().max(2000);
-const name = z.string().trim().min(1).max(80);
+const name = z
+  .string()
+  .min(1)
+  .max(80)
+  .refine((v) => v === v.trim(), "Names must be trimmed");
+const recordIds = z.array(id);
 const ids = z
   .array(id)
   .max(100)
   .refine((a) => new Set(a).size === a.length, "IDs must be unique");
-const date = z.string().datetime();
+const date = z
+  .string()
+  .datetime({ offset: true })
+  .refine((v) => /(?:Z|\+00:00)$/.test(v), "Timestamp must be UTC");
 export const vec = obj({ x: finite, y: finite }).strict();
 export const ref = obj({ tick: count, revision: count }).strict();
 export const metric = z.enum([
@@ -49,20 +58,20 @@ export const profile: z.ZodType<T.Profile> = obj({
   role: name,
   background: text,
   personality: text,
-  values: z.array(text).max(100),
+  values: z.array(text),
   traits,
   primary_goal: text,
-  secondary_goals: z.array(text).max(100),
-  desires: z.array(text).max(100),
-  fears: z.array(text).max(100),
+  secondary_goals: z.array(text),
+  desires: z.array(text),
+  fears: z.array(text),
   personal_history: text,
-  skills: z.array(text).max(100),
+  skills: z.array(text),
   intelligence: pct,
   mobility: pct,
   physical_attributes: text,
   social_needs: pct,
 }).strict();
-export const config: z.ZodType<T.Config> = obj({
+const configObject = obj({
   name,
   seed: count.max(2147483647),
   mode: z.enum(["sandbox", "behavior_lab", "crisis_lab", "policy_lab"]),
@@ -81,12 +90,39 @@ export const config: z.ZodType<T.Config> = obj({
   custom_agent_ids: ids,
   tick_seconds: z.literal(10),
   max_ticks: count.min(1).max(10000),
-})
-  .strict()
-  .refine((c) => c.custom_agent_ids.length <= c.population, {
+}).strict();
+export const config: z.ZodType<T.Config> = configObject.refine(
+  (c) => c.custom_agent_ids.length <= c.population,
+  {
     message: "Custom citizens must fit within the population.",
     path: ["custom_agent_ids"],
-  });
+  },
+);
+// Setup requests may omit documented defaults; response Config stays complete.
+export const configRequest = configObject
+  .omit({ population_traits: true, environment: true })
+  .partial({
+    mode: true,
+    population: true,
+    household_supplies: true,
+    personality_diversity: true,
+    scenario_description: true,
+    custom_agent_ids: true,
+    tick_seconds: true,
+    max_ticks: true,
+  })
+  .extend({
+    population_traits: traits.partial().optional(),
+    environment: configObject.shape.environment.partial().optional(),
+  })
+  .transform((c) => ({
+    ...defaultConfig,
+    ...c,
+    population_traits: { ...defaultTraits, ...c.population_traits },
+    environment: { ...defaultConfig.environment, ...c.environment },
+  }))
+  .pipe(config);
+export const createSimulationRequest = obj({ config: configRequest }).strict();
 export const error = obj({
   code: id,
   message: text,
@@ -101,9 +137,9 @@ export const failure = obj({
   error,
 }).strict();
 export const evidence = obj({
-  event_ids: ids,
-  decision_ids: ids,
-  memory_ids: ids,
+  event_ids: recordIds,
+  decision_ids: recordIds,
+  memory_ids: recordIds,
   description: text,
 }).strict();
 const polygon = z.array(vec).min(3);
@@ -161,7 +197,7 @@ export const eventSpec = obj({
   affected_polygon: polygon,
   severity: pct,
   duration_ticks: count.min(1).max(1000),
-  effects: z.array(effect),
+  effects: z.array(effect).max(20),
   success_condition: z.enum(["duration_elapsed", "all_safe_or_duration"]),
 }).strict();
 export const preview: z.ZodType<T.ScenarioPreview> = obj({
@@ -173,8 +209,8 @@ export const preview: z.ZodType<T.ScenarioPreview> = obj({
   expires_at: date,
   interpretation: text,
   spec: eventSpec,
-  affected_agent_ids: ids,
-  affected_building_ids: ids,
+  affected_agent_ids: recordIds,
+  affected_building_ids: recordIds,
   warnings: z.array(text),
   unsupported_requests: z.array(text),
   can_commit: z.boolean(),
@@ -209,7 +245,7 @@ export const simulation: z.ZodType<T.Simulation> = obj({
   fork_ref: ref.nullable(),
   latest_snapshot_id: id.nullable(),
   saved_at: date.nullable(),
-  pending_outcome_event_ids: ids,
+  pending_outcome_event_ids: recordIds,
   initialization: obj({
     stage: z.enum([
       "queued",
@@ -331,7 +367,7 @@ export const memory: z.ZodType<T.Memory> = obj({
   text,
   importance: pct,
   source: z.enum(["observed", "heard", "reflection", "injected"]),
-  subject_ids: ids,
+  subject_ids: recordIds,
   evidence,
 }).strict();
 export const relationship: z.ZodType<T.Relationship> = obj({
@@ -351,7 +387,7 @@ export const relationship: z.ZodType<T.Relationship> = obj({
   familiarity: pct,
   conflict: pct,
   desired_relationship: text,
-  shared_history: ids,
+  shared_history: recordIds,
   evidence,
 }).strict();
 export const decision: z.ZodType<T.Decision> = obj({
@@ -361,8 +397,8 @@ export const decision: z.ZodType<T.Decision> = obj({
   source: z.enum(["gemini", "rules", "replay"]),
   intent,
   observed_facts: z.array(text),
-  memory_ids: ids,
-  relationship_agent_ids: ids,
+  memory_ids: recordIds,
+  relationship_agent_ids: recordIds,
   concise_rationale: text,
   outcome: z.enum(["accepted", "rejected", "modified", "pending"]),
   outcome_description: text,
@@ -375,7 +411,7 @@ export const decision: z.ZodType<T.Decision> = obj({
       after: z.union([z.string(), finite, z.boolean(), z.null()]),
     }).strict(),
   ),
-  event_ids: ids,
+  event_ids: recordIds,
 }).strict();
 export const page = <S extends z.ZodTypeAny>(s: S) =>
   obj({ items: z.array(s), next_cursor: z.string().nullable() }).strict();
@@ -396,7 +432,7 @@ export const agentDetail: z.ZodType<T.AgentDetail> = obj({
   memories: page(memory),
   relationships: page(relationship),
   decisions: page(decision),
-  major_event_ids: ids,
+  major_event_ids: recordIds,
   metric_reasons: z.array(obj({ metric, delta: finite, evidence }).strict()),
 }).strict();
 export const event: z.ZodType<T.EventSummary> = obj({
@@ -419,7 +455,7 @@ export const eventReport: z.ZodType<T.EventReport> = obj({
   before: metrics,
   after: metrics,
   delta: deltas,
-  affected_agent_ids: ids,
+  affected_agent_ids: recordIds,
   conflicts: count,
   resources_consumed: finite.nonnegative(),
   evacuated_count: count,
@@ -523,7 +559,9 @@ export const settings: z.ZodType<T.Settings> = obj({
     .refine(
       (s) =>
         Object.values(s).every((v) =>
-          /^(Mod\+)?(Alt\+)?(Shift\+)?[A-Za-z][A-Za-z0-9]*$/.test(v),
+          /^(?:Mod\+)?(?:Alt\+)?(?:Shift\+)?(?:Key[A-Z]|Digit[0-9]|Arrow(?:Up|Down|Left|Right)|Space|Equal|Minus|Enter|Escape|Tab|Backspace|Delete|Home|End|PageUp|PageDown|BracketLeft|BracketRight|Backslash|Semicolon|Quote|Comma|Period|Slash|Backquote|F(?:[1-9]|1[0-2]))$/.test(
+            v,
+          ),
         ),
       "Use canonical chords such as Mod+Equal",
     ),
@@ -570,7 +608,13 @@ export const command = z.discriminatedUnion("type", [
   }).strict(),
   obj({ type: z.literal("archive") }).strict(),
   obj({ type: z.literal("unarchive") }).strict(),
-  obj({ type: z.literal("add_agents"), custom_agent_ids: ids }).strict(),
+  obj({
+    type: z.literal("add_agents"),
+    custom_agent_ids: ids.refine(
+      (a) => a.length > 0,
+      "Choose at least one profile",
+    ),
+  }).strict(),
   obj({
     type: z.literal("override_agent"),
     agent_id: id,
@@ -593,7 +637,7 @@ export const commandRequest = obj({
 export const commandResult = obj({
   simulation,
   snapshot: snapshot.nullable(),
-  affected_agent_ids: ids,
+  affected_agent_ids: recordIds,
 }).strict();
 export const success = <S extends z.ZodTypeAny>(s: S) =>
   obj({ schema_version: z.literal("1.0.0"), request_id: id, data: s }).strict();
@@ -648,7 +692,7 @@ export const previewRequest = obj({
   intervention_id: id,
   source: z.enum(["random", "repeat", "custom", "policy"]),
   source_event_id: id.nullable(),
-  prompt: text.nullable(),
+  prompt: z.string().max(4000).nullable(),
   policy: policies.nullable(),
 })
   .strict()

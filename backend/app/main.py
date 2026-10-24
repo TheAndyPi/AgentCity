@@ -631,6 +631,7 @@ def create_app(config: AppConfig | None = None):
                         config=c.ConfigRequest(
                             name="Flood experiment",
                             seed=42,
+                            population=min(30, runtime.max_agents),
                             scenario_description="A flood in the southwest for 12 ticks",
                         ).normalized(),
                     ),
@@ -638,8 +639,58 @@ def create_app(config: AppConfig | None = None):
                         id="template_community_v1",
                         title="Community day",
                         description="Observe ordinary social and work behavior",
-                        config=c.ConfigRequest(name="Community day", seed=7).normalized(),
+                        config=c.ConfigRequest(
+                            name="Community day", seed=7, population=min(30, runtime.max_agents)
+                        ).normalized(),
                     ),
+                    *[
+                        c.Template(
+                            id=f"template_{kind}_v1",
+                            title=title,
+                            description=description,
+                            config=c.ConfigRequest(
+                                name=title,
+                                seed=seed,
+                                mode=mode,
+                                population=min(30, runtime.max_agents),
+                                scenario_description=prompt,
+                            ).normalized(),
+                        )
+                        for kind, title, description, seed, mode, prompt in [
+                            (
+                                "shortage",
+                                "Supply shortage",
+                                "Observe resource conservation and cooperation",
+                                17,
+                                "crisis_lab",
+                                "A supply shortage for 12 ticks",
+                            ),
+                            (
+                                "misinformation",
+                                "Unverified warning",
+                                "Observe local communication and uncertain beliefs",
+                                23,
+                                "behavior_lab",
+                                "An unverified warning spreads for 12 ticks",
+                            ),
+                            (
+                                "festival",
+                                "Neighborhood festival",
+                                "Observe community activity and measured social effects",
+                                31,
+                                "sandbox",
+                                "A neighborhood festival for 12 ticks",
+                            ),
+                            (
+                                "policy",
+                                "Policy experiment",
+                                "Compare an evacuation and ration policy with a branch",
+                                43,
+                                "policy_lab",
+                                "An evacuation order policy for 12 ticks",
+                            ),
+                        ]
+                    ],
                 ]
             ),
         )
@@ -845,6 +896,10 @@ def create_app(config: AppConfig | None = None):
         return schema
 
     app.openapi = openapi
+    if runtime.frontend_dist:
+        from app.infrastructure.frontend import mount_frontend
+
+        mount_frontend(app, runtime.frontend_dist)
     return app
 
 

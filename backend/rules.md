@@ -7,6 +7,7 @@ speed changes wall-clock cadence, never the tick duration or walking distance.
 | Rule | Value/behavior |
 |---|---|
 | Grid | 64×64 cells, 2 m per cell, four-neighbor A* |
+| Route preference | A* cost 1 per road cell and 4 per other walkable cell; lawns remain available for destination access or detours, while water/buildings/hazard-blocked cells remain forbidden |
 | Walking | `1.4 * (0.5 + mobility/100)` m/s; default mobility 50 |
 | Sight / hearing / physical action | 20 m with line of sight / 8 m with line of sight / 3 m |
 | Hunger / fatigue / unmet social need | +0.6 / +0.4 / +0.2 per tick |

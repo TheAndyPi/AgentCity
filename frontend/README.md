@@ -4,32 +4,20 @@ A TypeScript / React / Three.js society-simulation interface implementing the su
 
 ## Run
 
+From the repository root, use Node 22.12+ and Python 3.13+:
+
 ```sh
-cd frontend
-npm ci
+npm run setup
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. Development explicitly selects **Mock mode** in `.env.development` so the complete frontend can be reviewed without a backend. The persistent badge identifies all fixture views. Start at the landing page or choose “Explore the preview city.” The fixture adapter uses recorded map/pose/outcome samples; it is not a simulation engine or live model integration.
-
-On this machine the Homebrew Node executable has a missing library. `./run.sh` automatically uses the available bundled Node runtime without changing machine configuration:
-
-```sh
-./run.sh ci
-./run.sh                   # fixture preview
-./run.sh run dev:live      # real FastAPI integration
-./run.sh run typecheck
-./run.sh run test
-./run.sh run build
-```
-
-For another machine, use Node 22.12+ and npm. All dependencies and lockfiles are frontend-local.
+Open http://127.0.0.1:5173. Development now defaults to **live backend data**. The root launcher starts FastAPI and Vite together. `npm run dev:mock` from the root explicitly selects fixture review mode. Its persistent badge identifies recorded views; it is not a simulation engine or live model integration. The old `run.sh` is an optional legacy Unix helper; normal Node/npm commands work on the current Windows installation.
 
 ## Connect FastAPI
 
-Run the backend on port 8000, then `npm run dev:live`. Vite proxies `/api`, including WebSocket upgrades, preserving Origin. `.env.example` documents the two public settings. Production defaults to `VITE_DATA_MODE=live` and `VITE_API_BASE_URL=/api/v1`.
+For separate terminals, run the backend on port 8000 and then `npm run dev:live` from `frontend/`. Vite proxies `/api`, including WebSocket upgrades, preserving Origin. `.env.example` documents the two public settings. Production defaults to `VITE_DATA_MODE=live` and `VITE_API_BASE_URL=/api/v1`.
 
-Build with `npm run build`, serve `dist/` with SPA fallback, and reverse-proxy `/api` and WebSockets to the backend. No server secret or provider key belongs in a `VITE_` variable. Session mode uses cookies and CSRF returned by the server; a passphrase dialog appears when authentication is needed. There is no automatic live-to-mock fallback.
+From the root, `npm run build` followed by `npm start` serves the built UI, API and WebSocket on port 8000 with direct-route fallback. An external reverse proxy is optional for local use and required for public TLS hosting. No server secret or provider key belongs in a `VITE_` variable. Session mode uses cookies and CSRF returned by the server; a passphrase dialog appears when authentication is needed. There is no automatic live-to-mock fallback.
 
 ## Frontend behavior
 
@@ -49,13 +37,14 @@ Space toggles play while the map has focus. Arrow keys pan. Cmd/Ctrl with +/- zo
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e
 npm exec vite-node -- scripts/generate-fixtures.ts
 ```
 
-Tests cover DTO rejection, preview/commit/cancel semantics, idempotent retries, historical isolation, source-save failure, restored branches, copied profiles, CSRF headers, stale frames, reconnect polling, and instance selection. `tests/fixtures/` contains frontend-local validated samples and an exact fixture request/response trace. These do not replace coordinator-owned cross-language parity artifacts.
+Tests cover DTO rejection, all 32 frozen shared parity fixtures, preview/commit/cancel semantics, idempotent retries, historical isolation, source-save failure, restored branches, copied profiles, CSRF headers, stale frames, reconnect polling, and instance selection. `tests/fixtures/` contains additional frontend-local samples. `artifacts/integration/` records actual live browser evidence. Build before running browser tests; the test runner starts isolated development and built backend servers automatically.
 
 `tests/visual/index.html` is a development-only responsive harness. Choose a CSS viewport and route. It scales the iframe to the available panel and reports horizontal document overflow. It is excluded from the production entry. A development city URL with `?qa=1` exposes a measured FPS readout and a WebGL-loss test control. Neither appears in production.
 
 Review-cache data is confined to sessionStorage **in mock mode**, resumes paused after refresh, and can be discarded with the browser session. A full cache can remain memory-only. Live worlds are never stored in browser storage; only the unsent setup draft is locally cached.
 
-See [frontend handoff](../docs/frontend-handoff.md) for validation evidence, scope and integration prerequisites.
+See the current [integration handoff](../docs/integration-handoff.md) and historical [frontend handoff](../docs/frontend-handoff.md) for evidence and scope.

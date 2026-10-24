@@ -1,0 +1,17 @@
+{
+  "name": "agentcity",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:mock": "node scripts/dev.mjs --mock",
+    "build": "npm --prefix frontend run build",
+    "start": "node scripts/start.mjs",
+    "test": "node scripts/check.mjs",
+    "test:e2e": "npm --prefix frontend run test:e2e"
+  }
+}

@@ -2,3 +2,8 @@ node_modules/
 dist/
 .env.local
 *.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+coverage/
+.vite/

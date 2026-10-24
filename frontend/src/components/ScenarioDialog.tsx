@@ -20,8 +20,21 @@ import type {
   Policies,
 } from "../api/types";
 import { pretty } from "../api/defaults";
+import {
+  previewLayout,
+  previewPoint,
+  type MapBounds,
+} from "../world/previewGeometry";
 export type ScenarioSource = "random" | "repeat" | "custom" | "policy";
-export function PreviewCard({ preview }: { preview: ScenarioPreview }) {
+export function PreviewCard({
+  preview,
+  map,
+}: {
+  preview: ScenarioPreview;
+  map: MapBounds;
+}) {
+  const layout = previewLayout(map);
+  const origin = previewPoint(preview.spec.origin, map);
   return (
     <div className="preview-card">
       <div className="preview-title">
@@ -52,20 +65,27 @@ export function PreviewCard({ preview }: { preview: ScenarioPreview }) {
           </pattern>
         </defs>
         <rect width="280" height="85" fill="url(#preview-grid)" />
+        <rect
+          x={layout.x}
+          y={layout.y}
+          width={map.width_m * layout.scale}
+          height={map.height_m * layout.scale}
+          fill="none"
+          stroke="currentColor"
+          opacity=".4"
+        />
         <polygon
           points={preview.spec.affected_polygon
-            .map((p) => `${p.x * 2},${80 - p.y}`)
+            .map((p) => {
+              const point = previewPoint(p, map);
+              return `${point.x},${point.y}`;
+            })
             .join(" ")}
           fill="#a58ce7"
           fillOpacity=".2"
           stroke="#bfa1ff"
         />
-        <circle
-          cx={preview.spec.origin.x * 2}
-          cy={80 - preview.spec.origin.y}
-          r="3"
-          fill="#a9f4de"
-        />
+        <circle cx={origin.x} cy={origin.y} r="3" fill="#a9f4de" />
       </svg>
       <div className="preview-facts">
         <span>
@@ -119,11 +139,13 @@ export function PreviewCard({ preview }: { preview: ScenarioPreview }) {
 }
 export default function ScenarioDialog({
   simulation,
+  map,
   source,
   onClose,
   onUpdated,
 }: {
   simulation: Simulation;
+  map: MapBounds;
   source: ScenarioSource;
   onClose: () => void;
   onUpdated: () => Promise<void>;
@@ -217,27 +239,32 @@ export default function ScenarioDialog({
       await onUpdated();
       onClose();
     } catch (e) {
-      if (
-        e instanceof ApiError &&
-        ["PREVIEW_EXPIRED", "NOT_FOUND"].includes(e.code)
-      ) {
-        await onUpdated();
-        notice(
-          "The expired event editor is closed. Playback was not resumed by this action.",
-        );
-        onClose();
-        return;
+      try {
+        if (
+          e instanceof ApiError &&
+          ["PREVIEW_EXPIRED", "PREVIEW_STALE", "NOT_FOUND"].includes(e.code)
+        ) {
+          await onUpdated();
+          notice(
+            "This event editor is no longer active. The current playback state is preserved.",
+          );
+          onClose();
+          return;
+        }
+        if (e instanceof ApiError && e.code === "CONTROL_CONFLICT") {
+          const current = await client.simulation(simulation.id);
+          setIntervention({
+            ...intervention,
+            control_version: current.control_version,
+          });
+          cancelKey.current = crypto.randomUUID();
+        }
+        setError(messageOf(e));
+      } catch (refreshError) {
+        setError(messageOf(refreshError));
+      } finally {
+        setBusy(false);
       }
-      if (e instanceof ApiError && e.code === "CONTROL_CONFLICT") {
-        const current = await client.simulation(simulation.id);
-        setIntervention({
-          ...intervention,
-          control_version: current.control_version,
-        });
-        cancelKey.current = crypto.randomUUID();
-      }
-      setError(messageOf(e));
-      setBusy(false);
     }
   };
   const requestPreview = async () => {
@@ -283,8 +310,26 @@ export default function ScenarioDialog({
       );
       onClose();
     } catch (e) {
-      setError(messageOf(e));
-      setBusy(false);
+      try {
+        if (
+          e instanceof ApiError &&
+          ["CONTROL_CONFLICT", "PREVIEW_STALE"].includes(e.code)
+        ) {
+          const current = await client.simulation(simulation.id);
+          setIntervention({
+            ...intervention,
+            control_version: current.control_version,
+          });
+          setPreview(null);
+          previewKey.current = crypto.randomUUID();
+          commitKey.current = crypto.randomUUID();
+        }
+        setError(messageOf(e));
+      } catch (refreshError) {
+        setError(messageOf(refreshError));
+      } finally {
+        setBusy(false);
+      }
     }
   };
   const edit = () => {
@@ -456,7 +501,7 @@ export default function ScenarioDialog({
                 </Field>
               </div>
             )}
-            {preview && <PreviewCard preview={preview} />}{" "}
+            {preview && <PreviewCard preview={preview} map={map} />}{" "}
             {error && intervention && <ErrorBox error={error} />}
             <div className="modal-actions">
               <Button
@@ -496,9 +541,11 @@ export default function ScenarioDialog({
 }
 export function InitialScenarioDialog({
   simulation,
+  map,
   onUpdated,
 }: {
   simulation: Simulation;
+  map: MapBounds;
   onUpdated: () => Promise<void>;
 }) {
   const { client, notice } = useApp();
@@ -532,7 +579,7 @@ export function InitialScenarioDialog({
       onClose={() => void decide("skip")}
       busy={busy}
     >
-      <PreviewCard preview={simulation.initial_preview!} />
+      <PreviewCard preview={simulation.initial_preview!} map={map} />
       {error && <ErrorBox error={error} />}
       <div className="modal-actions">
         <Button

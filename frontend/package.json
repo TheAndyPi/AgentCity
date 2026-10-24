@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "dev:live": "VITE_DATA_MODE=live vite --host 127.0.0.1",
+    "dev:live": "vite --host 127.0.0.1 --mode live",
+    "dev:mock": "vite --host 127.0.0.1 --mode mock",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run tests",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@react-three/drei": "10.7.6",
@@ -22,6 +24,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/react": "19.1.16",
     "@types/react-dom": "19.1.9",
     "@types/three": "0.180.0",

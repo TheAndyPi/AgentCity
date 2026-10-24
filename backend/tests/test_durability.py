@@ -1,3 +1,6 @@
+import hashlib
+import json
+import zlib
 from uuid import uuid4
 
 import pytest
@@ -79,7 +82,8 @@ def test_orphan_write_is_not_visible_on_recovery(client, tmp_path, monkeypatch):
     recovered.close()
 
 
-def test_recovery_stops_at_damaged_revision(client, tmp_path):
+@pytest.mark.parametrize("damaged_offset", [-1, 3])
+def test_recovery_stops_at_damaged_revision(client, tmp_path, damaged_offset):
     sid = create_city(client)["id"]
     command(client, sid, "step", count=2)
     source = client.app.state.service.repo
@@ -88,7 +92,7 @@ def test_recovery_stops_at_damaged_revision(client, tmp_path):
     entries = source.meta["simulations"][sid]
     for rev in range(len(entries)):
         repo.commit([source.read(sid, rev)])
-    last = repo.meta["simulations"][sid][-1]
+    last = repo.meta["simulations"][sid][damaged_offset]
     (directory / "objects" / (last["sha256"] + ".json.z")).write_bytes(b"corrupt")
     repo.close()
     recovered = Repository(directory)
@@ -97,6 +101,34 @@ def test_recovery_stops_at_damaged_revision(client, tmp_path):
     with pytest.raises(OSError):
         recovered.commit([])
     recovered.close()
+
+
+def test_recovery_fully_validates_the_restored_head_and_keeps_reads_independent(client, tmp_path):
+    sid = create_city(client)["id"]
+    source = client.app.state.service.repo
+    repo = Repository(tmp_path / "malformed-head")
+    for revision in range(len(source.meta["simulations"][sid])):
+        repo.commit([source.read(sid, revision)])
+    last = repo.meta["simulations"][sid][-1]
+    # A matching checksum/reference does not make an incomplete head restorable.
+    raw = zlib.compress(
+        json.dumps({"simulation": {"revision": last["revision"], "tick": last["tick"]}}).encode()
+    )
+    digest = hashlib.sha256(raw).hexdigest()
+    (repo.directory / "objects" / (digest + ".json.z")).write_bytes(raw)
+    last["sha256"] = digest
+    repo._manifest(repo.meta)
+    repo.close()
+    recovered = Repository(tmp_path / "malformed-head")
+    try:
+        assert recovered.degraded
+        head = recovered.read(sid)
+        assert head.simulation.revision == last["revision"] - 1
+        original_name = head.simulation.name
+        head.simulation.name = "Reader-local edit"
+        assert recovered.read(sid).simulation.name == original_name
+    finally:
+        recovered.close()
 
 
 def test_store_rejects_second_writer(tmp_path):

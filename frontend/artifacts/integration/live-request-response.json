@@ -1,0 +1,1163 @@
+{
+  "contract_version": "1.0.0",
+  "mode": "live",
+  "decision_engine": "rules",
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations",
+      "idempotency_key": "5a2498d2-e8cc-4614-90cb-bd7244789dde",
+      "request": {
+        "config": {
+          "name": "Live integration 1792857405773",
+          "seed": 42,
+          "mode": "sandbox",
+          "population": 30,
+          "population_traits": {
+            "curiosity": 50,
+            "empathy": 50,
+            "sociability": 50,
+            "trust": 50,
+            "cooperation": 50,
+            "risk_tolerance": 50
+          },
+          "household_supplies": 50,
+          "personality_diversity": 50,
+          "environment": {
+            "resource_availability": 50,
+            "population_density": 50,
+            "infrastructure_capacity": 50,
+            "initial_community_trust": 50,
+            "settlement": "suburb"
+          },
+          "scenario_description": "A flood severity 60 for 2 ticks",
+          "custom_agent_ids": [],
+          "tick_seconds": 10,
+          "max_ticks": 10000
+        }
+      },
+      "status": 202,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "5a2498d2-e8cc-4614-90cb-bd7244789dde",
+        "data": {
+          "id": "simulation_18c715d258304abf86cf8b7426b41529",
+          "name": "Live integration 1792857405773",
+          "config": {
+            "name": "Live integration 1792857405773",
+            "seed": 42,
+            "mode": "sandbox",
+            "population": 30,
+            "population_traits": {
+              "curiosity": 50,
+              "empathy": 50,
+              "sociability": 50,
+              "trust": 50,
+              "cooperation": 50,
+              "risk_tolerance": 50
+            },
+            "household_supplies": 50,
+            "personality_diversity": 50,
+            "environment": {
+              "resource_availability": 50,
+              "population_density": 50,
+              "infrastructure_capacity": 50,
+              "initial_community_trust": 50,
+              "settlement": "suburb"
+            },
+            "scenario_description": "A flood severity 60 for 2 ticks",
+            "custom_agent_ids": [],
+            "tick_seconds": 10,
+            "max_ticks": 10000
+          },
+          "created_at": "2026-10-24T15:56:46.262073Z",
+          "updated_at": "2026-10-24T15:56:46.262073Z",
+          "status": "initializing",
+          "pause_reason": null,
+          "archived": false,
+          "tick": 0,
+          "revision": 0,
+          "control_version": 0,
+          "sim_time_seconds": 0,
+          "speed_multiplier": 1,
+          "achieved_ticks_per_second": 0,
+          "agent_count": 0,
+          "parent_simulation_id": null,
+          "fork_ref": null,
+          "latest_snapshot_id": null,
+          "saved_at": null,
+          "pending_outcome_event_ids": [],
+          "initialization": {
+            "stage": "queued",
+            "progress": 0,
+            "message": "Initialization queued",
+            "error": null
+          },
+          "initial_preview": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/initial-scenario",
+      "idempotency_key": "560be9f3-87ff-49ae-ba1e-602f6ba3727d",
+      "request": {
+        "preview_id": "preview_00000060",
+        "decision": "confirm",
+        "expected_control_version": 0
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "560be9f3-87ff-49ae-ba1e-602f6ba3727d",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:48.415393Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 0,
+            "revision": 7,
+            "control_version": 1,
+            "sim_time_seconds": 0,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T15:56:48.415426Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "event": {
+            "id": "event_00000063",
+            "title": "Flood intervention",
+            "kind": "flood",
+            "status": "queued",
+            "queued_tick": 0,
+            "start_tick": null,
+            "end_tick": null,
+            "affected_agent_count": 3,
+            "affected_polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 72
+              },
+              {
+                "x": 0,
+                "y": 72
+              }
+            ],
+            "pre_event_snapshot_id": "snapshot_00000062",
+            "summary": "Event will begin on the next simulation tick"
+          },
+          "snapshot": {
+            "id": "snapshot_00000062",
+            "simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "ref": {
+              "tick": 0,
+              "revision": 6
+            },
+            "created_at": "2026-10-24T15:56:48.415426Z",
+            "reason": "pre_event",
+            "label": "Before Flood intervention"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "be1f1767-e58a-44c3-a6d9-f5a8f302b39b",
+      "request": {
+        "request_id": "be1f1767-e58a-44c3-a6d9-f5a8f302b39b",
+        "expected_control_version": 1,
+        "command": {
+          "type": "step",
+          "count": 1
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "be1f1767-e58a-44c3-a6d9-f5a8f302b39b",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:48.673039Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 1,
+            "revision": 8,
+            "control_version": 2,
+            "sim_time_seconds": 10,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T15:56:48.415426Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "399e156e-1630-4074-8277-e000bfc6033e",
+      "request": {
+        "request_id": "399e156e-1630-4074-8277-e000bfc6033e",
+        "expected_control_version": 2,
+        "command": {
+          "type": "step",
+          "count": 1
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "399e156e-1630-4074-8277-e000bfc6033e",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:48.929042Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 2,
+            "revision": 9,
+            "control_version": 3,
+            "sim_time_seconds": 20,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T15:56:48.415426Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "422e4d6d-799a-4c61-b9d9-d4715dac238a",
+      "request": {
+        "request_id": "422e4d6d-799a-4c61-b9d9-d4715dac238a",
+        "expected_control_version": 3,
+        "command": {
+          "type": "step",
+          "count": 1
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "422e4d6d-799a-4c61-b9d9-d4715dac238a",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:49.188809Z",
+            "status": "paused",
+            "pause_reason": "outcome",
+            "archived": false,
+            "tick": 3,
+            "revision": 10,
+            "control_version": 5,
+            "sim_time_seconds": 30,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T15:56:48.415426Z",
+            "pending_outcome_event_ids": [
+              "event_00000063"
+            ],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "af7f326e-dfe7-4b61-a811-abd41da62e95",
+      "request": {
+        "request_id": "af7f326e-dfe7-4b61-a811-abd41da62e95",
+        "expected_control_version": 5,
+        "command": {
+          "type": "acknowledge_outcome",
+          "event_id": "event_00000063",
+          "resume": true
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "af7f326e-dfe7-4b61-a811-abd41da62e95",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:49.620707Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 3,
+            "revision": 11,
+            "control_version": 6,
+            "sim_time_seconds": 30,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000062",
+            "saved_at": "2026-10-24T15:56:48.415426Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/interventions",
+      "idempotency_key": "18215efb-5581-43df-a070-cc8645a37b28",
+      "request": {
+        "expected_control_version": 6
+      },
+      "status": 201,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "18215efb-5581-43df-a070-cc8645a37b28",
+        "data": {
+          "id": "intervention_00000301",
+          "simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+          "expires_at": "2026-10-24T16:06:50.199460Z",
+          "based_on": {
+            "tick": 3,
+            "revision": 12
+          },
+          "was_running": false,
+          "control_version": 7
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/scenario-previews",
+      "idempotency_key": "fcb13614-10f6-4de9-953f-5aeaf1127cf4",
+      "request": {
+        "intervention_id": "intervention_00000301",
+        "source": "custom",
+        "source_event_id": null,
+        "prompt": "A festival for 1 tick",
+        "policy": null
+      },
+      "status": 201,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "fcb13614-10f6-4de9-953f-5aeaf1127cf4",
+        "data": {
+          "id": "preview_7016f771cabf481ea10d9b3cda77d7f8",
+          "simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+          "source": "custom",
+          "source_event_id": null,
+          "based_on": {
+            "tick": 3,
+            "revision": 12
+          },
+          "expires_at": "2026-10-24T16:06:50.384466Z",
+          "interpretation": "Festival intervention: severity 50, 1 ticks; 1 supported effect(s).",
+          "spec": {
+            "title": "Festival intervention",
+            "description": "A festival for 1 tick",
+            "kind": "festival",
+            "origin": {
+              "x": 32,
+              "y": 36
+            },
+            "affected_polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 72
+              },
+              {
+                "x": 0,
+                "y": 72
+              }
+            ],
+            "severity": 50,
+            "duration_ticks": 1,
+            "effects": [
+              {
+                "type": "community",
+                "activity": "festival",
+                "capacity": 30
+              }
+            ],
+            "success_condition": "duration_elapsed"
+          },
+          "affected_agent_ids": [],
+          "affected_building_ids": [
+            "building_00000001",
+            "building_00000008"
+          ],
+          "warnings": [
+            "Bounded keyword compiler: only the displayed effects, polygon, severity and tick duration will execute. Other prose is not executable."
+          ],
+          "unsupported_requests": [],
+          "can_commit": true
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/scenario-commits",
+      "idempotency_key": "666cb2bf-1ee8-445b-96b8-92fdd670c752",
+      "request": {
+        "intervention_id": "intervention_00000301",
+        "preview_id": "preview_7016f771cabf481ea10d9b3cda77d7f8",
+        "expected_control_version": 7
+      },
+      "status": 201,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "666cb2bf-1ee8-445b-96b8-92fdd670c752",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:50.457410Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 3,
+            "revision": 13,
+            "control_version": 8,
+            "sim_time_seconds": 30,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000303",
+            "saved_at": "2026-10-24T15:56:50.457422Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "event": {
+            "id": "event_00000304",
+            "title": "Festival intervention",
+            "kind": "festival",
+            "status": "queued",
+            "queued_tick": 3,
+            "start_tick": null,
+            "end_tick": null,
+            "affected_agent_count": 0,
+            "affected_polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 0
+              },
+              {
+                "x": 64,
+                "y": 72
+              },
+              {
+                "x": 0,
+                "y": 72
+              }
+            ],
+            "pre_event_snapshot_id": "snapshot_00000303",
+            "summary": "Event will begin on the next simulation tick"
+          },
+          "snapshot": {
+            "id": "snapshot_00000303",
+            "simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "ref": {
+              "tick": 3,
+              "revision": 12
+            },
+            "created_at": "2026-10-24T15:56:50.457422Z",
+            "reason": "pre_event",
+            "label": "Before Festival intervention"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "2410957a-d9e9-4847-b0cd-deb80c4f16da",
+      "request": {
+        "request_id": "2410957a-d9e9-4847-b0cd-deb80c4f16da",
+        "expected_control_version": 8,
+        "command": {
+          "type": "step",
+          "count": 1
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "2410957a-d9e9-4847-b0cd-deb80c4f16da",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:50.766031Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 4,
+            "revision": 14,
+            "control_version": 9,
+            "sim_time_seconds": 40,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000303",
+            "saved_at": "2026-10-24T15:56:50.457422Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "feb2bdd6-aaa7-47c3-b149-388cdded8c9e",
+      "request": {
+        "request_id": "feb2bdd6-aaa7-47c3-b149-388cdded8c9e",
+        "expected_control_version": 9,
+        "command": {
+          "type": "step",
+          "count": 1
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "feb2bdd6-aaa7-47c3-b149-388cdded8c9e",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:51.008544Z",
+            "status": "paused",
+            "pause_reason": "outcome",
+            "archived": false,
+            "tick": 5,
+            "revision": 15,
+            "control_version": 11,
+            "sim_time_seconds": 50,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000303",
+            "saved_at": "2026-10-24T15:56:50.457422Z",
+            "pending_outcome_event_ids": [
+              "event_00000304"
+            ],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": null,
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/branches",
+      "idempotency_key": "f6d9336c-6c80-48a5-a68e-62ab8180d171",
+      "request": {
+        "name": "Live integration 1792857405773 · before event",
+        "source": {
+          "kind": "snapshot",
+          "snapshot_id": "snapshot_00000303"
+        }
+      },
+      "status": 201,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "f6d9336c-6c80-48a5-a68e-62ab8180d171",
+        "data": {
+          "simulation": {
+            "id": "simulation_d47cc6ed25204feb8a76295ee5171bba",
+            "name": "Live integration 1792857405773 · before event",
+            "config": {
+              "name": "Live integration 1792857405773 · before event",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:51.335910Z",
+            "updated_at": "2026-10-24T15:56:51.335928Z",
+            "status": "paused",
+            "pause_reason": "loaded",
+            "archived": false,
+            "tick": 3,
+            "revision": 13,
+            "control_version": 0,
+            "sim_time_seconds": 30,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "fork_ref": {
+              "tick": 3,
+              "revision": 12
+            },
+            "latest_snapshot_id": "snapshot_00000304",
+            "saved_at": "2026-10-24T15:56:51.336020Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": {
+            "id": "snapshot_00000304",
+            "simulation_id": "simulation_d47cc6ed25204feb8a76295ee5171bba",
+            "ref": {
+              "tick": 3,
+              "revision": 13
+            },
+            "created_at": "2026-10-24T15:56:51.336020Z",
+            "reason": "branch",
+            "label": "Branch from simulation_18c715d258304abf86cf8b7426b41529 at revision 12"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_18c715d258304abf86cf8b7426b41529/commands",
+      "idempotency_key": "84b0645c-729a-463d-aa32-177d527f5372",
+      "request": {
+        "request_id": "84b0645c-729a-463d-aa32-177d527f5372",
+        "expected_control_version": 11,
+        "command": {
+          "type": "save",
+          "reason": "navigation",
+          "label": "Saved before navigation"
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "84b0645c-729a-463d-aa32-177d527f5372",
+        "data": {
+          "simulation": {
+            "id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "name": "Live integration 1792857405773",
+            "config": {
+              "name": "Live integration 1792857405773",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:46.262073Z",
+            "updated_at": "2026-10-24T15:56:51.420842Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 5,
+            "revision": 16,
+            "control_version": 12,
+            "sim_time_seconds": 50,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000403",
+            "saved_at": "2026-10-24T15:56:51.420891Z",
+            "pending_outcome_event_ids": [
+              "event_00000304"
+            ],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": {
+            "id": "snapshot_00000403",
+            "simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "ref": {
+              "tick": 5,
+              "revision": 16
+            },
+            "created_at": "2026-10-24T15:56:51.420891Z",
+            "reason": "navigation",
+            "label": "Saved before navigation"
+          },
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_d47cc6ed25204feb8a76295ee5171bba/commands",
+      "idempotency_key": "868f927a-ba33-4ddf-a8e1-a6a4bfcb2234",
+      "request": {
+        "request_id": "868f927a-ba33-4ddf-a8e1-a6a4bfcb2234",
+        "expected_control_version": 0,
+        "command": {
+          "type": "save",
+          "reason": "navigation",
+          "label": "Saved before navigation"
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "868f927a-ba33-4ddf-a8e1-a6a4bfcb2234",
+        "data": {
+          "simulation": {
+            "id": "simulation_d47cc6ed25204feb8a76295ee5171bba",
+            "name": "Live integration 1792857405773 · before event",
+            "config": {
+              "name": "Live integration 1792857405773 · before event",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 30,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-24T15:56:51.335910Z",
+            "updated_at": "2026-10-24T15:56:52.000348Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 3,
+            "revision": 14,
+            "control_version": 1,
+            "sim_time_seconds": 30,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 30,
+            "parent_simulation_id": "simulation_18c715d258304abf86cf8b7426b41529",
+            "fork_ref": {
+              "tick": 3,
+              "revision": 12
+            },
+            "latest_snapshot_id": "snapshot_00000305",
+            "saved_at": "2026-10-24T15:56:52.000395Z",
+            "pending_outcome_event_ids": [],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": {
+            "id": "snapshot_00000305",
+            "simulation_id": "simulation_d47cc6ed25204feb8a76295ee5171bba",
+            "ref": {
+              "tick": 3,
+              "revision": 14
+            },
+            "created_at": "2026-10-24T15:56:52.000395Z",
+            "reason": "navigation",
+            "label": "Saved before navigation"
+          },
+          "affected_agent_ids": []
+        }
+      }
+    }
+  ]
+}

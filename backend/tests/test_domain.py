@@ -6,7 +6,7 @@ from app.infrastructure.gemini import context_for
 from app.simulation.agents import connect, perception, remember, social_delta
 from app.simulation.engine import tick
 from app.simulation.game_master import advance_movement, apply_intent, make_intent
-from app.simulation.navigation import distance, pathfind, simple_polygon
+from app.simulation.navigation import cell_at, distance, pathfind, simple_polygon
 from app.simulation.scenarios import compile_preview, rectangle
 
 
@@ -51,6 +51,22 @@ def test_path_obstacles_and_speed_bound(client):
     # A fractional destination within the same cell does not move via a cell centre.
     citizen.summary.position = c.Vec2(x=1.2, y=1.3)
     assert pathfind(state.map, citizen.summary.position, c.Vec2(x=1.4, y=1.5))
+
+
+def test_routes_prefer_public_roads_over_shorter_lawn_cut_through(client):
+    state = world(client)
+    origin, destination = c.Vec2(x=1, y=7), c.Vec2(x=17, y=7)
+    route = pathfind(state.map, origin, destination)
+    assert route and route[-1] == destination
+    # The direct eight-cell route crosses grass. Citizens take the longer paved
+    # route via the intersection instead of being drawn walking over the lawn.
+    assert len(route) > 8
+    assert all(cell_at(state.map, point).terrain == "road" for point in route)
+    # Walkable land is still reachable for a destination away from the streets.
+    lawn_destination = c.Vec2(x=5, y=7)
+    approach = pathfind(state.map, origin, lawn_destination)
+    assert approach and approach[-1] == lawn_destination
+    assert all(cell_at(state.map, point).walkable for point in approach)
 
 
 def test_invalid_help_has_no_side_effects(client):
@@ -310,3 +326,19 @@ def test_leaving_rejects_unaccepted_invitation(client):
     b.summary.position = c.Vec2(x=100, y=100)
     expire_interactions(state)
     assert next(iter(state.interactions.values())).status == "rejected"
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "A local aid drive opens at the community center",
+        "An unverified warning spreads through the city",
+        "A tornado threatens the western streets",
+    ],
+)
+def test_frontend_suggested_scenarios_have_real_supported_effects(client, prompt):
+    state = world(client)
+    result = compile_preview(state, "custom", prompt)
+    assert result.can_commit and result.spec.effects
+    if "aid" in prompt:
+        assert any(effect.type == "community" and effect.activity == "aid" for effect in result.spec.effects)

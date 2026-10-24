@@ -22,7 +22,7 @@ Two interpretations are explicit for frontend integration:
    arbitrary number can bypass physics. This follows the existing invariant;
    no extra override field or endpoint was invented.
 
-There is no frontend source in the checkout. Frontend Zod validation and live
-browser/proxy rehearsal remain integration work; backend schema parity does not
-prove those consumer checks. Optional sponsor adapters and credential-dependent
-live smoke tests are identified in the handoff, without claiming availability.
+The merged frontend now passes Zod validation of the shared fixtures and real
+browser/proxy rehearsal. See [integration-handoff.md](integration-handoff.md).
+Both interpretations above remain compatible with the consumer. Optional sponsor
+adapters and credential-dependent live smoke tests remain explicit limitations.

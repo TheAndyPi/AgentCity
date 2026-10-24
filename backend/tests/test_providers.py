@@ -149,8 +149,14 @@ def test_slow_provider_does_not_stop_physical_ticks(client):
 
     client.portal.call(attach)
     assert command(client, sid, "play").status_code == 200
-    time.sleep(0.65)
-    simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
+    # Assert progress while the provider is still pending, without assuming an
+    # exact scheduler/FS latency on a machine also running an interactive city.
+    deadline = time.monotonic() + 1.5
+    while True:
+        simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
+        if simulation["tick"] >= 2 or time.monotonic() >= deadline:
+            break
+        time.sleep(0.02)
     assert simulation["tick"] >= 2
     assert not service.provider_tasks[(sid, "pending_test")].done()
     assert command(client, sid, "pause").status_code == 200

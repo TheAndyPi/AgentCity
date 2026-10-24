@@ -6,6 +6,12 @@ originally contained only a placeholder README; this is a new backend.
 
 ## Run locally
 
+For the complete application, run `npm run setup` and `npm run dev` from the
+repository root. The UI opens on port 5173 and uses this backend on port 8000.
+`npm run build` followed by `npm start` serves both on port 8000. Root launchers
+load `backend/.env`; process environment variables take precedence. See the
+[integration handoff](../docs/integration-handoff.md) for live browser evidence.
+
 Use Python 3.13. From the repository root, in PowerShell:
 
 ```powershell
@@ -23,7 +29,8 @@ The server listens on port 8000. Interactive HTTP documentation is at
 `http://127.0.0.1:8000/docs`. Health probes are `/health/live` and `/health/ready`.
 Use exactly **one worker**. A file lock also rejects competing writers to the
 same data directory. `.env.example` documents server environment variables;
-it is a reference file, not automatically executed or loaded.
+the direct `python -m app` command reads process environment only, whereas the
+root Node launchers load `backend/.env` as configuration data.
 
 `requirements.lock` pins the complete tested runtime and verification tools.
 `pyproject.toml` identifies direct runtime/development dependencies. Python 3.13
@@ -51,8 +58,8 @@ has not been rehearsed on a Vultr host.
 Every normative HTTP operation is implemented. Optional narration returns a
 contract-shaped 501. See `../contracts/v1/openapi.yaml`, `schemas.json`,
 `stream.schema.json` and the shared fixtures. The supplied contract is copied
-verbatim and its hash is frozen. No frontend existed, so a real React/Zod
-integration has not been run; Python and JSON Schema parity is verified.
+verbatim and its hash is frozen. The integrated React/Zod consumer now passes
+the same shared fixtures and real browser flows with HTTP and WebSocket data.
 
 Development origins include localhost/127.0.0.1 ports 5173 and 8000. A frontend
 proxy must forward `/api` and WebSocket upgrades. Use the backend map's x/y meter

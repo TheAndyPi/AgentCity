@@ -6,6 +6,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class AppConfig:
     data_dir: Path = Path("data")
+    frontend_dist: Path | None = None
     host: str = "127.0.0.1"
     auth_mode: str = "local"
     session_secret: str = ""
@@ -34,6 +35,7 @@ class AppConfig:
     def from_env(cls):
         return cls(
             data_dir=Path(os.getenv("DATA_DIR", "data")),
+            frontend_dist=Path(os.environ["FRONTEND_DIST"]) if os.getenv("FRONTEND_DIST") else None,
             host=os.getenv("HOST", "127.0.0.1"),
             auth_mode=os.getenv("AUTH_MODE", "local"),
             session_secret=os.getenv("SESSION_SECRET", ""),

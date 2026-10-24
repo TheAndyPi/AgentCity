@@ -254,6 +254,38 @@ describe("creation, history, persistence barriers, and request transport", () =>
     });
     vi.unstubAllGlobals();
   });
+  it("waits for CSRF initialization when a write happens before app bootstrap", async () => {
+    const calls: { method: string; headers: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: RequestInfo | URL, options?: RequestInit) => {
+        calls.push({ method: options!.method!, headers: options!.headers });
+        return new Response(
+          JSON.stringify({
+            schema_version: "1.0.0",
+            request_id: "server",
+            data: { authenticated: true, csrf_token: "bootstrapped-csrf" },
+          }),
+        );
+      }),
+    );
+    try {
+      const live = new LiveTransport();
+      await live.request(
+        "POST",
+        "/simulations",
+        { config: defaultConfig },
+        "operation-key",
+      );
+      expect(calls.map((c) => c.method)).toEqual(["GET", "POST"]);
+      expect(calls[1].headers).toMatchObject({
+        "X-CSRF-Token": "bootstrapped-csrf",
+        "Idempotency-Key": "operation-key",
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 it("recovers an ambiguous intervention response with the same key before cancellation", async () => {
