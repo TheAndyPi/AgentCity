@@ -212,6 +212,12 @@ def test_t03_branch_identity_lineage_and_source_deletion(integrated):
     caught_up(client, bid)
     assert values(sink, sid, "decision") == source
     assert_export_rows(sink, client.get(f"/api/v1/simulations/{bid}/export").json()["data"])
+    baseline = client.get(f"/api/v1/simulations/{bid}/export").json()["data"]
+    source_name = client.get(f"/api/v1/simulations/{sid}").json()["data"]["name"]
+    assert command(client, sid, "archive").status_code == 200
+    deleted = write(client, f"/simulations/{sid}", {"confirmation_name": source_name}, method="DELETE")
+    assert deleted.status_code == 200
+    assert client.get(f"/api/v1/simulations/{bid}/export").json()["data"] == baseline
 
 
 def test_t04_restart_replays_after_external_commit_before_local_cursor(integrated, monkeypatch):

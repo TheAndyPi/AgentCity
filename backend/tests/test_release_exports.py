@@ -88,3 +88,10 @@ def test_branch_export_keeps_its_identity_and_survives_source_deletion(client):
     assert deleted.status_code == 200, deleted.text
     assert client.get(f"/api/v1/simulations/{sid}").status_code == 404
     assert exported(client, bid, revision) == baseline
+    config = client.app.state.service.config
+    client.portal.call(client.app.state.service.close)
+    with TestClient(
+        create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)
+    ) as restarted:
+        assert restarted.get(f"/api/v1/simulations/{sid}").status_code == 404
+        assert exported(restarted, bid, revision) == baseline
