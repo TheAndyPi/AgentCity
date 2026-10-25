@@ -1,0 +1,88 @@
+.snowflake-comparison {
+  margin-block: 1.5rem;
+  border-block: 1px solid var(--border, #635473);
+  padding-block: 1.25rem;
+}
+.snowflake-comparison h3 {
+  margin: 0.5rem 0;
+  font-family: "Chakra Petch", sans-serif;
+}
+.snowflake-kicker {
+  color: #9acfd9;
+  font:
+    500 0.75rem "Chakra Petch",
+    sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.snowflake-comparison label {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.snowflake-comparison textarea {
+  resize: vertical;
+  min-height: 4rem;
+  font: inherit;
+  padding: 0.75rem;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #635473;
+  border-radius: 0.25rem;
+}
+.snowflake-sources {
+  display: flex;
+  gap: 0.5rem 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: #9acfd9;
+}
+.snowflake-pins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+.snowflake-pins dt {
+  font-weight: 700;
+}
+.snowflake-pins dd {
+  margin: 0.4rem 0;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+.snowflake-table {
+  overflow-x: auto;
+}
+.snowflake-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.snowflake-table caption {
+  text-align: left;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+.snowflake-table th,
+.snowflake-table td {
+  padding: 0.6rem 0.3rem;
+  text-align: right;
+  border-bottom: 1px solid #63547366;
+}
+.snowflake-table th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.snowflake-comparison details {
+  margin-block: 1rem;
+}
+.snowflake-comparison li {
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.snowflake-caution {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  line-height: 1.6;
+}
