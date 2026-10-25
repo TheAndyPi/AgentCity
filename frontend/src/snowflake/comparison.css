@@ -9,8 +9,7 @@
 }
 .snowflake-kicker {
   color: var(--cyan, #9acfd9);
-  font:
-    500 0.75rem var(--font-tech, "Chakra Petch", sans-serif);
+  font: 500 0.75rem var(--font-tech, "Chakra Petch", sans-serif);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }

@@ -30,7 +30,7 @@ test("paused steps visibly walk into a building and leave through its entrance",
   const { version, ...settings } = await api<Settings>(page, "/settings");
   await api(page, "/settings", "PUT", {
     expected_version: version,
-    settings: { ...settings, view_mode: "3d", reduce_motion: false },
+    settings: { ...settings, view_mode: "2d", reduce_motion: false },
   });
   const city = await api<Simulation>(page, "/simulations", "POST", {
     config: {
@@ -68,12 +68,14 @@ test("paused steps visibly walk into a building and leave through its entrance",
       command,
     });
   await page.goto(`/simulations/${city.id}?qa=1`);
-  await page
-    .getByRole("button", { name: `Focus on ${agent.name}`, exact: true })
-    .click();
-  const label = page.locator(`[data-character-id="${agent.id}"]`);
-  await expect(label).toBeVisible();
-  await expect(label).toHaveAttribute("data-world-x");
+  const label = `${agent.name}, ${agent.role}`;
+  const mapAgent = page
+    .locator("svg.world-2d")
+    .getByRole("button", { name: label, exact: true });
+  await mapAgent.press("Enter");
+  const walker = mapAgent.locator("g").first();
+  await expect(walker).toBeVisible();
+  await expect(walker).toHaveAttribute("transform", /^translate\(/);
   const move = (target: string | null, destination: unknown = null) =>
     command({
       type: "override_agent",
@@ -91,23 +93,21 @@ test("paused steps visibly walk into a building and leave through its entrance",
       },
     });
   await move(building.id);
-  const observations = page.evaluate(async (id) => {
+  const observations = page.evaluate(async (name) => {
     const samples: string[] = [];
     const until = performance.now() + 5000;
     while (performance.now() < until) {
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => resolve()),
       );
-      const el = document.querySelector<HTMLElement>(
-        `[data-character-id="${id}"]`,
-      );
-      if (el?.dataset.worldX)
-        samples.push(
-          `${Number(el.dataset.worldX).toFixed(3)},${Number(el.dataset.worldY).toFixed(3)}`,
-        );
+      const agent = [
+        ...document.querySelectorAll('svg.world-2d [role="button"]'),
+      ].find((element) => element.getAttribute("aria-label") === name);
+      const transform = agent?.querySelector("g")?.getAttribute("transform");
+      if (transform) samples.push(transform);
     }
     return samples;
-  }, agent.id);
+  }, label);
   await command({ type: "step", count: 1 });
   // Software-rendered WebGL can paint only a few frames per second, so the
   // window spans the whole walk and checks for in-between positions.

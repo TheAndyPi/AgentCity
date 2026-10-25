@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "./fixtures";
 import { randomUUID } from "node:crypto";
 import { defaultConfig } from "../src/api/defaults";
-import type { Simulation, WorldFrame } from "../src/api/types";
+import { select3DCitizen } from "./world-selection";
+import type { Settings, Simulation, WorldFrame } from "../src/api/types";
 
 async function api<T>(
   page: Page,
@@ -28,6 +29,11 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  const { version, ...settings } = await api<Settings>(page, "/settings");
+  await api(page, "/settings", "PUT", {
+    expected_version: version,
+    settings: { ...settings, view_mode: "3d", reduce_motion: false },
+  });
   const city = await api<Simulation>(page, "/simulations", "POST", {
     config: {
       name: "A little neighborhood",
@@ -58,18 +64,31 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
         pair = [a, b];
   const [a, b] = pair;
   await page.goto(`/simulations/${city.id}?qa=1`);
-  await expect(
-    page
-      .getByRole("region", { name: "Your neighbors" })
-      .getByRole("button", { name: /^Focus on / }),
-  ).toHaveCount(10);
-  await expect(page.locator(".world-wrap canvas")).toBeVisible();
-  await page
-    .getByRole("button", { name: `Focus on ${a.name}`, exact: true })
-    .click();
+  const map = page.locator(".world-wrap canvas");
+  await expect(map).toBeVisible();
+  // Current dev selects citizens on the map; the former neighbor strip is gone.
+  await select3DCitizen(page, a.position);
   const focus = page.getByRole("complementary", { name: "Character focus" });
   await expect(focus).toContainText(a.name);
   await expect(focus.getByRole("meter")).toHaveCount(4);
+  await expect(
+    focus.getByLabel("Choose a neighbor to meet").locator("option"),
+  ).toHaveCount(9);
+  expect(
+    (
+      await focus
+        .getByLabel("Choose a neighbor to meet")
+        .locator("option")
+        .evaluateAll((options) =>
+          options.map((option) => (option as HTMLOptionElement).value),
+        )
+    ).sort(),
+  ).toEqual(
+    world.agents
+      .filter((agent) => agent.id !== a.id)
+      .map((agent) => agent.id)
+      .sort(),
+  );
   await focus.getByLabel("Choose a neighbor to meet").selectOption(b.id);
   await focus
     .getByRole("button", { name: "Invite to chat", exact: true })
@@ -115,8 +134,26 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
       [d.speaker_id, ...d.recipient_ids].includes(b.id),
   );
   expect(new Set(lines.map((d) => d.tick)).size).toBe(4);
+  // Participants may walk away once their conversation has ended. Check the
+  // recorded active conversation, rather than requiring them to remain nearby.
+  const penultimate = lines.at(-2)!;
+  const timeline = await api<{
+    items: { ref: { tick: number; revision: number } }[];
+  }>(page, `/simulations/${city.id}/timeline?limit=100`);
+  const activeRevision = timeline.items.find(
+    (point) => point.ref.tick === penultimate.tick,
+  )!.ref.revision;
+  const activeConversation = await api<WorldFrame>(
+    page,
+    `/simulations/${city.id}/state?revision=${activeRevision}`,
+  );
+  expect(
+    activeConversation.recent_dialogue.some(
+      (line) => line.id === penultimate.id,
+    ),
+  ).toBe(true);
   const position = (id: string) =>
-    result.agents.find((agent) => agent.id === id)!.position;
+    activeConversation.agents.find((agent) => agent.id === id)!.position;
   expect(
     Math.hypot(
       position(a.id).x - position(b.id).x,
@@ -143,9 +180,7 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(conversation).toBeVisible();
-  await expect(
-    page.getByRole("region", { name: "Your neighbors" }),
-  ).toBeVisible();
+  await expect(map).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -187,10 +222,8 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
     fullPage: true,
   });
   await expect(
-    page
-      .getByRole("region", { name: "Your neighbors" })
-      .getByRole("button", { name: /^Focus on / }),
-  ).toHaveCount(10);
+    page.getByText("Select a citizen to follow them or see their details."),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
 

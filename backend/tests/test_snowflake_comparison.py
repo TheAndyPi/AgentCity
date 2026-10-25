@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import re
 from contextlib import contextmanager
 from dataclasses import replace
 from uuid import uuid4
@@ -131,7 +132,22 @@ def test_s03_rejects_unresolved_citations_invented_numbers_and_malformed_output(
         assert data["data_source"] == "snowflake"
         assert data["explanation"]["source"] == "deterministic"
         assert data["explanation"]["status"] == "unavailable"
-        assert "invented" not in response.text and "999" not in json.dumps(data["explanation"])
+        assert "invented:record" not in response.text
+        assert "made_up_number" not in json.dumps(data["explanation"])
+        # A decimal may legitimately contain the substring "999". Validate
+        # complete numeric facts against query-derived values instead.
+        differences = {item["metric"]: item for item in data["differences"]}
+        observations = data["explanation"]["observations"]
+        assert observations
+        for observation in observations:
+            difference = differences[observation["fact_id"]]
+            numbers = re.search(r"A=(.*?), B=(.*?), B minus A=(.*?) \(", observation["text"])
+            assert numbers is not None
+            assert tuple(float(value) for value in numbers.groups()) == (
+                difference["a"],
+                difference["b"],
+                difference["delta_b_minus_a"],
+            )
 
 
 @pytest.mark.parametrize(
