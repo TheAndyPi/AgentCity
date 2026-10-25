@@ -117,7 +117,9 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
   // Current dev selects citizens on the map; the former neighbor strip is gone.
   await select3DCitizen(page, a.position);
   const focus = page.getByRole("complementary", { name: "Character focus" });
-  await expect(focus).toContainText(a.name);
+  await expect(
+    page.getByRole("heading", { name: a.name, exact: true }),
+  ).toBeVisible();
   await expect(focus.getByRole("meter")).toHaveCount(5);
   await expect(
     focus.getByLabel("Choose a neighbor to meet").locator("option"),

@@ -710,3 +710,16 @@ same-origin capabilities and new disaster state/OpenAPI returned 200. Current
 Gemini/narration enablement was preserved; no paid provider call or smoke mutation.
 Original production build passed, and unrelated local README edits remain intact.
 See the merge report and ignored before/after restart evidence for details.
+
+### 2026-10-25 — Floating character name and neighborhood navigation
+
+Moved the selected citizen's full name and explicit **Back to neighborhood**
+control into a floating header above the agent card. Header and card share a
+responsive vertical layout so the title/navigation remain outside the scrolling
+card on desktop and mobile. Conversation details, close, invitations and building
+visits retain their behavior. Existing close-up browser expectation follows the
+visible external heading. Production build and all **3** focused close-up/setup/
+building-walk browser cases passed; desktop/mobile screenshots were visually
+checked. Evidence: ignored `backend/.tmp/floating-agent-header-browser/` and its
+sibling build/browser logs. The running dev frontend updates through Vite; no
+backend restart or paid provider call was needed. Unrelated README edits preserved.

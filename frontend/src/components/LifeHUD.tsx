@@ -262,253 +262,259 @@ export default function LifeHUD({
       )}
       {selected && (
         <>
-          <div className="focus-breadcrumb">
-            <button onClick={onClose}>
-              <ArrowLeft size={14} /> Neighborhood
-            </button>
-            <span>/</span>
-            <strong>
-              {selected.name.split(" ")[0]}
-              {second && ` & ${second.name.split(" ")[0]}`}
-            </strong>
-            <span className="focus-live">
-              {readOnly ? "A RECORDED MOMENT" : "UP CLOSE"}
-            </span>
-          </div>
-          <aside
-            className={`life-focus-card ${second ? "pair" : ""}`}
-            aria-label="Character focus"
-          >
-            <button
-              className="focus-close"
-              aria-label="Close character focus"
-              onClick={onClose}
-            >
-              <X size={16} />
-            </button>
-            <header>
-              <CitizenPortrait name={selected.name} large />
-              <div>
-                <span className="eyebrow">
-                  {second ? "Conversation" : "Citizen"}
+          <div className={`life-focus-panel ${second ? "pair" : ""}`}>
+            <div className="focus-heading">
+              <div className="focus-breadcrumb">
+                <button onClick={onClose}>
+                  <ArrowLeft size={14} /> Back to neighborhood
+                </button>
+                <span className="focus-live">
+                  {readOnly ? "A RECORDED MOMENT" : "UP CLOSE"}
                 </span>
-                <h2>{selected.name}</h2>
-                <p>
-                  {pretty(selected.role)} · {pretty(selected.emotion)}
-                  {currentBuilding && (
-                    <>
-                      <br />
-                      Inside {currentBuilding.name}
-                    </>
-                  )}
-                </p>
               </div>
-            </header>
-            {second && (
-              <div className="focus-other">
-                <CitizenPortrait name={second.name} />
-                <div>
-                  <strong>With {second.name}</strong>
-                  <small>
-                    {relation
-                      ? `${pretty(relation.kind)} · ${Math.round(relation.trust)}% trust`
-                      : "Getting to know each other"}
-                  </small>
-                </div>
-                <Heart size={15} />
-              </div>
-            )}
-            <div className="focus-thought">
-              <span>ON THEIR MIND</span>
-              <p>
-                {selected.thought_bubble ||
-                  detail.data?.profile.primary_goal ||
-                  "Taking in the neighborhood."}
-              </p>
+              <h2 className="focus-name">{selected.name}</h2>
             </div>
-            {detail.data && (
-              <div
-                className="life-needs"
-                aria-label={`${selected.name}'s needs`}
-              >
-                {(
-                  [
-                    ["Energy", 100 - detail.data.needs.fatigue],
-                    ["Fullness", 100 - detail.data.needs.hunger],
-                    ["Health", detail.data.needs.health],
-                    ["Social", 100 - detail.data.needs.social],
-                    ...(condition
-                      ? [["Mental", condition.mental] as const]
-                      : []),
-                  ] as const
-                ).map(([label, value]) => (
-                  <div key={label}>
-                    <span>{label}</span>
-                    <meter min={0} max={100} value={value} aria-label={label} />
-                    <small>{Math.round(value)}</small>
-                  </div>
-                ))}
-              </div>
-            )}
-            {condition && (
-              <div className="focus-thought" aria-label="Survival and care">
-                <span>
-                  {condition.life === "dead"
-                    ? "DEAD"
-                    : condition.life === "unconscious"
-                      ? "UNCONSCIOUS"
-                      : condition.care === "hospital"
-                        ? "HOSPITALIZED"
-                        : condition.episode &&
-                            condition.episode.end_tick === null
-                          ? condition.episode.mode.toUpperCase()
-                          : "ALIVE"}
-                </span>
-                <p>
-                  {condition.life === "dead"
-                    ? `Tick ${condition.transition_tick}: ${condition.causes.join(" and ")}`
-                    : `${condition.care === "none" ? "No active care" : condition.care === "hospital" ? "Hospital care" : pretty(condition.care) + " rescue"} · ${pretty(condition.wealth_band)} resource class`}
-                </p>
-                {condition.episode && condition.episode.end_tick === null && (
-                  <p>
-                    {condition.episode.causes.join(" and ")} · episode since
-                    tick {condition.episode.start_tick}
-                  </p>
-                )}
-                {condition.impacts
-                  .filter((item) => item.tick === frame.ref.tick)
-                  .slice(-5)
-                  .map((item, i) => (
-                    <small key={i} style={{ display: "block" }}>
-                      {item.reason}: {item.delta >= 0 ? "+" : ""}
-                      {item.delta.toFixed(2)} {pretty(item.meter)}
-                    </small>
-                  ))}
-              </div>
-            )}
-            {condition && (
-              <div className="focus-thought" aria-label="Behavior evidence">
-                {(behavior.data?.events ?? [])
-                  .filter(
-                    (event) =>
-                      event.actor_id === selected.id ||
-                      event.target_id === selected.id,
-                  )
-                  .slice(-3)
-                  .map((event) => (
-                    <small key={event.id} style={{ display: "block" }}>
-                      {pretty(event.kind)} · Tick {event.tick}:{" "}
-                      {event.description}
-                    </small>
-                  ))}
-              </div>
-            )}
-            {behavior.error && (
-              <p role="alert" className="field-error">
-                Behavior details: {behavior.error}
-              </p>
-            )}
-            {!second && (
-              <>
-                <div className="life-small-actions">
-                  <button
-                    disabled={disabled}
-                    onClick={() => void perform("rest")}
-                  >
-                    <Coffee size={15} />
-                    Take a break
-                  </button>
-                  <button
-                    disabled={
-                      disabled || !detail.data || detail.data.inventory.food < 1
-                    }
-                    onClick={() => void perform("consume")}
-                  >
-                    <Utensils size={15} />
-                    Have a snack
-                  </button>
-                </div>
-                <label className="meet-picker">
-                  <span>SPEND TIME WITH</span>
-                  <select
-                    aria-label="Choose a neighbor to meet"
-                    value={target?.id ?? ""}
-                    onChange={(e) => setPartner(e.target.value)}
-                  >
-                    {neighbors.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="invite-button"
-                  disabled={disabled || !target}
-                  onClick={() => void perform("talk")}
-                >
-                  <MessageCircle size={17} />
-                  {working ? "On it…" : "Invite to chat"}
-                  <ArrowUpRight size={15} />
-                </button>
-                <label className="meet-picker">
-                  <span>VISIT A BUILDING</span>
-                  <select
-                    aria-label="Choose a building to visit"
-                    value={visitTarget?.id ?? ""}
-                    onChange={(event) => setVisit(event.target.value)}
-                  >
-                    {visitOptions.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="invite-button"
-                  disabled={disabled || !visitTarget}
-                  onClick={() => void perform("move")}
-                >
-                  Visit building <ArrowUpRight size={15} />
-                </button>
-              </>
-            )}
-            {conversation && !second && (
-              <button
-                className="watch-chat"
-                onClick={() =>
-                  onFocus(
-                    conversation.participants.slice(0, 2),
-                    conversation.id,
-                  )
-                }
-              >
-                <MessageCircle size={15} />
-                Watch{" "}
-                {liveChat ? "this conversation" : "their last conversation"}
-                <ArrowUpRight size={14} />
-              </button>
-            )}
-            {detail.error && (
-              <p role="alert" className="field-error">
-                {detail.error}
-                <button onClick={detail.reload}>Try again</button>
-              </p>
-            )}
-            {error && (
-              <p role="alert" className="field-error">
-                {error}
-              </p>
-            )}
-            <button
-              className="full-profile"
-              onClick={() => onProfile(selected.id)}
+            <aside
+              className={`life-focus-card ${second ? "pair" : ""}`}
+              aria-label="Character focus"
             >
-              Their story & relationships
-              <ArrowUpRight size={13} />
-            </button>
-          </aside>
+              <button
+                className="focus-close"
+                aria-label="Close character focus"
+                onClick={onClose}
+              >
+                <X size={16} />
+              </button>
+              <header>
+                <CitizenPortrait name={selected.name} large />
+                <div>
+                  <span className="eyebrow">
+                    {second ? "Conversation" : "Citizen"}
+                  </span>
+                  <p>
+                    {pretty(selected.role)} · {pretty(selected.emotion)}
+                    {currentBuilding && (
+                      <>
+                        <br />
+                        Inside {currentBuilding.name}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </header>
+              {second && (
+                <div className="focus-other">
+                  <CitizenPortrait name={second.name} />
+                  <div>
+                    <strong>With {second.name}</strong>
+                    <small>
+                      {relation
+                        ? `${pretty(relation.kind)} · ${Math.round(relation.trust)}% trust`
+                        : "Getting to know each other"}
+                    </small>
+                  </div>
+                  <Heart size={15} />
+                </div>
+              )}
+              <div className="focus-thought">
+                <span>ON THEIR MIND</span>
+                <p>
+                  {selected.thought_bubble ||
+                    detail.data?.profile.primary_goal ||
+                    "Taking in the neighborhood."}
+                </p>
+              </div>
+              {detail.data && (
+                <div
+                  className="life-needs"
+                  aria-label={`${selected.name}'s needs`}
+                >
+                  {(
+                    [
+                      ["Energy", 100 - detail.data.needs.fatigue],
+                      ["Fullness", 100 - detail.data.needs.hunger],
+                      ["Health", detail.data.needs.health],
+                      ["Social", 100 - detail.data.needs.social],
+                      ...(condition
+                        ? [["Mental", condition.mental] as const]
+                        : []),
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label}>
+                      <span>{label}</span>
+                      <meter
+                        min={0}
+                        max={100}
+                        value={value}
+                        aria-label={label}
+                      />
+                      <small>{Math.round(value)}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {condition && (
+                <div className="focus-thought" aria-label="Survival and care">
+                  <span>
+                    {condition.life === "dead"
+                      ? "DEAD"
+                      : condition.life === "unconscious"
+                        ? "UNCONSCIOUS"
+                        : condition.care === "hospital"
+                          ? "HOSPITALIZED"
+                          : condition.episode &&
+                              condition.episode.end_tick === null
+                            ? condition.episode.mode.toUpperCase()
+                            : "ALIVE"}
+                  </span>
+                  <p>
+                    {condition.life === "dead"
+                      ? `Tick ${condition.transition_tick}: ${condition.causes.join(" and ")}`
+                      : `${condition.care === "none" ? "No active care" : condition.care === "hospital" ? "Hospital care" : pretty(condition.care) + " rescue"} · ${pretty(condition.wealth_band)} resource class`}
+                  </p>
+                  {condition.episode && condition.episode.end_tick === null && (
+                    <p>
+                      {condition.episode.causes.join(" and ")} · episode since
+                      tick {condition.episode.start_tick}
+                    </p>
+                  )}
+                  {condition.impacts
+                    .filter((item) => item.tick === frame.ref.tick)
+                    .slice(-5)
+                    .map((item, i) => (
+                      <small key={i} style={{ display: "block" }}>
+                        {item.reason}: {item.delta >= 0 ? "+" : ""}
+                        {item.delta.toFixed(2)} {pretty(item.meter)}
+                      </small>
+                    ))}
+                </div>
+              )}
+              {condition && (
+                <div className="focus-thought" aria-label="Behavior evidence">
+                  {(behavior.data?.events ?? [])
+                    .filter(
+                      (event) =>
+                        event.actor_id === selected.id ||
+                        event.target_id === selected.id,
+                    )
+                    .slice(-3)
+                    .map((event) => (
+                      <small key={event.id} style={{ display: "block" }}>
+                        {pretty(event.kind)} · Tick {event.tick}:{" "}
+                        {event.description}
+                      </small>
+                    ))}
+                </div>
+              )}
+              {behavior.error && (
+                <p role="alert" className="field-error">
+                  Behavior details: {behavior.error}
+                </p>
+              )}
+              {!second && (
+                <>
+                  <div className="life-small-actions">
+                    <button
+                      disabled={disabled}
+                      onClick={() => void perform("rest")}
+                    >
+                      <Coffee size={15} />
+                      Take a break
+                    </button>
+                    <button
+                      disabled={
+                        disabled ||
+                        !detail.data ||
+                        detail.data.inventory.food < 1
+                      }
+                      onClick={() => void perform("consume")}
+                    >
+                      <Utensils size={15} />
+                      Have a snack
+                    </button>
+                  </div>
+                  <label className="meet-picker">
+                    <span>SPEND TIME WITH</span>
+                    <select
+                      aria-label="Choose a neighbor to meet"
+                      value={target?.id ?? ""}
+                      onChange={(e) => setPartner(e.target.value)}
+                    >
+                      {neighbors.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="invite-button"
+                    disabled={disabled || !target}
+                    onClick={() => void perform("talk")}
+                  >
+                    <MessageCircle size={17} />
+                    {working ? "On it…" : "Invite to chat"}
+                    <ArrowUpRight size={15} />
+                  </button>
+                  <label className="meet-picker">
+                    <span>VISIT A BUILDING</span>
+                    <select
+                      aria-label="Choose a building to visit"
+                      value={visitTarget?.id ?? ""}
+                      onChange={(event) => setVisit(event.target.value)}
+                    >
+                      {visitOptions.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="invite-button"
+                    disabled={disabled || !visitTarget}
+                    onClick={() => void perform("move")}
+                  >
+                    Visit building <ArrowUpRight size={15} />
+                  </button>
+                </>
+              )}
+              {conversation && !second && (
+                <button
+                  className="watch-chat"
+                  onClick={() =>
+                    onFocus(
+                      conversation.participants.slice(0, 2),
+                      conversation.id,
+                    )
+                  }
+                >
+                  <MessageCircle size={15} />
+                  Watch{" "}
+                  {liveChat ? "this conversation" : "their last conversation"}
+                  <ArrowUpRight size={14} />
+                </button>
+              )}
+              {detail.error && (
+                <p role="alert" className="field-error">
+                  {detail.error}
+                  <button onClick={detail.reload}>Try again</button>
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="field-error">
+                  {error}
+                </p>
+              )}
+              <button
+                className="full-profile"
+                onClick={() => onProfile(selected.id)}
+              >
+                Their story & relationships
+                <ArrowUpRight size={13} />
+              </button>
+            </aside>
+          </div>
           {second && (
             <section
               className="closeup-chat"
