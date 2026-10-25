@@ -384,3 +384,39 @@ comparisons. Missing warehouse coverage must remain explicit, with truthful loca
 fallback. RL-01 through RL-18 specify required executable tests plus an opt-in live
 warehouse check. This change writes task specifications only; it does not implement
 the new mechanics, run their future tests or claim live Snowflake verification.
+
+## 2026-10-25 - Disaster controls, persistent damage and ElevenLabs audio tasks
+
+Two new assignments are ready for implementation instances:
+
+| Assignment | Proposed branch | Ownership |
+| --- | --- | --- |
+| [Disaster size/intensity and lasting map damage](prompts/disaster-controls-persistent-damage.md) | `codex/disaster-controls-damage` | Scenario controls/preview, canonical geometry/exposure, building/terrain/service damage, routing, repair, versioned source events and exports. |
+| [ElevenLabs effects, music and screams](prompts/elevenlabs-disaster-audio.md) | `codex/disaster-audio` | Effects/music capabilities and jobs, agent reaction selector, authorized media/assets and shared mixer integration. |
+
+Size and danger are independent. The first assignment specifies earthquake
+magnitude, tornado wind speed/track, existing flood/fire/storm controls and lasting
+building/road/terrain consequences. Resolution removes only its temporary effects;
+it cannot blindly restore `infrastructure_before` over real structural damage or
+another event's restrictions. Agent routing, hospitals, claims, occupancy, repair,
+save/replay/branch and Tiger/Snowflake evidence must use actual committed state.
+
+The second assignment uses ElevenLabs sound-effect/music endpoints separately
+from TTS, with official API references checked on 2026-10-25. Generate/cache bounded
+disaster assets, mix one scary instrumental bed with local effects, and preserve
+each agent's assigned identity for eligible fear screams/cry-for-help reactions.
+No dead/unconscious/remote screams, preview-triggered generation or whole-city
+playback flood. The live-conversation task now explicitly shares one coordinator
+with serialized foreground voices and centrally mixed/ducked background buses.
+
+Coordinate the typed lifecycle/perception source contract early: disaster owner
+publishes committed event/phase/geometry/intensity/evidence records and wires one
+reaction hook; audio owner supplies a deterministic selector plus fixture adapter.
+Neither branch may mutate frozen v1 enums or create a competing fear/crisis/audio
+loop. These tasks integrate with the survival and relationship-learning assignments.
+
+DS-01 through DS-18 and DA-01 through DA-16 specify required executable functional
+tests. The audio task also requires an opt-in real-provider generation/listening
+check; fake bytes cannot prove a rumble, scary score or distinct scream sounds
+correct. This commit writes prompts and coordination notes only; it implements
+none of these mechanics and does not claim the future tests or paid calls ran.
