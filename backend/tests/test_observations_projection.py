@@ -124,6 +124,25 @@ def test_baseline_sparse_relationships_and_no_read_side_mutation(world):
     assert project(None, world) == projected
 
 
+def test_population_initialization_is_baseline_not_opinion_adoption(world):
+    world.simulation.initialization.stage = "population"
+    previous = world.model_copy(deep=True)
+    citizen = next(iter(world.citizens.values()))
+    citizen.beliefs = [Belief(text="Seeded belief", confidence=40, evidence=evidence("Initial profile"))]
+    world.simulation.initialization.stage = "ready"
+    initialized = project(previous, advance(world))
+    assert payloads(initialized, "opinion")
+    assert not payloads(initialized, "change")
+    previous = world.model_copy(deep=True)
+    citizen.beliefs.append(Belief(text="Observed later", confidence=65, evidence=evidence("Observed action")))
+    changed = project(previous, advance(world))
+    opinion_changes = [c for c in payloads(changed, "change") if c["entity_kind"] == "opinion"]
+    assert len(opinion_changes) == 1
+    assert opinion_changes[0]["field"] == "__entity__"
+    assert opinion_changes[0]["before"] is None
+    assert opinion_changes[0]["after"]["value"] == "Observed later"
+
+
 def test_same_tick_revisions_distinct_ids_and_branch_lineage(world):
     before = world.model_copy(deep=True)
     a = next(iter(world.citizens.values()))

@@ -317,7 +317,7 @@ def project(previous, current, lineage=None):
                 continue
             add(kind, identity, after if after is not None else dict(**before, deleted=True))
             # Initial projection declares baselines, not invented historical changes.
-            if previous is None or kind == "city":
+            if previous is None or previous.simulation.initialization.stage != "ready" or kind == "city":
                 continue
             if before is None or after is None:
                 changes.append(
