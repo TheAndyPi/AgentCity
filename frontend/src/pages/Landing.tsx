@@ -15,7 +15,7 @@ const lights = Array.from({ length: 46 }, (_, i) => ({
   top: random(i + 101) * 58,
   size: 2 + random(i + 201) * 4,
   color: lightColors[i % lightColors.length],
-  duration: 4 + random(i + 301) * 6,
+  duration: 2.6 + random(i + 301) * 4,
   delay: -random(i + 401) * 10,
 }));
 

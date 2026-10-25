@@ -54,8 +54,10 @@ class ErrorBoundary extends Component<
 function ScrollReset() {
   const location = useLocation();
   React.useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target) target.scrollIntoView({ block: "start" });
+    else window.scrollTo(0, 0);
+  }, [location.pathname, location.hash]);
   return null;
 }
 const root = createRoot(document.getElementById("root")!);

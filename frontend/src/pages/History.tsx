@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -29,7 +29,8 @@ import {
   uniqueName,
 } from "../api/names";
 import type { Simulation, WorldFrame } from "../api/types";
-import { ComparePanel } from "../components/Drawer";
+import Drawer, { ComparePanel, type DrawerNode } from "../components/Drawer";
+import { CityArt } from "../components/CityArt";
 export default function History() {
   const { client, notice } = useApp();
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function History() {
     [confirmations, setConfirmations] = useState<Record<string, string>>({}),
     [duplicating, setDuplicating] = useState<Simulation | null>(null),
     [compare, setCompare] = useState<WorldFrame | null>(null),
+    [overview, setOverview] = useState<WorldFrame | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const update = async (s: Simulation, type: "archive" | "unarchive") => {
@@ -76,7 +78,7 @@ export default function History() {
       (r): r is PromiseRejectedResult => r.status === "rejected",
     );
     worlds.reload();
-    setSelected([]);
+    setSelected((ids) => ids.filter((id) => !deleting.some((s) => s.id === id)));
     if (failed.length) {
       setDeleting(failed);
       setError(
@@ -90,117 +92,64 @@ export default function History() {
     }
     setBusy(false);
   };
+  const archiveSelected = async () => {
+    const targets = worlds.data!.active.filter((s) => selected.includes(s.id));
+    setBusy(true);
+    setError("");
+    const results = await Promise.allSettled(
+      targets.map((s) => client.command(s, { type: "archive" })),
+    );
+    const failures = results.filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    );
+    setSelected((ids) =>
+      ids.filter((id) => !targets.some((s, i) => s.id === id && results[i].status === "fulfilled")),
+    );
+    worlds.reload();
+    if (failures.length)
+      setError(
+        `${results.length - failures.length} archived. ${failures.length} failed: ${failures.map((r) => messageOf(r.reason)).join(" ")}`,
+      );
+    else
+      notice(
+        `${results.length} ${results.length === 1 ? "city" : "cities"} paused, saved, and archived.`,
+      );
+    setBusy(false);
+  };
+  const toggle = (id: string, on: boolean) =>
+    setSelected((ids) => (on ? [...ids, id] : ids.filter((x) => x !== id)));
   const card = (s: Simulation, archived = false) => (
-    <article className={`world-card ${archived ? "archived" : ""}`} key={s.id}>
-      <div className="world-card-art">
-        <svg viewBox="0 0 300 95" aria-hidden="true">
-          <path
-            d="M0 85 110 25 300 85M40 95 140 38 270 95M80 95 150 56 230 95"
-            fill="none"
-            stroke="currentColor"
-            opacity=".2"
-          />
-          {Array.from({ length: 8 }, (_, i) => (
-            <path
-              key={i}
-              d={`M${55 + i * 24} ${70 + (i % 3) * 5}v-${15 + ((i * 13) % 35)}l12-6 12 6v${15 + ((i * 13) % 35)}l-12 6Z`}
-              fill="currentColor"
-              fillOpacity=".08"
-              stroke="currentColor"
-              strokeWidth=".8"
-            />
-          ))}
-        </svg>
-        {archived ? (
-          <label className="card-checkbox">
-            <input
-              aria-label={`Select ${s.name}`}
-              type="checkbox"
-              checked={selected.includes(s.id)}
-              onChange={(e) =>
-                setSelected((ids) =>
-                  e.target.checked
-                    ? [...ids, s.id]
-                    : ids.filter((id) => id !== s.id),
-                )
-              }
-            />
-          </label>
-        ) : (
-          <span className="pill">{pretty(s.config.mode)}</span>
-        )}
-        <span className={`pill ${s.status === "running" ? "green" : ""}`}>
-          {pretty(s.status)}
-        </span>
-      </div>
-      <div className="world-card-body">
-        <small>
-          {new Date(s.created_at).toLocaleString(undefined, {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </small>
-        <h2>{s.name}</h2>
-        <div className="world-meta">
-          <span>
-            <Users size={14} />
-            {s.agent_count} citizens
-          </span>
-          <span>
-            <Clock size={14} />
-            {simTime(s.sim_time_seconds)}
-          </span>
-          <span>Tick {s.tick}</span>
-        </div>
-        <WorldMeasures simulation={s} />
-        <div className="world-card-actions">
-          <Button
-            kind="secondary"
-            disabled={busy}
-            onClick={() =>
-              navigate(
-                `/simulations/${s.id}${s.status === "initializing" ? "/loading" : ""}`,
-              )
-            }
-          >
-            Open simulation
-            <ArrowRight size={15} />
-          </Button>
-          <button
-            className="icon-button"
-            disabled={busy}
-            aria-label={`Duplicate ${s.name}`}
-            onClick={() => setDuplicating(s)}
-          >
-            <GitBranch size={17} />
-          </button>
-          <button
-            className="icon-button"
-            disabled={busy}
-            aria-label={`Compare ${s.name}`}
-            onClick={() => {
-              setBusy(true);
-              void client
-                .state(s.id)
-                .then(setCompare)
-                .catch((e) => setError(messageOf(e)))
-                .finally(() => setBusy(false));
-            }}
-          >
-            <Layers3 size={17} />
-          </button>
-          <button
-            className="icon-button"
-            disabled={busy}
-            aria-label={`${archived ? "Unarchive" : "Archive"} ${s.name}`}
-            onClick={() => void update(s, archived ? "unarchive" : "archive")}
-          >
-            {archived ? <ArchiveRestore size={17} /> : <Archive size={17} />}
-          </button>
-        </div>
-      </div>
-    </article>
+    <WorldCard
+      key={s.id}
+      simulation={s}
+      archived={archived}
+      busy={busy}
+      selected={selected.includes(s.id)}
+      onSelect={(on) => toggle(s.id, on)}
+      onOpen={() =>
+        navigate(
+          `/simulations/${s.id}${s.status === "initializing" ? "/loading" : ""}`,
+        )
+      }
+      onDuplicate={() => setDuplicating(s)}
+      onCompare={() => {
+        setBusy(true);
+        void client
+          .state(s.id)
+          .then(setCompare)
+          .catch((e) => setError(messageOf(e)))
+          .finally(() => setBusy(false));
+      }}
+      onArchive={() => void update(s, archived ? "unarchive" : "archive")}
+      onOverview={setOverview}
+    />
   );
+  const activeSelected = worlds.data
+    ? worlds.data.active.filter((s) => selected.includes(s.id)).length
+    : 0;
+  const archivedSelected = worlds.data
+    ? worlds.data.archived.filter((s) => selected.includes(s.id)).length
+    : 0;
   return (
     <Page
       title="Previous simulations"
@@ -223,6 +172,16 @@ export default function History() {
             <h2>
               Active simulations <span>{worlds.data.active.length}</span>
             </h2>
+            {activeSelected > 0 && (
+              <Button
+                kind="ghost"
+                disabled={busy}
+                onClick={() => void archiveSelected()}
+              >
+                <Archive size={15} />
+                Archive selected ({activeSelected})
+              </Button>
+            )}
           </div>
           {worlds.data.active.length ? (
             <div className="world-grid">
@@ -248,14 +207,14 @@ export default function History() {
                   setError("");
                   setDeleting(
                     worlds.data!.archived.filter(
-                      (s) => !selected.length || selected.includes(s.id),
+                      (s) => !archivedSelected || selected.includes(s.id),
                     ),
                   );
                 }}
               >
                 <Trash2 size={15} />
-                {selected.length
-                  ? `Delete selected (${selected.length})`
+                {archivedSelected
+                  ? `Delete selected (${archivedSelected})`
                   : "Permanently delete all"}
               </Button>
             )}
@@ -327,29 +286,187 @@ export default function History() {
           <ComparePanel frame={compare} revision={compare.ref.revision} />
         </Modal>
       )}
+      {overview && (
+        <OverviewCard frame={overview} onClose={() => setOverview(null)} />
+      )}
     </Page>
   );
 }
-function WorldMeasures({ simulation: s }: { simulation: Simulation }) {
+function WorldCard({
+  simulation: s,
+  archived,
+  busy,
+  selected,
+  onSelect,
+  onOpen,
+  onDuplicate,
+  onCompare,
+  onArchive,
+  onOverview,
+}: {
+  simulation: Simulation;
+  archived: boolean;
+  busy: boolean;
+  selected: boolean;
+  onSelect: (on: boolean) => void;
+  onOpen: () => void;
+  onDuplicate: () => void;
+  onCompare: () => void;
+  onArchive: () => void;
+  onOverview: (frame: WorldFrame) => void;
+}) {
   const { client } = useApp();
   const r = useQuery(() => client.state(s.id, s.revision), [s.id, s.revision]);
+  const open = (e: SyntheticEvent) => {
+    if (
+      (e.target as HTMLElement).closest("button, a, input, label, select, textarea")
+    )
+      return;
+    if (r.data) onOverview(r.data);
+  };
   return (
-    <div className="world-measures">
-      {r.data ? (
-        <>
-          <span>{r.data.metrics.conflict_count} conflicts</span>
-          <span>{r.data.metrics.resources_consumed} units consumed</span>
-          <span>{r.data.events.length} major events</span>
+    <article
+      className={`world-card ${archived ? "archived" : ""} ${selected ? "selected" : ""}`}
+      tabIndex={0}
+      aria-label={`${s.name}. Open the simulation overview`}
+      onClick={open}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+          e.preventDefault();
+          open(e);
+        }
+      }}
+    >
+      <div className="world-card-art">
+        {r.data ? <CityArt map={r.data.map} /> : <span className="city-art-pending" />}
+        <span className="pill">{pretty(s.config.mode)}</span>
+        {(s.status === "initializing" || s.status === "failed" || s.status === "completed") && (
+          <span className="pill status-pill">{pretty(s.status)}</span>
+        )}
+        <label className="card-checkbox">
+          <input
+            aria-label={`Select ${s.name}`}
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onSelect(e.target.checked)}
+          />
+        </label>
+      </div>
+      <div className="world-card-body">
+        <small>
+          {new Date(s.created_at).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+        </small>
+        <h2>{s.name}</h2>
+        <div className="world-meta">
           <span>
-            {r.data.events.filter((e) => e.status === "resolved").length}{" "}
-            outcomes
+            <Users size={14} />
+            {s.agent_count} citizens
           </span>
-        </>
-      ) : r.error ? (
-        <small>{r.error}</small>
-      ) : (
-        <span>Reading committed measures…</span>
-      )}
+          <span>
+            <Clock size={14} />
+            {simTime(s.sim_time_seconds)}
+          </span>
+          <span>Tick {s.tick}</span>
+        </div>
+        <div className="world-measures">
+          {r.data ? (
+            <>
+              <span>{r.data.metrics.conflict_count} conflicts</span>
+              <span>{r.data.metrics.resources_consumed} units consumed</span>
+              <span>{r.data.events.length} major events</span>
+              <span>
+                {r.data.events.filter((e) => e.status === "resolved").length}{" "}
+                outcomes
+              </span>
+            </>
+          ) : r.error ? (
+            <small>{r.error}</small>
+          ) : (
+            <span>Reading committed measures…</span>
+          )}
+        </div>
+        <div className="world-card-actions">
+          <Button kind="secondary" disabled={busy} onClick={onOpen}>
+            Open simulation
+            <ArrowRight size={15} />
+          </Button>
+          <button
+            className="icon-button"
+            disabled={busy}
+            aria-label={`Duplicate ${s.name}`}
+            onClick={onDuplicate}
+          >
+            <GitBranch size={17} />
+          </button>
+          <button
+            className="icon-button"
+            disabled={busy}
+            aria-label={`Compare ${s.name}`}
+            onClick={onCompare}
+          >
+            <Layers3 size={17} />
+          </button>
+          <button
+            className="icon-button"
+            disabled={busy}
+            aria-label={`${archived ? "Unarchive" : "Archive"} ${s.name}`}
+            onClick={onArchive}
+          >
+            {archived ? <ArchiveRestore size={17} /> : <Archive size={17} />}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+function OverviewCard({
+  frame,
+  onClose,
+}: {
+  frame: WorldFrame;
+  onClose: () => void;
+}) {
+  const [stack, setStack] = useState<DrawerNode[]>([{ type: "overview" }]);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close.current();
+      }
+    };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, []);
+  return (
+    <div
+      className="modal-backdrop overview-popup"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <Drawer
+        stack={stack}
+        frame={frame}
+        revision={frame.ref.revision}
+        readOnly
+        onPush={(n) => setStack((s) => [...s, n])}
+        onBack={() =>
+          stack.length > 1 ? setStack((s) => s.slice(0, -1)) : onClose()
+        }
+        onClose={onClose}
+        onCommand={async () => {}}
+        overlay={null}
+        setOverlay={() => {}}
+        hazards={false}
+        setHazards={() => {}}
+        follow={null}
+        setFollow={() => {}}
+      />
     </div>
   );
 }
@@ -370,6 +487,18 @@ function DuplicateDialog({
     [error, setError] = useState("");
   const key = useRef(crypto.randomUUID());
   const snapshots = useQuery(() => client.snapshots(s.id), [s.id]);
+  const events = useQuery(() => client.events(s.id), [s.id]);
+  const beforeEvent = new Map(
+    (events.data ?? []).map((e) => [e.pre_event_snapshot_id, e.title]),
+  );
+  const points = (snapshots.data ?? [])
+    .map((p) => ({
+      ...p,
+      event:
+        beforeEvent.get(p.id) ??
+        (p.reason === "pre_event" ? p.label.replace(/^Before /, "") : null),
+    }))
+    .sort((a, b) => Number(!a.event) - Number(!b.event) || a.ref.revision - b.ref.revision);
   const deduped = useRef(false);
   useEffect(() => {
     if (!names.data || deduped.current) return;
@@ -423,14 +552,33 @@ function DuplicateDialog({
           }}
         >
           <option value="whole">Whole history through current head</option>
-          {snapshots.data?.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label} · tick {p.ref.tick} / rev {p.ref.revision}
-            </option>
-          ))}
+          {points.some((p) => p.event) && (
+            <optgroup label="Before a major event">
+              {points
+                .filter((p) => p.event)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    Right before {p.event} · tick {p.ref.tick}
+                  </option>
+                ))}
+            </optgroup>
+          )}
+          {points.some((p) => !p.event) && (
+            <optgroup label="Saved points">
+              {points
+                .filter((p) => !p.event)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label} · tick {p.ref.tick} / rev {p.ref.revision}
+                  </option>
+                ))}
+            </optgroup>
+          )}
         </select>
       </Field>
-      {snapshots.error && <ErrorBox error={snapshots.error} />}{" "}
+      {(snapshots.error || events.error) && (
+        <ErrorBox error={snapshots.error || events.error} />
+      )}{" "}
       {error && <ErrorBox error={error} />}
       <div className="modal-actions">
         <Button kind="ghost" disabled={busy} onClick={onClose}>

@@ -49,6 +49,78 @@ const random = (seed: number) => {
   const x = Math.sin(seed * 9301 + 49297) * 233280;
   return x - Math.floor(x);
 };
+// Wire art fills roughly 13%–92% of the image height; rows crop to that band so they never overlap.
+const wireRows = (() => {
+  const rows = [];
+  for (let i = 0, top = -20; top < 1800; i++) {
+    const tile = 360 + random(i + 61) * 420;
+    const band = tile * (341 / 1024);
+    rows.push({
+      top,
+      height: band * 0.79,
+      tile,
+      shift: -band * 0.13,
+      offset: random(i + 71) * tile,
+      level: 0.55 + random(i + 83) * 0.9,
+      hue: i % 3 === 1,
+    });
+    top += band * 0.79;
+  }
+  return rows;
+})();
+function WireRows() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let timer = 0;
+    const flicker = () => {
+      const rows = ref.current?.children;
+      if (rows?.length && document.documentElement.dataset.motion !== "reduced") {
+        const row = rows[Math.floor(Math.random() * rows.length)] as HTMLElement;
+        const base = Number(getComputedStyle(row).opacity);
+        const peak = () => Math.min(0.6, base * (2.5 + Math.random() * 3));
+        const levels = [base];
+        const pulses = 2 + Math.floor(Math.random() * 4);
+        for (let p = 0; p < pulses; p++) {
+          const high = peak();
+          levels.push(high);
+          if (p < pulses - 1) levels.push(base + (high - base) * Math.random() * 0.4);
+        }
+        levels.push(base);
+        const gaps = levels.map(() => 0.4 + Math.random());
+        const total = gaps.slice(1).reduce((a, b) => a + b, 0);
+        let at = 0;
+        const frames: Keyframe[] = levels.map((opacity, i) => {
+          if (i) at += gaps[i] / total;
+          return { opacity, offset: Math.min(1, at), easing: "steps(1, end)" };
+        });
+        row.animate(frames, { duration: 260 + pulses * 110 + Math.random() * 200 });
+      }
+      timer = window.setTimeout(flicker, 700 + Math.random() * 2600);
+    };
+    timer = window.setTimeout(flicker, 900);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <div className="ambient-wires" ref={ref}>
+      {wireRows.map((r, i) => (
+        <div
+          key={i}
+          className={r.hue ? "hue" : ""}
+          style={
+            {
+              top: r.top,
+              height: r.height,
+              backgroundImage: `url(${wiresImage})`,
+              backgroundSize: `${r.tile}px auto`,
+              backgroundPosition: `${r.offset}px ${r.shift}px`,
+              "--level": r.level,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
 export function Ambient({ variant = "default" }: { variant?: "default" | "settings" }) {
   const count = variant === "settings" ? 16 : 9;
   const [minSize, maxSize] = variant === "settings" ? [140, 460] : [70, 240];
@@ -65,7 +137,7 @@ export function Ambient({ variant = "default" }: { variant?: "default" | "settin
           height: size,
           left: `${random(i + 11) * 100}%`,
           top: `${random(i + 23) * 100}%`,
-          animationDuration: `${60 + random(i + 37) * 90}s`,
+          animationDuration: `${22 + random(i + 37) * 38}s`,
           animationDirection: i % 2 ? "reverse" : "normal",
         }}
       />
@@ -73,14 +145,7 @@ export function Ambient({ variant = "default" }: { variant?: "default" | "settin
   });
   return (
     <div className={`ambient ambient-${variant}`} aria-hidden="true">
-      <div
-        className="ambient-wires"
-        style={{ backgroundImage: `url(${wiresImage})` }}
-      />
-      <div
-        className="ambient-wires ambient-wires-flip"
-        style={{ backgroundImage: `url(${wiresImage})` }}
-      />
+      <WireRows />
       {gears}
     </div>
   );
@@ -382,14 +447,16 @@ export function Section({
   title,
   description,
   children,
+  id,
 }: {
   number: string;
   title: string;
   description?: string;
   children: ReactNode;
+  id?: string;
 }) {
   return (
-    <section className="form-section">
+    <section className="form-section" id={id}>
       <div className="section-heading">
         <span className="section-number">{number}</span>
         <div>

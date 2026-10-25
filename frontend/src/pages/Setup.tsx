@@ -260,7 +260,11 @@ export default function Setup() {
               ) : profiles.data.length === 0 ? (
                 <p>
                   No custom agents created.{" "}
-                  <Link to="/settings" state={{ from: "/simulations/new" }}>
+                  <Link
+                    className="settings-link"
+                    to="/settings#custom-agents"
+                    state={{ from: "/simulations/new" }}
+                  >
                     Create one in Settings <Plus size={13} />
                   </Link>
                 </p>
@@ -398,7 +402,11 @@ export default function Setup() {
                 Advanced world settings <ChevronDown size={15} />
               </summary>
               <div className="two-col">
-                <Field label="Seed" error={errors.seed}>
+                <Field
+                  label="Seed"
+                  hint="Generates the street map, river and citizens. The same seed rebuilds the same starting city."
+                  error={errors.seed}
+                >
                   <input
                     type="number"
                     min={0}
@@ -407,7 +415,11 @@ export default function Setup() {
                     onChange={(e) => update("seed", Number(e.target.value))}
                   />
                 </Field>
-                <Field label="Maximum ticks" error={errors.max_ticks}>
+                <Field
+                  label="Maximum ticks"
+                  hint="How long the simulation can run. Each tick is one step of city time, and it stops at this limit."
+                  error={errors.max_ticks}
+                >
                   <input
                     type="number"
                     min={1}

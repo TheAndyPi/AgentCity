@@ -442,22 +442,20 @@ kbd {
   pointer-events: none;
 }
 .ambient-wires {
-  --tile: 620px;
+  --wire-opacity: 0.075;
   position: absolute;
   inset: 0;
-  background-size: var(--tile) auto;
-  background-repeat: repeat;
-  opacity: 0.09;
-  filter: var(--art-filter);
-  animation: wires-drift 150s linear infinite;
 }
-.ambient-wires-flip {
-  --tile: 410px;
-  background-position: 170px 120px;
-  opacity: 0.07;
+.ambient-wires > div {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-repeat: repeat-x;
+  opacity: calc(var(--wire-opacity) * var(--level, 1));
+  filter: var(--art-filter);
+}
+.ambient-wires > div.hue {
   filter: hue-rotate(80deg) var(--art-filter);
-  animation-duration: 210s;
-  animation-direction: reverse;
 }
 .ambient-gear {
   position: absolute;
@@ -484,15 +482,10 @@ kbd {
   opacity: 0.065;
 }
 :root[data-theme="light"] .ambient-wires {
-  opacity: 0.16;
+  --wire-opacity: 0.15;
 }
 :root[data-theme="light"] .ambient-gear {
   opacity: 0.12;
-}
-@keyframes wires-drift {
-  to {
-    background-position-x: calc(var(--tile) + 170px);
-  }
 }
 @keyframes gear-spin {
   to {
@@ -589,6 +582,21 @@ kbd {
 .custom-agents-box > div:first-child > svg,
 .custom-agents-box a {
   color: var(--cyan);
+}
+.custom-agents-box a.settings-link {
+  transition:
+    text-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+.custom-agents-box a.settings-link:hover,
+.custom-agents-box a.settings-link:focus-visible {
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--cyan) 75%, transparent),
+    0 0 14px color-mix(in srgb, var(--cyan) 40%, transparent);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--cyan) 60%, transparent));
+}
+#custom-agents {
+  scroll-margin-top: 24px;
 }
 .setup-aside {
   background: color-mix(in srgb, var(--surface) 70%, transparent);
@@ -982,6 +990,116 @@ kbd {
     radial-gradient(ellipse 80% 40% at 50% 100%, rgba(255, 200, 232, 0.6), transparent 70%),
     var(--bg);
 }
+/* Previous simulations */
+.world-card {
+  cursor: pointer;
+}
+.world-card:focus-visible,
+.world-card.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cyan) 35%, transparent);
+}
+.world-card-art {
+  height: 172px;
+  overflow: hidden;
+}
+.world-card-art > .city-art {
+  position: absolute;
+  inset: 22px 10px 4px;
+  width: calc(100% - 20px);
+  height: calc(100% - 26px);
+}
+.city-art :is(polygon, path) {
+  stroke: currentColor;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.city-art-ground {
+  fill: currentColor;
+  fill-opacity: 0.05;
+  stroke-opacity: 0.25;
+}
+.city-art .city-art-water {
+  fill: var(--cyan);
+  fill-opacity: 0.35;
+  stroke: none;
+}
+.city-art-building .top {
+  fill: currentColor;
+  fill-opacity: 0.32;
+}
+.city-art-building .side-left {
+  fill: currentColor;
+  fill-opacity: 0.16;
+}
+.city-art-building .side-right {
+  fill: currentColor;
+  fill-opacity: 0.08;
+}
+.city-art-building polygon {
+  stroke-opacity: 0.55;
+}
+.city-art-building.hospital {
+  color: var(--pink);
+}
+.city-art-building.shop,
+.city-art-building.community {
+  color: var(--yellow);
+}
+.city-art-building.work {
+  color: var(--cyan);
+}
+.world-card-art > .card-checkbox {
+  left: auto;
+  right: 10px;
+  top: 6px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.world-card-art > .card-checkbox > input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.world-card-art > .pill.status-pill {
+  left: 16px;
+  right: auto;
+  top: 42px;
+}
+.overview-popup {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.overview-popup > .drawer {
+  position: relative;
+  inset: auto;
+  width: min(520px, 100%);
+  height: min(720px, calc(100svh - 48px));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px color-mix(in srgb, var(--cyan) 14%, transparent),
+    0 0 46px color-mix(in srgb, var(--cyan) 12%, transparent);
+  animation: overview-pop 0.2s ease;
+}
+@keyframes overview-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+:root[data-motion="reduced"] .overview-popup > .drawer {
+  animation: none;
+}
+body:has(.home) .mock-badge {
+  display: none;
+}
 .home-lights {
   position: absolute;
   inset: 0;
@@ -1027,7 +1145,7 @@ kbd {
 .home-main {
   position: absolute;
   inset: 0 0 auto;
-  height: 54svh;
+  height: 60svh;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -1077,7 +1195,7 @@ kbd {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 9svh;
+  bottom: 6.5svh;
   height: 38svh;
   z-index: 1;
   overflow: hidden;
@@ -1119,7 +1237,7 @@ kbd {
 .home-nav {
   position: absolute;
   left: 50%;
-  bottom: 4.5svh;
+  bottom: 2.4svh;
   transform: translateX(-50%);
   z-index: 2;
   display: flex;

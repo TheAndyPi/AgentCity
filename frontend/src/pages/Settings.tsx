@@ -240,6 +240,7 @@ export default function Settings() {
             </label>
           </Section>
           <Section
+            id="custom-agents"
             number="02"
             title="Custom agents"
             description="Create citizens you can add to any simulation."

@@ -50,7 +50,7 @@ export function CityZoom({
   }, []);
   const vh = window.innerHeight;
   const center = shot.top + shot.height / 2;
-  const scale = (vh / shot.height) * 2.4;
+  const scale = (vh / shot.height) * 9.6;
   return (
     <div className={`city-zoom ${phase}`} aria-hidden="true">
       <div
