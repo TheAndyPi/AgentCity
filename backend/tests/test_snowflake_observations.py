@@ -215,14 +215,30 @@ def test_backfill_repeat_lost_cursor_and_restart_are_idempotent(tmp_path):
         checkpoint = client.portal.call(observer.checkpoint, sid)
     # Persistent journal reopening appends recovery revisions; all earlier facts remain identical.
     with connected(tmp_path, fake) as (client, _, observer):
+        assert sid not in client.app.state.service.heads
         assert client.portal.call(observer.checkpoint, sid) == checkpoint
         reconcile(client, observer)
         assert (
             client.portal.call(observer.checkpoint, sid)
-            == client.app.state.service.heads[sid].simulation.revision
+            == client.app.state.service.repo.meta["simulations"][sid][-1]["revision"]
         )
+        assert sid not in client.app.state.service.heads
         old = get(client, sid, "trends", checkpoint, metric="health")
         assert old.status_code == 200
+        assert sid in client.app.state.service.heads
+
+
+@pytest.mark.parametrize("endpoint", ["status", "metrics", "trends"])
+def test_saved_world_observation_endpoints_load_on_request(tmp_path, endpoint):
+    with connected(tmp_path) as (client, fake, observer):
+        sim = create_city(client)
+        reconcile(client, observer)
+    with connected(tmp_path, fake) as (client, _, observer):
+        assert not client.app.state.service.heads
+        params = {"metric": "health"} if endpoint == "trends" else {}
+        response = get(client, sim["id"], endpoint, sim["revision"], **params)
+        assert response.status_code == 200, response.text
+        assert sim["id"] in client.app.state.service.heads
 
 
 def test_ambiguous_publish_timeout_recovers_without_duplicate_facts(tmp_path):

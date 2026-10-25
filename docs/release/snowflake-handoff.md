@@ -174,6 +174,31 @@ Known baseline gates, deliberately outside this scenario-excluding assignment:
 
 ## Opt-in live status and remaining work
 
+### Local verification, 2026-10-25
+
+The configured service role has CREATE TABLE in the existing runtime schema.
+Created `AGENTCITY_COMPARISON_EXPORTS_V1` there with `001_setup.sql`, enabled
+Snowflake in local `backend/.env`, and verified live SQL writes, repeated MERGE,
+exact read-back and Cortex structured output. The authenticated comparison API
+also returned `data_source=snowflake` and an available Cortex explanation twice,
+including after advancing a simulation while comparing its earlier revision.
+
+Run the smoke check without requiring database-level CREATE SCHEMA:
+
+```sh
+node scripts/snowflake-live-smoke.mjs --live --existing-schema
+```
+
+This mode creates the comparison table if absent and retains smoke records in
+the configured schema. The default mode below still requires CREATE SCHEMA.
+`SNOWFLAKE_DEADLINE_SECONDS` defaults to 30 (maximum 30); HTTP reads and SQL
+execution use that budget so Cortex responses are not cut off after four seconds.
+Projection hashes normalize equivalent integer/float representations so restoring
+a pinned revision preserves its read-back identity. Cortex prompts explicitly
+require metric and record IDs, matching response validation.
+
+### Earlier verification (superseded by the local verification above)
+
 The local account/user/database/schema/warehouse/role settings and encrypted key
 files were present/readable. A real SQL API request authenticated far enough to
 receive HTTP **422**, classified as **insufficient privileges**, while creating a

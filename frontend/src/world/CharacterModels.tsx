@@ -6,6 +6,7 @@ import type { AgentSummary, Vec2, WorldFrame } from "../api/types";
 import { insideBuilding } from "./buildingAccess";
 import { characterAppearance } from "./characterAppearance";
 import {
+  WalkingCadence,
   acknowledgedRoute,
   pointAlongRoute,
   separatePositions,
@@ -84,6 +85,7 @@ export default function CharacterModels({
   const bubbles = useRef(new Map<string, HTMLDivElement>());
   const labels = useRef(new Map<string, THREE.Group>());
   const displayed = useRef(new Map<string, Vec2>());
+  const cadence = useRef(new WalkingCadence());
   const prior = useRef(new Map<string, AgentSummary>());
   const transition = useRef({
     routes: new Map<string, Vec2[]>(),
@@ -96,6 +98,12 @@ export default function CharacterModels({
     [frame.agents],
   );
   useLayoutEffect(() => {
+    cadence.current.observe(
+      frame.simulation.id,
+      frame.ref.tick,
+      performance.now(),
+      frame.simulation.status === "running",
+    );
     const last = transition.current;
     const reset = last.id !== frame.simulation.id || frame.ref.tick < last.tick;
     const changed =
@@ -130,14 +138,7 @@ export default function CharacterModels({
     prior.current = new Map(frame.agents.map((a) => [a.id, a]));
   }, [frame]);
   useFrame(({ clock, camera, size }) => {
-    const duration = Math.min(
-      4000,
-      Math.max(
-        40,
-        (50 * frame.simulation.config.tick_seconds) /
-          frame.simulation.speed_multiplier,
-      ),
-    );
+    const duration = cadence.current.duration;
     const t = reducedMotion
       ? 1
       : Math.min(

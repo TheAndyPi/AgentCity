@@ -167,10 +167,10 @@ class Service:
     def __init__(self, config):
         config.validate()
         self.config = config
-        self.repo = Repository(config.data_dir)
-        self.heads = {
-            sid: self.repo.read(sid) for sid, entries in self.repo.meta["simulations"].items() if entries
-        }
+        self.repo = Repository(config.data_dir, recover=False)
+        self.heads = {}
+        self.saved_summaries = None
+        self.load_locks = {}
         self.writer = asyncio.Lock()
         self.transactions = asyncio.Lock()
         self.commit_lock = asyncio.Lock()
@@ -203,29 +203,60 @@ class Service:
         self.tiger = TigerIngestor(self)
 
     async def start(self):
-        # Recovery adds a new revision; existing committed history is never rewritten.
-        for sid, head in list(self.heads.items()):
-            if head.simulation.status == "initializing":
-                self.initializers[sid] = asyncio.create_task(self.initialize(sid))
-                continue
-            state = head.model_copy(deep=True)
-            upgraded = upgrade_placeholder_citizens(state)
-            recovering = head.simulation.status == "running" or head.intervention or head.auto_resume
-            if recovering or upgraded:
-                self.bump(state, control=bool(recovering))
-                if recovering:
-                    state.simulation.status = "paused"
-                    state.simulation.pause_reason = "loaded"
-                    self.clear_editor(state)
-                    state.auto_resume = False
-                    state.lineage_generation += 1
-                    for runtime in state.events.values():
-                        runtime.resume_allowed = False
-                try:
-                    await self.persist([state])
-                except DomainError:
-                    pass
+        # Saved worlds stay on disk until history or a specific world is requested.
         self.tiger.start()
+
+    async def load(self, owner, sid):
+        async with self.load_locks.setdefault(sid, asyncio.Lock()):
+            if sid in self.heads:
+                return self.owned(owner, sid)
+            try:
+                head = await asyncio.to_thread(self.repo.restore, sid)
+            except KeyError:
+                raise DomainError("NOT_FOUND", "Simulation not found", 404)
+            except (OSError, ValueError) as error:
+                raise DomainError(
+                    "PERSISTENCE_UNAVAILABLE", "Saved simulation could not be loaded", 503
+                ) from error
+            require(head.owner_id == owner, "NOT_FOUND", "Simulation not found", 404)
+            self.heads[sid] = head
+            self.locks.setdefault(sid, asyncio.Lock())
+            await self.recover_head(sid, head)
+            return self.heads[sid]
+
+    async def summaries(self):
+        if self.saved_summaries is None:
+            self.saved_summaries = await asyncio.to_thread(self.repo.summaries)
+        result = {
+            sid: (summary.owner_id, summary.simulation)
+            for sid, summary in self.saved_summaries.items()
+            if sid in self.repo.meta["simulations"]
+        }
+        result.update({sid: (head.owner_id, head.simulation) for sid, head in self.heads.items()})
+        return result
+
+    async def recover_head(self, sid, head):
+        # Recovery happens only when opening this world, preserving immutable history.
+        if head.simulation.status == "initializing":
+            self.initializers[sid] = asyncio.create_task(self.initialize(sid))
+            return
+        state = head.model_copy(deep=True)
+        upgraded = upgrade_placeholder_citizens(state)
+        recovering = head.simulation.status == "running" or head.intervention or head.auto_resume
+        if recovering or upgraded:
+            self.bump(state, control=bool(recovering))
+            if recovering:
+                state.simulation.status = "paused"
+                state.simulation.pause_reason = "loaded"
+                self.clear_editor(state)
+                state.auto_resume = False
+                state.lineage_generation += 1
+                for runtime in state.events.values():
+                    runtime.resume_allowed = False
+            try:
+                await self.persist([state])
+            except DomainError:
+                pass
 
     async def close(self):
         self.closed = True

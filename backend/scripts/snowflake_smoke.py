@@ -1,4 +1,4 @@
-"""Explicit paid opt-in. Creates a unique schema; never drops or cleans a database.
+"""Explicit paid opt-in. Uses a unique schema or --existing-schema; retains records.
 
 From backend: .venv/bin/python -m scripts.snowflake_smoke --live
 Load backend/.env into the environment first (secrets are never printed).
@@ -15,11 +15,11 @@ from app.snowflake.config import SnowflakeConfig
 from app.snowflake.transport import SnowflakeTransport, VendorUnavailable
 
 
-async def smoke():
+async def smoke(existing_schema=False):
     config = replace(SnowflakeConfig.from_env(), enabled=True)
     config.validate()
-    # Identifier generated locally, not supplied by an HTTP caller. Production
-    # schema is never mutated. The schema is deliberately retained for inspection.
+    # Default mode creates a unique schema. Existing-schema mode uses the
+    # configured namespace and leaves smoke records for inspection.
     schema = "AGENTCITY_SMOKE_" + uuid4().hex.upper()
     transport = SnowflakeTransport(config)
     payload = dict(
@@ -31,15 +31,16 @@ async def smoke():
     )
     try:
         # Identifier is bound; only this explicitly invoked operator script calls DDL.
-        await transport.execute("smoke_schema", (config.database + "." + schema,))
-        transport.config = replace(config, schema=schema, deadline=30)
+        if not existing_schema:
+            await transport.execute("smoke_schema", (config.database + "." + schema,))
+        transport.config = replace(config, schema=config.schema if existing_schema else schema, deadline=30)
         await transport.execute("001_setup")
         values = ("smoke_owner", "smoke", 3, digest(payload), canonical(payload))
         await transport.execute("ingest", values)
         await transport.execute("ingest", values)
         rows = await transport.execute("query", values[:3])
         assert len(rows) == 1 and json.loads(rows[0][0]) == payload and rows[0][1] == digest(payload)
-        print("SQL setup, repeated MERGE, exact read-back: passed (disposable schema retained)")
+        print("SQL setup, repeated MERGE, exact read-back: passed (smoke records retained)")
         rows = await transport.execute(
             "explain",
             (
@@ -67,8 +68,13 @@ async def smoke():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", required=True)
-    parser.parse_args()
-    raise SystemExit(0 if asyncio.run(smoke()) else 1)
+    parser.add_argument(
+        "--existing-schema",
+        action="store_true",
+        help="Use the configured schema without requiring CREATE SCHEMA",
+    )
+    args = parser.parse_args()
+    raise SystemExit(0 if asyncio.run(smoke(args.existing_schema)) else 1)
 
 
 if __name__ == "__main__":

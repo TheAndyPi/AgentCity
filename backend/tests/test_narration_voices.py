@@ -99,17 +99,17 @@ def test_full_supported_population_has_100_distinct_voices(tmp_path):
 
 
 @pytest.mark.parametrize("pool", [(), ("OnlyOneVoice",)])
-def test_insufficient_pool_never_reuses_a_voice_or_calls_provider(tmp_path, pool):
+def test_insufficient_pool_reuses_voices_and_calls_provider(tmp_path, pool):
     fake = ElevenLabsFake()
     with narration_client(tmp_path / "store", fake, character_voice_ids=pool) as client:
         records = city_with_records(client)
         decision = records["decisions"][0]
         response = narrate(client, records["sid"], "decision", decision["id"])
-        assert response.status_code == 503
-        assert "Not enough distinct" in response.json()["error"]["message"]
+        assert response.status_code == 200
         assigned = assignments(client, records["sid"])
-        assert len(assigned) == len(set(assigned.values())) == len(pool)
-        assert fake.requests == []
+        assert len(assigned) == len(records["names"])
+        assert set(assigned.values()) == set(pool or (config().voice_id,))
+        assert len(fake.requests) == 1
 
 
 def test_removing_assigned_voice_is_an_explicit_error(tmp_path):
@@ -135,3 +135,28 @@ def test_duplicate_and_malformed_voice_ids_are_rejected_without_secret_output():
     for pool in [("Duplicate", "Duplicate"), ("../bad",), ("",)]:
         with pytest.raises(ValueError, match="ELEVENLABS_CHARACTER_VOICE_IDS"):
             config(character_voice_ids=pool).validate()
+
+
+def test_legacy_unique_voice_table_is_migrated_without_losing_assignments(tmp_path):
+    import sqlite3
+
+    from app.narration.store import Store
+    from app.narration.voices import VoiceAssignments
+
+    store = Store(tmp_path, config())
+    store.db.execute("""
+        CREATE TABLE character_voices (
+            owner TEXT NOT NULL, simulation_id TEXT NOT NULL,
+            agent_id TEXT NOT NULL, voice_id TEXT NOT NULL,
+            PRIMARY KEY(owner, simulation_id, agent_id),
+            UNIQUE(owner, simulation_id, voice_id))
+    """)
+    store.db.execute("INSERT INTO character_voices VALUES ('owner', 'sim', 'agent1', 'voice')")
+    store.db.commit()
+    VoiceAssignments(store)
+    store.db.execute("INSERT INTO character_voices VALUES ('owner', 'sim', 'agent2', 'voice')")
+    store.db.commit()
+    assert store.db.execute("SELECT COUNT(*) FROM character_voices").fetchone()[0] == 2
+    with pytest.raises(sqlite3.IntegrityError):
+        store.db.execute("INSERT INTO character_voices VALUES ('owner', 'sim', 'agent1', 'other')")
+    store.close()

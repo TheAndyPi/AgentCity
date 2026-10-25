@@ -25,12 +25,14 @@ def install_observations(child, parent, config, transport=None, gate=None):
         PREFIX + "/status", tags=["Snowflake observations"], response_model=models.Response[models.Status]
     )
     async def status(request: Request, sid: str, through_revision: int | None = Query(default=None, ge=0)):
+        await service.core.load(request.state.owner, sid)
         return response(request, service.status(request.state.owner, sid, through_revision))
 
     @child.get(
         PREFIX + "/metrics", tags=["Snowflake observations"], response_model=models.Response[models.Metrics]
     )
     async def metrics(request: Request, sid: str, through_revision: int | None = Query(default=None, ge=0)):
+        await service.core.load(request.state.owner, sid)
         head = service.core.owned(request.state.owner, sid, through_revision)
         revision = head.simulation.revision if through_revision is None else through_revision
         return response(

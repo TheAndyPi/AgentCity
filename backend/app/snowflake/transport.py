@@ -4,6 +4,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -65,7 +66,10 @@ def keypair_jwt(config):
 class SnowflakeTransport:
     def __init__(self, config, client=None, token_factory=keypair_jwt):
         self.config = config
-        self.client = client or httpx.AsyncClient(timeout=4, follow_redirects=False)
+        self.client = client or httpx.AsyncClient(
+            timeout=httpx.Timeout(config.deadline, connect=min(4, config.deadline)),
+            follow_redirects=False,
+        )
         self.token_factory = token_factory
 
     async def close(self):
@@ -89,7 +93,7 @@ class SnowflakeTransport:
         config = self.config
         body = dict(
             statement=(SQL / (shape + ".sql")).read_text(),
-            timeout=8,
+            timeout=min(30, max(1, math.ceil(config.deadline))),
             database=config.database,
             schema=config.schema,
             warehouse=config.warehouse,

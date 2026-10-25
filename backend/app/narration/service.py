@@ -244,6 +244,11 @@ class NarrationService:
         )
         require(authentic, "NOT_FOUND", MEDIA_MISSING, 404)
         entry = self.store.get(audio_id, now)
+        if entry is not None and entry.owner == owner and expires <= entry.tokens_until:
+            try:
+                await self.core.load(owner, entry.simulation_id)
+            except DomainError:
+                raise DomainError("NOT_FOUND", MEDIA_MISSING, 404) from None
         require(
             entry is not None and expires <= entry.tokens_until and self._accessible(owner, entry),
             "NOT_FOUND",

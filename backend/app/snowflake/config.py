@@ -33,6 +33,7 @@ class SnowflakeConfig:
             },
             passphrase_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_FILE", ""),
             model=os.getenv("SNOWFLAKE_CORTEX_MODEL", "llama3.1-8b"),
+            deadline=float(os.getenv("SNOWFLAKE_DEADLINE_SECONDS", "30")),
         )
 
     def validate(self):

@@ -18,7 +18,7 @@ npm run dev
 
 Open [AgentCity](http://127.0.0.1:5173). The launcher starts both servers, checks their readiness, and stops its child processes on Ctrl+C. The API listens on port 8000; its [interactive documentation](http://127.0.0.1:8000/docs) and `/health/ready` probe are available there. Use one backend worker.
 
-Reopening a larger saved history includes integrity verification. The launchers allow up to ten minutes for backend readiness. Set `BACKEND_STARTUP_TIMEOUT_SECONDS` (30–1800 seconds) in `backend/.env` to adjust that allowance; it does not change HTTP request deadlines or skip integrity checks.
+Startup reads the small save manifest without loading saved worlds or walking their histories. The History tab reads current world summaries on demand. Opening a saved world verifies its current state and restores it paused; older revisions and history records are read and verified only when requested. Saved-state loading runs off the main request loop so the rest of the app stays responsive. The launchers allow up to ten minutes for backend readiness. Set `BACKEND_STARTUP_TIMEOUT_SECONDS` (30–1800 seconds) in `backend/.env` to adjust that allowance.
 
 Create a city, confirm or skip its initial scenario, then use Play or Step. Custom scenarios pause the city while their effects are previewed. Outcomes, snapshots, replay, restored branches, profiles, settings and history use backend persistence in `backend/data/`. Restarted simulations reopen paused. Rules decisions are labeled in the interface.
 

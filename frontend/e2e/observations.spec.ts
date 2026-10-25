@@ -58,15 +58,25 @@ async function createCity(page: Page, openingEvent = false) {
     await page
       .getByRole("button", { name: "Confirm opening event", exact: true })
       .click();
-    for (let tick = 1; tick <= 3; tick++) {
+    await expect
+      .poll(async () => {
+        const city = await api<Simulation>(page, `/simulations/${created.id}`);
+        return city.initial_preview === null && city.control_version >= 1;
+      })
+      .toBe(true);
+    let resolved = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const city = await api<Simulation>(page, `/simulations/${created.id}`);
+      if (city.pending_outcome_event_ids.length > 0) {
+        resolved = true;
+        break;
+      }
       await step(page, created.id);
-      await expect
-        .poll(
-          async () =>
-            (await api<Simulation>(page, `/simulations/${created.id}`)).tick,
-        )
-        .toBe(tick);
     }
+    const finalCity = await api<Simulation>(page, `/simulations/${created.id}`);
+    expect(resolved || finalCity.pending_outcome_event_ids.length > 0).toBe(
+      true,
+    );
     await page.getByRole("button", { name: "Continue", exact: true }).click();
   }
   await expect(page.locator(".connection")).toHaveText("LIVE");

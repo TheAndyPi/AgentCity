@@ -15,7 +15,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.contracts import SHORTCUTS, Decision, MetricPoint, Settings
+from app.contracts import SHORTCUTS, Decision, MetricPoint, Settings, Simulation
 from app.simulation.state import State
 
 
@@ -29,6 +29,14 @@ class _StoredReference(BaseModel):
     simulation: _SimulationReference
 
 
+class _StoredSummary(BaseModel):
+    model_config = ConfigDict(cache_strings=False)
+    owner_id: str
+    simulation: Simulation
+    intervention: dict | None = None
+    auto_resume: bool = False
+
+
 def encode(value):
     return json.dumps(
         value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")
@@ -36,7 +44,7 @@ def encode(value):
 
 
 class Repository:
-    def __init__(self, directory: Path):
+    def __init__(self, directory: Path, *, recover=True):
         self.directory = directory.resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         (self.directory / "objects").mkdir(exist_ok=True)
@@ -80,7 +88,8 @@ class Repository:
                 "cursor_secret": os.urandom(32).hex(),
             }
             self._manifest(self.meta)
-        self._recover()
+        if recover:
+            self._recover()
 
     def _atomic(self, path, data):
         temp = path.with_name(path.name + ".tmp")
@@ -191,6 +200,72 @@ class Repository:
                         for segment in self.meta["history"].get(sid, ())
                         if segment["revision"] <= through
                     ]
+
+    def restore(self, sid):
+        """Restore the selected head; historical objects validate when requested."""
+        with self.lock:
+            entries = self.meta["simulations"].get(sid)
+            if not entries:
+                raise KeyError(sid)
+            segments = self.meta.get("history", {}).get(sid, [])
+            # Immutable objects can be read without holding the writer lock.
+            recovery = object.__new__(Repository)
+            recovery.directory = self.directory
+            recovery.lock = threading.RLock()
+            recovery.cache = OrderedDict()
+            recovery.degraded = []
+            recovery.meta = {
+                "simulations": {sid: entries},
+                "history": {sid: segments},
+            }
+        valid = len(entries)
+        while valid:
+            try:
+                recovery._read(entries[valid - 1], copy_state=False)
+                break
+            except (OSError, ValueError, zlib.error):
+                valid -= 1
+        if valid < len(entries):
+            recovery.degraded.append(f"Recovered {sid} through its last valid head; operator review required")
+            recovery.meta["simulations"][sid] = entries[:valid]
+            through = entries[valid - 1]["revision"] if valid else -1
+            recovery.meta["history"][sid] = [s for s in segments if s["revision"] <= through]
+        with self.lock:
+            if self.meta["simulations"].get(sid) != entries:
+                raise OSError("Simulation changed during recovery; retry opening it")
+            self.meta["simulations"][sid] = recovery.meta["simulations"][sid]
+            self.meta.setdefault("history", {})[sid] = recovery.meta["history"].get(sid, [])
+            self.degraded.extend(recovery.degraded)
+        return recovery.read(sid)
+
+    def summaries(self):
+        """Read only current summary fields; never walk historical revisions."""
+        with self.lock:
+            result = {}
+            for sid, entries in self.meta["simulations"].items():
+                if not entries:
+                    continue
+                result[sid] = self.summary(sid)
+            return result
+
+    def summary(self, sid):
+        with self.lock:
+            entries = self.meta["simulations"].get(sid)
+            if not entries:
+                raise KeyError(sid)
+            summary = _StoredSummary.model_validate_json(self._checked_data(entries[-1]))
+            summary.simulation.id = sid
+            if summary.simulation.initial_preview:
+                summary.simulation.initial_preview.simulation_id = sid
+            if summary.simulation.status != "initializing" and (
+                summary.simulation.status == "running" or summary.intervention or summary.auto_resume
+            ):
+                # Describe the paused state that opening this saved world will restore.
+                summary.simulation.status = "paused"
+                summary.simulation.pause_reason = "loaded"
+                summary.simulation.revision += 1
+                summary.simulation.control_version += 1
+            return summary
 
     def read(self, sid, revision=None):
         with self.lock:

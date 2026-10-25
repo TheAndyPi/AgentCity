@@ -58,6 +58,7 @@ def integration_app(service, failure):
     ):
         current = service()
         if simulation_id is not None:
+            await current.load(request.state.owner, simulation_id)
             current.owned(request.state.owner, simulation_id)
         data = current.tiger.status(request.state.owner, simulation_id, after, limit)
         return dict(schema_version="1.0.0", request_id=request.state.request_id, data=data)

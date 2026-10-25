@@ -201,7 +201,7 @@ class ObservationService:
     async def reconcile(self, maximum=100):
         """Round-robin bounded work. Failed simulations never starve other cities."""
         await self.cleanup()
-        keys = sorted(self.core.heads)
+        keys = sorted(sid for sid, entries in self.core.repo.meta["simulations"].items() if entries)
         keys = [s for s in keys if s > self.last_after] + [s for s in keys if s <= self.last_after]
         work = False
         remaining = maximum
@@ -211,9 +211,16 @@ class ObservationService:
                 continue
             try:
                 entries = self.core.repo.meta["simulations"].get(sid, [])
+                if not entries:
+                    continue
+                metadata = self.core.heads.get(sid)
+                if metadata is None:
+                    # Observe saved journals without restoring or recovering all
+                    # worlds into the authoritative service's live head cache.
+                    metadata = await asyncio.to_thread(self.core.repo.summary, sid)
                 self.db.execute(
                     "INSERT OR IGNORE INTO progress VALUES(?,?,-1,'','1.0.0')",
-                    (sid, self.core.heads[sid].owner_id),
+                    (sid, metadata.owner_id),
                 )
                 self.db.commit()
                 previous_revision = self.checkpoint(sid)
@@ -225,9 +232,9 @@ class ObservationService:
                 for entry in entries[start : start + remaining]:
                     revision = entry["revision"]
                     state = await asyncio.to_thread(self.core.repo.read, sid, revision)
-                    head = self.core.heads.get(sid)
-                    if head is None:
+                    if sid not in self.core.repo.meta["simulations"]:
                         break
+                    head = self.core.heads.get(sid) or metadata
                     lineage = {
                         "parent_simulation_id": head.simulation.parent_simulation_id,
                         "fork_revision": head.simulation.fork_ref.revision
@@ -362,6 +369,7 @@ class ObservationService:
 
     async def query(self, owner, sid, kind, revision, **filters):
         # Always authorize before a cached read or a warehouse request.
+        await self.core.load(owner, sid)
         self.core.owned(owner, sid, revision)
         require(self.enabled, "FEATURE_UNAVAILABLE", "Snowflake observations are disabled", 501)
         if kind == "trends":
