@@ -6,13 +6,13 @@
     {
       "method": "POST",
       "path": "/api/v1/simulations",
-      "idempotency_key": "5e84c89f-6a49-4bbf-8cbb-40f0bdae01cc",
+      "idempotency_key": "f5e50fb3-f333-4d26-b53d-3d69fe6935d4",
       "request": {
         "config": {
-          "name": "Live integration 1792858661638",
+          "name": "Live integration 1792898475494",
           "seed": 42,
           "mode": "sandbox",
-          "population": 30,
+          "population": 10,
           "population_traits": {
             "curiosity": 50,
             "empathy": 50,
@@ -25,10 +25,10 @@
           "personality_diversity": 50,
           "environment": {
             "resource_availability": 50,
-            "population_density": 75,
+            "population_density": 50,
             "infrastructure_capacity": 50,
             "initial_community_trust": 50,
-            "settlement": "urban"
+            "settlement": "suburb"
           },
           "scenario_description": "A flood severity 60 for 2 ticks",
           "custom_agent_ids": [],
@@ -39,15 +39,15 @@
       "status": 202,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "5e84c89f-6a49-4bbf-8cbb-40f0bdae01cc",
+        "request_id": "f5e50fb3-f333-4d26-b53d-3d69fe6935d4",
         "data": {
-          "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-          "name": "Live integration 1792858661638",
+          "id": "simulation_253b1889045b42058901f81931a1f9c0",
+          "name": "Live integration 1792898475494",
           "config": {
-            "name": "Live integration 1792858661638",
+            "name": "Live integration 1792898475494",
             "seed": 42,
             "mode": "sandbox",
-            "population": 30,
+            "population": 10,
             "population_traits": {
               "curiosity": 50,
               "empathy": 50,
@@ -60,18 +60,18 @@
             "personality_diversity": 50,
             "environment": {
               "resource_availability": 50,
-              "population_density": 75,
+              "population_density": 50,
               "infrastructure_capacity": 50,
               "initial_community_trust": 50,
-              "settlement": "urban"
+              "settlement": "suburb"
             },
             "scenario_description": "A flood severity 60 for 2 ticks",
             "custom_agent_ids": [],
             "tick_seconds": 10,
             "max_ticks": 10000
           },
-          "created_at": "2026-10-24T16:17:42.133458Z",
-          "updated_at": "2026-10-24T16:17:42.133458Z",
+          "created_at": "2026-10-25T03:21:15.948920Z",
+          "updated_at": "2026-10-25T03:21:15.948920Z",
           "status": "initializing",
           "pause_reason": null,
           "archived": false,
@@ -99,26 +99,26 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/initial-scenario",
-      "idempotency_key": "99738a37-6685-4e76-8b41-ed7b996c4950",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/initial-scenario",
+      "idempotency_key": "1ba9be0d-b064-4725-a0cd-4661abc45ae1",
       "request": {
-        "preview_id": "preview_00000284",
+        "preview_id": "preview_00000048",
         "decision": "confirm",
         "expected_control_version": 0
       },
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "99738a37-6685-4e76-8b41-ed7b996c4950",
+        "request_id": "1ba9be0d-b064-4725-a0cd-4661abc45ae1",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -131,18 +131,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:45.021193Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:17.860381Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -152,11 +152,11 @@
             "sim_time_seconds": 0,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000286",
-            "saved_at": "2026-10-24T16:17:45.021252Z",
+            "latest_snapshot_id": "snapshot_00000050",
+            "saved_at": "2026-10-25T03:21:17.860403Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -167,14 +167,14 @@
             "initial_preview": null
           },
           "event": {
-            "id": "event_00000287",
-            "title": "Flood intervention",
+            "id": "event_00000051",
+            "title": "A flood severity 60 for 2 ticks",
             "kind": "flood",
             "status": "queued",
             "queued_tick": 0,
             "start_tick": null,
             "end_tick": null,
-            "affected_agent_count": 5,
+            "affected_agent_count": 4,
             "affected_polygon": [
               {
                 "x": 0,
@@ -193,29 +193,91 @@
                 "y": 72
               }
             ],
-            "pre_event_snapshot_id": "snapshot_00000286",
-            "summary": "Event will begin on the next simulation tick"
+            "pre_event_snapshot_id": "snapshot_00000050",
+            "summary": "Event will begin on the next simulation tick",
+            "scene": [
+              {
+                "model": "flood",
+                "label": "A flood severity 60 for 2 ticks",
+                "position": {
+                  "x": 27,
+                  "y": 55
+                },
+                "scale": 0.85,
+                "rotation": 5.923,
+                "color": "#69b9de",
+                "parts": []
+              },
+              {
+                "model": "flood",
+                "label": "A flood severity 60 for 2 ticks",
+                "position": {
+                  "x": 61,
+                  "y": 47
+                },
+                "scale": 0.85,
+                "rotation": 3.946,
+                "color": "#69b9de",
+                "parts": []
+              },
+              {
+                "model": "flood",
+                "label": "A flood severity 60 for 2 ticks",
+                "position": {
+                  "x": 35,
+                  "y": 53
+                },
+                "scale": 0.85,
+                "rotation": 3.004,
+                "color": "#69b9de",
+                "parts": []
+              },
+              {
+                "model": "flood",
+                "label": "A flood severity 60 for 2 ticks",
+                "position": {
+                  "x": 49,
+                  "y": 67
+                },
+                "scale": 0.85,
+                "rotation": 6.264,
+                "color": "#69b9de",
+                "parts": []
+              },
+              {
+                "model": "flood",
+                "label": "A flood severity 60 for 2 ticks",
+                "position": {
+                  "x": 45,
+                  "y": 37
+                },
+                "scale": 0.85,
+                "rotation": 4.483,
+                "color": "#69b9de",
+                "parts": []
+              }
+            ]
           },
           "snapshot": {
-            "id": "snapshot_00000286",
-            "simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+            "id": "snapshot_00000050",
+            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
             "ref": {
               "tick": 0,
               "revision": 6
             },
-            "created_at": "2026-10-24T16:17:45.021252Z",
+            "created_at": "2026-10-25T03:21:17.860403Z",
             "reason": "pre_event",
-            "label": "Before Flood intervention"
+            "label": "Before A flood severity 60 for 2 ticks"
           }
         }
       }
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "b367097d-7261-4b3e-a531-ebb067cff1e0",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "92a9b32f-3963-4892-8218-69d2545b4dd7",
       "request": {
-        "request_id": "b367097d-7261-4b3e-a531-ebb067cff1e0",
+        "request_id": "92a9b32f-3963-4892-8218-69d2545b4dd7",
         "expected_control_version": 1,
         "command": {
           "type": "step",
@@ -225,16 +287,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "b367097d-7261-4b3e-a531-ebb067cff1e0",
+        "request_id": "92a9b32f-3963-4892-8218-69d2545b4dd7",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -247,18 +309,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:45.615492Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:18.048540Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -268,11 +330,11 @@
             "sim_time_seconds": 10,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000286",
-            "saved_at": "2026-10-24T16:17:45.021252Z",
+            "latest_snapshot_id": "snapshot_00000050",
+            "saved_at": "2026-10-25T03:21:17.860403Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -289,10 +351,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "9c7ba020-e503-427b-8bd1-d61d008a4cff",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
       "request": {
-        "request_id": "9c7ba020-e503-427b-8bd1-d61d008a4cff",
+        "request_id": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
         "expected_control_version": 2,
         "command": {
           "type": "step",
@@ -302,16 +364,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "9c7ba020-e503-427b-8bd1-d61d008a4cff",
+        "request_id": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -324,18 +386,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:46.220647Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:18.282797Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -345,11 +407,11 @@
             "sim_time_seconds": 20,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000286",
-            "saved_at": "2026-10-24T16:17:45.021252Z",
+            "latest_snapshot_id": "snapshot_00000050",
+            "saved_at": "2026-10-25T03:21:17.860403Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -366,10 +428,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "36ffed37-b8fc-43a2-a64c-339701653f50",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
       "request": {
-        "request_id": "36ffed37-b8fc-43a2-a64c-339701653f50",
+        "request_id": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
         "expected_control_version": 3,
         "command": {
           "type": "step",
@@ -379,16 +441,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "36ffed37-b8fc-43a2-a64c-339701653f50",
+        "request_id": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -401,18 +463,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:46.697071Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:18.519794Z",
             "status": "paused",
             "pause_reason": "outcome",
             "archived": false,
@@ -422,13 +484,13 @@
             "sim_time_seconds": 30,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000286",
-            "saved_at": "2026-10-24T16:17:45.021252Z",
+            "latest_snapshot_id": "snapshot_00000050",
+            "saved_at": "2026-10-25T03:21:17.860403Z",
             "pending_outcome_event_ids": [
-              "event_00000287"
+              "event_00000051"
             ],
             "initialization": {
               "stage": "ready",
@@ -445,30 +507,30 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "054f990d-d1b5-46d7-a960-b169026d9d13",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
       "request": {
-        "request_id": "054f990d-d1b5-46d7-a960-b169026d9d13",
+        "request_id": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
         "expected_control_version": 5,
         "command": {
           "type": "acknowledge_outcome",
-          "event_id": "event_00000287",
+          "event_id": "event_00000051",
           "resume": true
         }
       },
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "054f990d-d1b5-46d7-a960-b169026d9d13",
+        "request_id": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -481,18 +543,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:47.639603Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:18.879061Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -502,11 +564,11 @@
             "sim_time_seconds": 30,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000286",
-            "saved_at": "2026-10-24T16:17:45.021252Z",
+            "latest_snapshot_id": "snapshot_00000050",
+            "saved_at": "2026-10-25T03:21:17.860403Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -523,19 +585,19 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/interventions",
-      "idempotency_key": "fba5d3ac-896b-4ed0-a6ee-e002d776f180",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/interventions",
+      "idempotency_key": "f109c3bc-ddaa-47ce-a095-7eb54be837ca",
       "request": {
         "expected_control_version": 6
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "fba5d3ac-896b-4ed0-a6ee-e002d776f180",
+        "request_id": "f109c3bc-ddaa-47ce-a095-7eb54be837ca",
         "data": {
-          "id": "intervention_00000507",
-          "simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
-          "expires_at": "2026-10-24T16:27:49.167773Z",
+          "id": "intervention_00000113",
+          "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+          "expires_at": "2026-10-25T03:31:19.561380Z",
           "based_on": {
             "tick": 3,
             "revision": 12
@@ -547,10 +609,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/scenario-previews",
-      "idempotency_key": "234af628-eab5-42b0-af7d-c2960dbced79",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/scenario-previews",
+      "idempotency_key": "49cae770-de71-4d89-b026-a7aa47f3825e",
       "request": {
-        "intervention_id": "intervention_00000507",
+        "intervention_id": "intervention_00000113",
         "source": "custom",
         "source_event_id": null,
         "prompt": "A festival for 1 tick",
@@ -559,25 +621,25 @@
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "234af628-eab5-42b0-af7d-c2960dbced79",
+        "request_id": "49cae770-de71-4d89-b026-a7aa47f3825e",
         "data": {
-          "id": "preview_285164af32c94c5d8efc3289f2902e16",
-          "simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+          "id": "preview_1f473c759b8e431caa8731b1d8f94947",
+          "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
           "source": "custom",
           "source_event_id": null,
           "based_on": {
             "tick": 3,
             "revision": 12
           },
-          "expires_at": "2026-10-24T16:27:49.617912Z",
-          "interpretation": "Festival intervention: severity 50, 1 ticks; 1 supported effect(s).",
+          "expires_at": "2026-10-25T03:31:19.753169Z",
+          "interpretation": "A festival for 1 tick Citizens respond in their own way over 1 ticks.",
           "spec": {
-            "title": "Festival intervention",
+            "title": "A festival for 1 tick",
             "description": "A festival for 1 tick",
             "kind": "festival",
             "origin": {
-              "x": 32,
-              "y": 36
+              "x": 64,
+              "y": 64
             },
             "affected_polygon": [
               {
@@ -585,16 +647,16 @@
                 "y": 0
               },
               {
-                "x": 64,
+                "x": 128,
                 "y": 0
               },
               {
-                "x": 64,
-                "y": 72
+                "x": 128,
+                "y": 128
               },
               {
                 "x": 0,
-                "y": 72
+                "y": 128
               }
             ],
             "severity": 50,
@@ -603,80 +665,94 @@
               {
                 "type": "community",
                 "activity": "festival",
-                "capacity": 30
+                "capacity": 10
+              },
+              {
+                "type": "information",
+                "message": "A festival for 1 tick",
+                "reliability": 100,
+                "delivery": "local"
               }
             ],
-            "success_condition": "duration_elapsed"
+            "success_condition": "duration_elapsed",
+            "scene": [
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 53,
+                  "y": 75
+                },
+                "scale": 1,
+                "rotation": 1.997,
+                "color": "#f096b5",
+                "parts": []
+              },
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 81,
+                  "y": 57
+                },
+                "scale": 1,
+                "rotation": 3.759,
+                "color": "#f096b5",
+                "parts": []
+              },
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 91,
+                  "y": 59
+                },
+                "scale": 1,
+                "rotation": 0.087,
+                "color": "#f096b5",
+                "parts": []
+              }
+            ]
           },
-          "affected_agent_ids": [],
+          "affected_agent_ids": [
+            "agent_00000038",
+            "agent_00000039",
+            "agent_00000040",
+            "agent_00000041",
+            "agent_00000042",
+            "agent_00000043",
+            "agent_00000044",
+            "agent_00000045",
+            "agent_00000046",
+            "agent_00000047"
+          ],
           "affected_building_ids": [
+            "building_00000001",
+            "building_00000002",
+            "building_00000003",
+            "building_00000004",
+            "building_00000005",
+            "building_00000006",
             "building_00000007",
+            "building_00000008",
+            "building_00000009",
+            "building_00000010",
             "building_00000011",
+            "building_00000012",
+            "building_00000013",
+            "building_00000014",
+            "building_00000015",
             "building_00000016",
+            "building_00000017",
+            "building_00000018",
             "building_00000019",
+            "building_00000020",
+            "building_00000021",
+            "building_00000022",
             "building_00000023",
-            "building_00000029",
-            "building_00000037",
-            "building_00000038",
-            "building_00000039",
-            "building_00000047",
-            "building_00000048",
-            "building_00000052",
-            "building_00000058",
-            "building_00000059",
-            "building_00000067",
-            "building_00000079",
-            "building_00000080",
-            "building_00000081",
-            "building_00000082",
-            "building_00000083",
-            "building_00000094",
-            "building_00000095",
-            "building_00000096",
-            "building_00000101",
-            "building_00000109",
-            "building_00000110",
-            "building_00000111",
-            "building_00000120",
-            "building_00000135",
-            "building_00000136",
-            "building_00000137",
-            "building_00000138",
-            "building_00000139",
-            "building_00000140",
-            "building_00000141",
-            "building_00000153",
-            "building_00000154",
-            "building_00000155",
-            "building_00000156",
-            "building_00000166",
-            "building_00000167",
-            "building_00000168",
-            "building_00000185",
-            "building_00000186",
-            "building_00000187",
-            "building_00000188",
-            "building_00000189",
-            "building_00000190",
-            "building_00000198",
-            "building_00000199",
-            "building_00000200",
-            "building_00000207",
-            "building_00000208",
-            "building_00000219",
-            "building_00000220",
-            "building_00000221",
-            "building_00000222",
-            "building_00000227",
-            "building_00000228",
-            "building_00000232",
-            "building_00000237",
-            "building_00000238",
-            "building_00000240"
+            "building_00000024"
           ],
-          "warnings": [
-            "Bounded keyword compiler: only the displayed effects, polygon, severity and tick duration will execute. Other prose is not executable."
-          ],
+          "warnings": [],
           "unsupported_requests": [],
           "can_commit": true
         }
@@ -684,26 +760,26 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/scenario-commits",
-      "idempotency_key": "fdb7960d-fdc0-4029-9de9-d121fe7edf68",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/scenario-commits",
+      "idempotency_key": "80574eff-9e04-4d1e-b529-97cbe890d476",
       "request": {
-        "intervention_id": "intervention_00000507",
-        "preview_id": "preview_285164af32c94c5d8efc3289f2902e16",
+        "intervention_id": "intervention_00000113",
+        "preview_id": "preview_1f473c759b8e431caa8731b1d8f94947",
         "expected_control_version": 7
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "fdb7960d-fdc0-4029-9de9-d121fe7edf68",
+        "request_id": "80574eff-9e04-4d1e-b529-97cbe890d476",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -716,18 +792,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:49.786983Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:19.885920Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -737,11 +813,11 @@
             "sim_time_seconds": 30,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000509",
-            "saved_at": "2026-10-24T16:17:49.787003Z",
+            "latest_snapshot_id": "snapshot_00000115",
+            "saved_at": "2026-10-25T03:21:19.885933Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -752,55 +828,93 @@
             "initial_preview": null
           },
           "event": {
-            "id": "event_00000510",
-            "title": "Festival intervention",
+            "id": "event_00000116",
+            "title": "A festival for 1 tick",
             "kind": "festival",
             "status": "queued",
             "queued_tick": 3,
             "start_tick": null,
             "end_tick": null,
-            "affected_agent_count": 0,
+            "affected_agent_count": 10,
             "affected_polygon": [
               {
                 "x": 0,
                 "y": 0
               },
               {
-                "x": 64,
+                "x": 128,
                 "y": 0
               },
               {
-                "x": 64,
-                "y": 72
+                "x": 128,
+                "y": 128
               },
               {
                 "x": 0,
-                "y": 72
+                "y": 128
               }
             ],
-            "pre_event_snapshot_id": "snapshot_00000509",
-            "summary": "Event will begin on the next simulation tick"
+            "pre_event_snapshot_id": "snapshot_00000115",
+            "summary": "Event will begin on the next simulation tick",
+            "scene": [
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 53,
+                  "y": 75
+                },
+                "scale": 1,
+                "rotation": 1.997,
+                "color": "#f096b5",
+                "parts": []
+              },
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 81,
+                  "y": 57
+                },
+                "scale": 1,
+                "rotation": 3.759,
+                "color": "#f096b5",
+                "parts": []
+              },
+              {
+                "model": "stage",
+                "label": "A festival for 1 tick",
+                "position": {
+                  "x": 91,
+                  "y": 59
+                },
+                "scale": 1,
+                "rotation": 0.087,
+                "color": "#f096b5",
+                "parts": []
+              }
+            ]
           },
           "snapshot": {
-            "id": "snapshot_00000509",
-            "simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+            "id": "snapshot_00000115",
+            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
             "ref": {
               "tick": 3,
               "revision": 12
             },
-            "created_at": "2026-10-24T16:17:49.787003Z",
+            "created_at": "2026-10-25T03:21:19.885933Z",
             "reason": "pre_event",
-            "label": "Before Festival intervention"
+            "label": "Before A festival for 1 tick"
           }
         }
       }
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "2b5c585f-ad09-4628-b56d-3e864e1d76df",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "00191b65-1471-4eaf-9145-48ad27fc8525",
       "request": {
-        "request_id": "2b5c585f-ad09-4628-b56d-3e864e1d76df",
+        "request_id": "00191b65-1471-4eaf-9145-48ad27fc8525",
         "expected_control_version": 8,
         "command": {
           "type": "step",
@@ -810,16 +924,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "2b5c585f-ad09-4628-b56d-3e864e1d76df",
+        "request_id": "00191b65-1471-4eaf-9145-48ad27fc8525",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -832,18 +946,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:50.778654Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:20.088501Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -853,11 +967,11 @@
             "sim_time_seconds": 40,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000509",
-            "saved_at": "2026-10-24T16:17:49.787003Z",
+            "latest_snapshot_id": "snapshot_00000115",
+            "saved_at": "2026-10-25T03:21:19.885933Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -874,10 +988,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "be04c07e-ed5f-42e5-886f-c15fcabcde2c",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
       "request": {
-        "request_id": "be04c07e-ed5f-42e5-886f-c15fcabcde2c",
+        "request_id": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
         "expected_control_version": 9,
         "command": {
           "type": "step",
@@ -887,16 +1001,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "be04c07e-ed5f-42e5-886f-c15fcabcde2c",
+        "request_id": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -909,18 +1023,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:51.287380Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:20.346277Z",
             "status": "paused",
             "pause_reason": "outcome",
             "archived": false,
@@ -930,13 +1044,13 @@
             "sim_time_seconds": 50,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000509",
-            "saved_at": "2026-10-24T16:17:49.787003Z",
+            "latest_snapshot_id": "snapshot_00000115",
+            "saved_at": "2026-10-25T03:21:19.885933Z",
             "pending_outcome_event_ids": [
-              "event_00000510"
+              "event_00000116"
             ],
             "initialization": {
               "stage": "ready",
@@ -953,28 +1067,28 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/branches",
-      "idempotency_key": "de833863-e947-4390-970c-e536218b32a4",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/branches",
+      "idempotency_key": "ebf68a31-af51-4e65-a540-cb7e104e2ddd",
       "request": {
-        "name": "Live integration 1792858661638 · before event",
+        "name": "Live integration 1792898475494 · before event",
         "source": {
           "kind": "snapshot",
-          "snapshot_id": "snapshot_00000509"
+          "snapshot_id": "snapshot_00000115"
         }
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "de833863-e947-4390-970c-e536218b32a4",
+        "request_id": "ebf68a31-af51-4e65-a540-cb7e104e2ddd",
         "data": {
           "simulation": {
-            "id": "simulation_e1ab487b58cb4b69b77784314eb2b28e",
-            "name": "Live integration 1792858661638 · before event",
+            "id": "simulation_0f97e3d2ba424655a0db576701dab655",
+            "name": "Live integration 1792898475494 · before event",
             "config": {
-              "name": "Live integration 1792858661638 · before event",
+              "name": "Live integration 1792898475494 · before event",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -987,18 +1101,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:52.133372Z",
-            "updated_at": "2026-10-24T16:17:52.133399Z",
+            "created_at": "2026-10-25T03:21:20.664240Z",
+            "updated_at": "2026-10-25T03:21:20.664257Z",
             "status": "paused",
             "pause_reason": "loaded",
             "archived": false,
@@ -1008,14 +1122,14 @@
             "sim_time_seconds": 30,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
-            "parent_simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+            "agent_count": 10,
+            "parent_simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
             "fork_ref": {
               "tick": 3,
               "revision": 12
             },
-            "latest_snapshot_id": "snapshot_00000510",
-            "saved_at": "2026-10-24T16:17:52.133540Z",
+            "latest_snapshot_id": "snapshot_00000116",
+            "saved_at": "2026-10-25T03:21:20.664317Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -1026,25 +1140,25 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000510",
-            "simulation_id": "simulation_e1ab487b58cb4b69b77784314eb2b28e",
+            "id": "snapshot_00000116",
+            "simulation_id": "simulation_0f97e3d2ba424655a0db576701dab655",
             "ref": {
               "tick": 3,
               "revision": 13
             },
-            "created_at": "2026-10-24T16:17:52.133540Z",
+            "created_at": "2026-10-25T03:21:20.664317Z",
             "reason": "branch",
-            "label": "Branch from simulation_7460f909a8684a81a2b855ff51f96578 at revision 12"
+            "label": "Branch from simulation_253b1889045b42058901f81931a1f9c0 at revision 12"
           }
         }
       }
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_7460f909a8684a81a2b855ff51f96578/commands",
-      "idempotency_key": "2a81acf4-e81c-4bf8-85eb-00bbd1302471",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
       "request": {
-        "request_id": "2a81acf4-e81c-4bf8-85eb-00bbd1302471",
+        "request_id": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
         "expected_control_version": 11,
         "command": {
           "type": "save",
@@ -1055,16 +1169,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "2a81acf4-e81c-4bf8-85eb-00bbd1302471",
+        "request_id": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
         "data": {
           "simulation": {
-            "id": "simulation_7460f909a8684a81a2b855ff51f96578",
-            "name": "Live integration 1792858661638",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -1077,18 +1191,18 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:42.133458Z",
-            "updated_at": "2026-10-24T16:17:52.482490Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:20.724765Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -1098,13 +1212,13 @@
             "sim_time_seconds": 50,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
+            "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000634",
-            "saved_at": "2026-10-24T16:17:52.482560Z",
+            "latest_snapshot_id": "snapshot_00000161",
+            "saved_at": "2026-10-25T03:21:20.724810Z",
             "pending_outcome_event_ids": [
-              "event_00000510"
+              "event_00000116"
             ],
             "initialization": {
               "stage": "ready",
@@ -1115,13 +1229,13 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000634",
-            "simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+            "id": "snapshot_00000161",
+            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
             "ref": {
               "tick": 5,
               "revision": 16
             },
-            "created_at": "2026-10-24T16:17:52.482560Z",
+            "created_at": "2026-10-25T03:21:20.724810Z",
             "reason": "navigation",
             "label": "Saved before navigation"
           },
@@ -1131,11 +1245,11 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_e1ab487b58cb4b69b77784314eb2b28e/commands",
-      "idempotency_key": "0ea2659f-f80f-44b6-a0a4-5fc5e60f54e9",
+      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
+      "idempotency_key": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
       "request": {
-        "request_id": "0ea2659f-f80f-44b6-a0a4-5fc5e60f54e9",
-        "expected_control_version": 0,
+        "request_id": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
+        "expected_control_version": 12,
         "command": {
           "type": "save",
           "reason": "navigation",
@@ -1145,16 +1259,16 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "0ea2659f-f80f-44b6-a0a4-5fc5e60f54e9",
+        "request_id": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
         "data": {
           "simulation": {
-            "id": "simulation_e1ab487b58cb4b69b77784314eb2b28e",
-            "name": "Live integration 1792858661638 · before event",
+            "id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "name": "Live integration 1792898475494",
             "config": {
-              "name": "Live integration 1792858661638 · before event",
+              "name": "Live integration 1792898475494",
               "seed": 42,
               "mode": "sandbox",
-              "population": 30,
+              "population": 10,
               "population_traits": {
                 "curiosity": 50,
                 "empathy": 50,
@@ -1167,18 +1281,108 @@
               "personality_diversity": 50,
               "environment": {
                 "resource_availability": 50,
-                "population_density": 75,
+                "population_density": 50,
                 "infrastructure_capacity": 50,
                 "initial_community_trust": 50,
-                "settlement": "urban"
+                "settlement": "suburb"
               },
               "scenario_description": "A flood severity 60 for 2 ticks",
               "custom_agent_ids": [],
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-24T16:17:52.133372Z",
-            "updated_at": "2026-10-24T16:17:53.647629Z",
+            "created_at": "2026-10-25T03:21:15.948920Z",
+            "updated_at": "2026-10-25T03:21:20.920801Z",
+            "status": "paused",
+            "pause_reason": "manual",
+            "archived": false,
+            "tick": 5,
+            "revision": 17,
+            "control_version": 13,
+            "sim_time_seconds": 50,
+            "speed_multiplier": 1,
+            "achieved_ticks_per_second": 0,
+            "agent_count": 10,
+            "parent_simulation_id": null,
+            "fork_ref": null,
+            "latest_snapshot_id": "snapshot_00000162",
+            "saved_at": "2026-10-25T03:21:20.920849Z",
+            "pending_outcome_event_ids": [
+              "event_00000116"
+            ],
+            "initialization": {
+              "stage": "ready",
+              "progress": 100,
+              "message": "Ready complete",
+              "error": null
+            },
+            "initial_preview": null
+          },
+          "snapshot": {
+            "id": "snapshot_00000162",
+            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "ref": {
+              "tick": 5,
+              "revision": 17
+            },
+            "created_at": "2026-10-25T03:21:20.920849Z",
+            "reason": "navigation",
+            "label": "Saved before navigation"
+          },
+          "affected_agent_ids": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/simulations/simulation_0f97e3d2ba424655a0db576701dab655/commands",
+      "idempotency_key": "9232c0f0-17ba-4613-a358-52f776cbb274",
+      "request": {
+        "request_id": "9232c0f0-17ba-4613-a358-52f776cbb274",
+        "expected_control_version": 0,
+        "command": {
+          "type": "save",
+          "reason": "navigation",
+          "label": "Saved before navigation"
+        }
+      },
+      "status": 200,
+      "response": {
+        "schema_version": "1.0.0",
+        "request_id": "9232c0f0-17ba-4613-a358-52f776cbb274",
+        "data": {
+          "simulation": {
+            "id": "simulation_0f97e3d2ba424655a0db576701dab655",
+            "name": "Live integration 1792898475494 · before event",
+            "config": {
+              "name": "Live integration 1792898475494 · before event",
+              "seed": 42,
+              "mode": "sandbox",
+              "population": 10,
+              "population_traits": {
+                "curiosity": 50,
+                "empathy": 50,
+                "sociability": 50,
+                "trust": 50,
+                "cooperation": 50,
+                "risk_tolerance": 50
+              },
+              "household_supplies": 50,
+              "personality_diversity": 50,
+              "environment": {
+                "resource_availability": 50,
+                "population_density": 50,
+                "infrastructure_capacity": 50,
+                "initial_community_trust": 50,
+                "settlement": "suburb"
+              },
+              "scenario_description": "A flood severity 60 for 2 ticks",
+              "custom_agent_ids": [],
+              "tick_seconds": 10,
+              "max_ticks": 10000
+            },
+            "created_at": "2026-10-25T03:21:20.664240Z",
+            "updated_at": "2026-10-25T03:21:21.387306Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -1188,14 +1392,14 @@
             "sim_time_seconds": 30,
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
-            "agent_count": 30,
-            "parent_simulation_id": "simulation_7460f909a8684a81a2b855ff51f96578",
+            "agent_count": 10,
+            "parent_simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
             "fork_ref": {
               "tick": 3,
               "revision": 12
             },
-            "latest_snapshot_id": "snapshot_00000511",
-            "saved_at": "2026-10-24T16:17:53.647694Z",
+            "latest_snapshot_id": "snapshot_00000117",
+            "saved_at": "2026-10-25T03:21:21.387344Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -1206,13 +1410,13 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000511",
-            "simulation_id": "simulation_e1ab487b58cb4b69b77784314eb2b28e",
+            "id": "snapshot_00000117",
+            "simulation_id": "simulation_0f97e3d2ba424655a0db576701dab655",
             "ref": {
               "tick": 3,
               "revision": 14
             },
-            "created_at": "2026-10-24T16:17:53.647694Z",
+            "created_at": "2026-10-25T03:21:21.387344Z",
             "reason": "navigation",
             "label": "Saved before navigation"
           },

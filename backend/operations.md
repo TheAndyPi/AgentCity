@@ -59,8 +59,9 @@ and [deployment runbook](../deploy/README.md).
 
 ## Private production deployment recipe
 
-Coordinator integration is required; this task does not create root deployment
-files or deploy anything. On a persistent host such as Vultr:
+Reproducible single-worker files and operator steps are in the
+[deployment runbook](../deploy/README.md). Live deployment remains unverified.
+On a persistent host such as Vultr:
 
 1. Install the locked Python environment. Give a dedicated service account a
    persistent private DATA_DIR and enough disk for history plus backups.
@@ -85,7 +86,7 @@ The stream sender holds no simulation commit lock. It reads only the latest
 durable head, coalesces intermediate revisions, and disconnects a socket whose
 send stalls for two seconds. A 15-second server heartbeat maintains idle links.
 The client must implement the contract's reconnection/backoff and polling
-fallback; no frontend was available for that half of the protocol.
+fallback; both frontend paths are exercised by the browser acceptance suite.
 
 Runtime measurements are available to operators in `Service.stats` and
 `Gateway.diagnostics` and are exported by the benchmark script. They include

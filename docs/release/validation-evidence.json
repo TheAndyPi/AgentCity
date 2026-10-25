@@ -1,0 +1,76 @@
+{
+  "date_america_new_york": "2026-10-24",
+  "application_commit": "c724845a85368660fb5d13347bf76e9f5883f219",
+  "test_tree_commit": "0f6b3a9909aaf6babf69165fbf0acc0fa9ec302d",
+  "environment": {
+    "python": "3.13.1",
+    "node": "22.23.2",
+    "npm": "12.2.0",
+    "chrome": "155.0.8059.86",
+    "playwright": "1.64.1",
+    "local_postgresql": "18.6"
+  },
+  "backend": {
+    "tests": "353",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "2",
+    "time": "185.346",
+    "timestamp": "2026-10-24T23:28:32.001586-04:00"
+  },
+  "frontend_unit_passed": 150,
+  "core_browser": {
+    "startTime": "2026-10-25T03:21:02.154Z",
+    "duration": 106827.511,
+    "expected": 26,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "snowflake_browser": {
+    "passed": 3,
+    "failed": 0,
+    "seconds": 13.1,
+    "external_transport": "controlled_fake"
+  },
+  "tiger_live": {
+    "passed": 2,
+    "deselected": 18,
+    "seconds": 16.67,
+    "tls": "verify-full",
+    "disposable_schemas_only": true
+  },
+  "postgresql_local": {
+    "passed": 2,
+    "deselected": 18,
+    "seconds": 8.68,
+    "tls": "verify-full",
+    "database_owner": false,
+    "superuser": false
+  },
+  "contract": {
+    "frozen_hashes": 43,
+    "dto_openapi_stream": "match"
+  },
+  "build": "passed",
+  "ruff_lint_and_format": "passed",
+  "npm_audit_all_findings": 0,
+  "npm_audit_production_findings": 0,
+  "initial_core_browser": {
+    "passed": 22,
+    "failed": 4,
+    "repaired": true
+  },
+  "benchmark_files": {
+    "backend/artifacts/tiger-release-performance.json": "e194f3322a26944c287ad607bf3a894182d430bd286d1f90c4cc42eca2841f64",
+    "backend/artifacts/tiger-release-outage-performance.json": "2682a721184dc68976e310711eefe34734444a7da1ba73d321650708d49f6ec4"
+  },
+  "benchmark_hash_format": "SHA-256 of UTF-8 text normalized to LF newlines",
+  "release_status": "not_ready_for_three_service_hosted_release",
+  "remaining": [
+    "narration_branch_and_tests",
+    "real_snowflake_schema_privileges_and_sql_cortex",
+    "vultr_https_restart_restore_rollback",
+    "10000_tick_endurance"
+  ]
+}

@@ -173,7 +173,14 @@ metadata; when any call has no token metadata, the affected Usage endpoint
 returns explicit 503 unavailable instead of a fabricated token total. Conservative
 internal budget charges survive restart. Estimated dollars remain null.
 
-PostgreSQL/Tiger Data, Snowflake and ElevenLabs adapters are unavailable.
-Capabilities report local persistence, `snowflake=false`, and `narration=false`.
-Selecting `PERSISTENCE_MODE=postgres` fails configuration clearly. These optional
+Optional [Tiger ingestion](../docs/release/tiger-handoff.md) uses
+`TIGER_ENABLED`/`TIGER_DATABASE_URL`, with local storage still authoritative.
+[Snowflake comparisons](../docs/release/snowflake-handoff.md) use
+`SNOWFLAKE_ENABLED` and the documented server-side key-pair configuration; their
+default-app route and comparison UI are integrated. Both default to disabled.
+Capabilities retain `persistence=local`; `snowflake` reflects the enabled adapter.
+ElevenLabs narration remains unavailable and `narration=false` pending C's branch.
+Selecting `PERSISTENCE_MODE=postgres` still fails configuration clearly. These
 services are not prerequisites for simulation, history, export or branching.
+See [release verification](../docs/release/validation-report.md) for real-service
+status and remaining hosted-release blockers.
