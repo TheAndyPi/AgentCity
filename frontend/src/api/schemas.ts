@@ -248,7 +248,7 @@ export const eventSpec = obj({
   origin: vec,
   affected_polygon: polygon,
   severity: pct,
-  duration_ticks: count.min(1).max(1000),
+  duration_ticks: count.min(1).max(10000),
   effects: z.array(effect).max(20),
   success_condition: z.enum(["duration_elapsed", "all_safe_or_duration"]),
   scene: z.array(sceneObject).max(24).optional(),

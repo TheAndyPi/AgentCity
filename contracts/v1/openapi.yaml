@@ -4923,7 +4923,7 @@ components:
           title: Severity
         duration_ticks:
           type: integer
-          maximum: 1000.0
+          maximum: 10000.0
           minimum: 1.0
           title: Duration Ticks
         effects:

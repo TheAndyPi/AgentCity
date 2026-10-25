@@ -605,3 +605,12 @@ def test_initial_setup_scenario_uses_the_engine(client, monkeypatch):
     assert response.status_code == 200, response.text
     head = client.app.state.service.heads[sid]
     assert head.systems.enabled and head.systems.plans and head.systems.initial_plan is None
+
+
+def test_one_second_cities_keep_plan_timings_in_simulated_seconds(client):
+    for tick_seconds in (10, 1):
+        state = city(client, tick_seconds=tick_seconds)
+        plan, errors, warnings = validate_plan(state, plan_from(state, transit_hospital_draft()))
+        assert plan is not None, errors
+        preview = compile_preview(state, plan, warnings)
+        assert preview.spec.duration_ticks * tick_seconds == plan.measurement_ticks * 10

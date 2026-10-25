@@ -45,9 +45,9 @@
     "fixtures/transport_snapshot.json": "b4a8dec12e0ee23b819ac0488141483b596360bb79744eac2cad9a4bd11f2ac5",
     "fixtures/valid_integral_json_numbers.json": "df47c4bb580b14e35bfcf25bd279c0041a6a9402927135f5d0dbca83172fe99f",
     "fixtures/validation_error.json": "ff8863be139260ced2601adbc1b447a433d9f847868d1ac36a1c0e552756f19e",
-    "openapi.yaml": "b926e2509c3e981f229a1f9f5ec51979dfce6e5f827788484681c4c9dc5ca7bd",
-    "schemas.json": "d3e56f73fe8a8b837d9152aff22b9623dccc680ddbcef42f48ee60af117dfcd1",
-    "stream.schema.json": "e16bafd57afad6dba18d09921f71309e76158d57081c8600d2585c7ebcef1c76"
+    "openapi.yaml": "38c5b97419a1dab294ddf2042a42fd7aa291db8654d6bf94e5b92ef3bb200a3b",
+    "schemas.json": "ef77f81f7563d7b316e23dc8473df53d187b38787d7972163a53031ecf4c5474",
+    "stream.schema.json": "0fd5f1a2b8416d571cfc6f89b640f2adfd2345519bc4ae9e19f9aefc0662c29b"
   },
   "bootstrap_note": "Initial bootstrap validation corrected JSON Schema numeric bounds, UUID/date/name/unique-ID constraints, strict response fields, and documented middleware headers. Contract text and wire version unchanged. No frontend consumer was present.",
   "snapshot_revision": 3

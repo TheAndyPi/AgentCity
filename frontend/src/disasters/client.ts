@@ -71,7 +71,7 @@ export const parameters = z
     extent_m: z.number().positive(),
     origin: point,
     track_end: point.nullable(),
-    duration_ticks: z.number().int().min(1).max(1000),
+    duration_ticks: z.number().int().min(1).max(10000),
     seed: z.number().int().nonnegative(),
     rule_version: z.literal("disasters-2.0.0"),
   })
@@ -284,6 +284,7 @@ export function defaults(
   width: number,
   height: number,
   seed: number,
+  tickSeconds = 10,
 ): DisasterParameters {
   return {
     kind,
@@ -294,7 +295,7 @@ export function defaults(
       kind === "tornado"
         ? { x: Math.min(width, width / 2 + 32), y: height / 2 }
         : null,
-    duration_ticks: 12,
+    duration_ticks: Math.ceil(120 / tickSeconds),
     seed: seed % 2147483648,
     rule_version: "disasters-2.0.0",
   };
@@ -304,10 +305,11 @@ export function fromPrompt(
   width: number,
   height: number,
   seed: number,
+  tickSeconds = 10,
 ): DisasterParameters | null {
   const kind = kinds.find((k) => new RegExp(`\\b${k}\\b`, "i").test(prompt));
   if (!kind) return null;
-  const result = defaults(kind, width, height, seed);
+  const result = defaults(kind, width, height, seed, tickSeconds);
   const patterns = {
     earthquake: /(?:magnitude|mw)\s*([\d.]+)/i,
     tornado: /([\d.]+)\s*m\/s/i,

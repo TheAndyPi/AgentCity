@@ -417,7 +417,7 @@ export default function Setup() {
                 </Field>
                 <Field
                   label="Maximum ticks"
-                  hint="How long the simulation can run. Each tick is one step of city time, and it stops at this limit."
+                  hint="How long the simulation can run. Each tick is one second of city time, and it stops at this limit."
                   error={errors.max_ticks}
                 >
                   <input

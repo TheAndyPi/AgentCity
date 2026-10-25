@@ -689,7 +689,7 @@
           "type": "number"
         },
         "duration_ticks": {
-          "maximum": 1000,
+          "maximum": 10000,
           "minimum": 1,
           "title": "Duration Ticks",
           "type": "integer"

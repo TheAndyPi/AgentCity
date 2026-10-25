@@ -14,6 +14,7 @@ from app.simulation.navigation import polygon_contains
 from app.simulation.scenario_scene import build_scene, matches
 from app.simulation.scenarios import rectangle, validate_spec
 from app.simulation.state import expiry
+from app.simulation.timing import legacy_ticks
 
 PLAN = TypeAdapter(ScenarioPlan)
 MAX_APPLICATIONS = 200
@@ -228,7 +229,7 @@ def compile_preview(state, plan, warnings, source="custom"):
         origin=Vec2(x=sum(p.x for p in polygon) / len(polygon), y=sum(p.y for p in polygon) / len(polygon)),
         affected_polygon=polygon,
         severity=max([op.severity for op in hazards], default=50),
-        duration_ticks=plan.measurement_ticks,
+        duration_ticks=legacy_ticks(state, plan.measurement_ticks),
         effects=effects[:20],
         success_condition="duration_elapsed",
     )
@@ -244,7 +245,7 @@ def compile_preview(state, plan, warnings, source="custom"):
         based_on=state.ref(),
         expires_at=expiry(),
         interpretation=(
-            f"{plan.description} Citizens respond in their own way over {plan.measurement_ticks} ticks."
+            f"{plan.description} Citizens respond in their own way over {legacy_ticks(state, plan.measurement_ticks)} ticks."
         )[:2000],
         spec=spec,
         affected_agent_ids=[

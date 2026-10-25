@@ -580,7 +580,7 @@ class EventSpec(Model):
     origin: Vec2
     affected_polygon: Polygon
     severity: Pct
-    duration_ticks: Annotated[int, Field(ge=1, le=1000), BeforeValidator(integer_number)]
+    duration_ticks: Annotated[int, Field(ge=1, le=10000), BeforeValidator(integer_number)]
     effects: Annotated[list[EffectSpec], Field(max_length=20)]
     success_condition: Literal["duration_elapsed", "all_safe_or_duration"]
     scene: Annotated[list[SceneObject], Field(max_length=24)] = Field(default_factory=list)
