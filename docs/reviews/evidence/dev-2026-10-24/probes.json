@@ -1,0 +1,20 @@
+{
+  "delete": {
+    "status": 200,
+    "get_after_delete": 404,
+    "objects_before": 11,
+    "objects_after": 11,
+    "object_bytes_before": 835122,
+    "object_bytes_after": 835122
+  },
+  "lessons_deadline": {
+    "decision_deadline_seconds": 0.35,
+    "elapsed_seconds": 0.5586486999995941,
+    "still_pending": true,
+    "semaphore_occupied": true
+  },
+  "decision_deadline_control": {
+    "returned_fallback": true,
+    "elapsed_seconds": 0.35429619999968054
+  }
+}
