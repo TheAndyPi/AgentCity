@@ -358,3 +358,29 @@ real interactions/rest/nutrition, time scaling, feedback/deduplication, restart 
 long-run recovery. Existing Mental <=10 OR Stress >=80 crisis thresholds and
 Health/Fullness death precedence remain unchanged. This is a task-specification
 update, not implementation or validation of the new engine model.
+
+## 2026-10-25 - Relationship progression, learned outcomes and Snowflake task
+
+Added the [relationship and learning assignment](prompts/relationships-learning-snowflake.md)
+on proposed branch `codex/relationships-learning-analytics`, linked from the
+survival/personality/class-conflict task. Required progression is strangers ->
+acquaintances -> friends -> best friends, with optional mutual lovers -> married
+and arguing -> enemies paths. Friendship, romance/commitment and conflict are
+separate axes so an argument does not erase a marriage. The prompt specifies
+directed feelings, threshold/cooldown defaults, consent, kinship, reconciliation,
+legacy migration and preservation of frozen v1 contracts.
+
+Survival/rescue/crisis/hazard/class experiences must create evidence-backed,
+persisted lessons that change later choices in both rules and Gemini paths.
+The reference collapse fixture changes voluntary rest from Energy <=20 to <=25,
+without altering real Energy or the Energy 0 fainting rule. Learning stays bounded,
+knowledge-based and subordinate to life state, consent and physical action rules.
+
+Snowflake currently projects metrics plus bounded recent events/decisions, not a
+complete relationship/learning history. The task requires a versioned export/SQL
+read model, idempotent ingestion, correct pair versus directed counts, learning
+opportunity/application/outcome statistics, branch/revision provenance and cited
+comparisons. Missing warehouse coverage must remain explicit, with truthful local
+fallback. RL-01 through RL-18 specify required executable tests plus an opt-in live
+warehouse check. This change writes task specifications only; it does not implement
+the new mechanics, run their future tests or claim live Snowflake verification.
