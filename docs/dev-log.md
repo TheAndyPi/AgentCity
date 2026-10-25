@@ -723,3 +723,24 @@ building-walk browser cases passed; desktop/mobile screenshots were visually
 checked. Evidence: ignored `backend/.tmp/floating-agent-header-browser/` and its
 sibling build/browser logs. The running dev frontend updates through Vite; no
 backend restart or paid provider call was needed. Unrelated README edits preserved.
+
+### 2026-10-25 — Ground-level camera panning and clipping
+
+Reproduced vertical screen-space panning lowering the camera target 22.18 meters
+below the ground. OrbitControls now pans parallel to the ground. The orthographic
+camera also fits city depth after orbit, follow and close-up transitions: it moves
+the eye backward along its viewing direction when the near plane would intersect
+the city and expands far depth as needed. Orthographic framing/zoom and the user's
+target remain unchanged; fog distances follow the eye so this adjustment cannot
+fade out the neighborhood. Bounds include the ground and tallest building/spire.
+
+Added two geometry regressions proving a previously clipped city fits the depth
+range with unchanged screen coordinates and distant panning retains its target.
+Added actual mouse orbit/pan browser regressions in dark desktop and light mobile
+views, checking ground-plane target height and the map's near/far depths. Updated
+the existing large-city selection expectation for the preceding floating name UI.
+Final checks: **186 frontend tests passed**, production build passed, **30/30 core
+browser cases passed** with no skips/flakes. Low-angle desktop/mobile screenshots
+were visually checked. Evidence: ignored `backend/.tmp/camera-ground-evidence/`
+plus `backend/.tmp/camera-ground-final-core/`. No backend restart, saved-city
+mutation or paid provider request was needed; unrelated local README preserved.

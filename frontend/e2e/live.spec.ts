@@ -1098,7 +1098,9 @@ for (const population of [30, 100])
       })
       .focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("complementary")).toContainText(agent.name);
+    await expect(
+      page.getByRole("heading", { name: agent.name, exact: true }),
+    ).toBeVisible();
   });
 
 test("life sim traits, conversations and open-ended events work on desktop and mobile", async ({

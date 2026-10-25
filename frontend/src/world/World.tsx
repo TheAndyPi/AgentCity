@@ -33,6 +33,7 @@ import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
 import ScenarioScene from "./ScenarioScene";
 import type { DisasterState } from "../disasters/client";
+import { fitCityDepth } from "./cameraBounds";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -168,7 +169,23 @@ function Camera({
   onUnfollow: () => void;
 }) {
   const controls = useRef<OrbitControlsType>(null);
-  const { size } = useThree();
+  const { size, scene } = useThree();
+  const cityHeight = Math.max(
+    20,
+    ...frame.map.buildings.map((b) => b.height_m + 6),
+  );
+  const cityBounds = useMemo(
+    () =>
+      new THREE.Sphere(
+        new THREE.Vector3(
+          frame.map.width_m / 2,
+          (cityHeight - 1) / 2,
+          frame.map.height_m / 2,
+        ),
+        Math.hypot(frame.map.width_m, cityHeight + 1, frame.map.height_m) / 2,
+      ),
+    [frame.map.width_m, frame.map.height_m, cityHeight],
+  );
   const frameRef = useRef(frame);
   frameRef.current = frame;
   const transition = useRef<{
@@ -338,6 +355,19 @@ function Camera({
     }
     c.update();
   });
+  // Run after transitions/following as well as ordinary OrbitControls input.
+  useFrame(() => {
+    const c = controls.current;
+    if (!c) return;
+    const camera = c.object as THREE.OrthographicCamera;
+    fitCityDepth(camera, c.target, cityBounds);
+    // Fog follows scene depth, so moving the orthographic eye cannot hide the city.
+    if (scene.fog instanceof THREE.Fog) {
+      const distance = camera.position.distanceTo(c.target);
+      scene.fog.near = distance + 100;
+      scene.fog.far = distance + 440;
+    }
+  });
   return (
     <OrbitControls
       ref={controls}
@@ -347,6 +377,7 @@ function Camera({
       maxZoom={maxZoom}
       maxPolarAngle={Math.PI / 2.05}
       minPolarAngle={0.18}
+      screenSpacePanning={false}
       enableDamping={!reducedMotion}
       dampingFactor={0.12}
       onChange={() => {
