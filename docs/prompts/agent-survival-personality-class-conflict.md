@@ -27,6 +27,11 @@ Gemini, Tiger, Snowflake, narration, history, security and scenario behavior.
 - Happiness, Safety, Trust, Resources and Stress must each affect Mental, Social
   fulfillment and/or Energy through the explicit intuitive interaction model
   below. These cannot remain unrelated cosmetic dashboard values.
+- Survival, rescue, crisis, social and class-conflict outcomes must support
+  persistent learning that changes future decisions. Coordinate relationship
+  progression, learned rules and Snowflake tracking with the companion
+  [relationships and learning assignment](relationships-learning-snowflake.md).
+  A narrative memory alone does not demonstrate learned behavior.
 
 ## 1. Canonical meters and state model
 

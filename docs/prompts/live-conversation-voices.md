@@ -7,6 +7,11 @@ dev and create `codex/live-conversation-voices`; inspect an existing branch befo
 reusing it. Preserve the current frontend design, merged integrations, media
 authorization, provider budgets and manual event/decision narration.
 
+Coordinate with [disaster sound, music and screams](elevenlabs-disaster-audio.md).
+The page coordinator remains the single playback owner: serialized foreground
+voices plus centrally mixed/ducked background music and environmental buses.
+Disaster audio must preserve focus, stable voice identities, captions and mute.
+
 ## User outcome
 
 When the user watches a specific citizen or a specific conversation, hear the
@@ -89,8 +94,8 @@ existing UI design. A browser user gesture must unlock automatic audio; handle
 page load. Retain the user's mute/volume preference without pretending a stored
 preference bypasses a new browser's autoplay policy.
 
-Use one playback channel: the next line starts after the previous line finishes
-or is explicitly skipped. Prefetch at most two next utterances. Bound queue length
+Use one foreground voice channel: the next line starts after the previous line
+finishes or is explicitly skipped. Prefetch at most two next utterances. Bound queue length
 and estimated speech duration, initially 10 lines / 45 seconds, with measured
 configuration documented in the handoff. At ordinary speed, preserve all four
 turns of a watched conversation; do not drop replies merely because React rerenders.
