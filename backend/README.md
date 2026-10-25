@@ -56,7 +56,8 @@ has not been rehearsed on a Vultr host.
    of animation frames.
 
 Every normative HTTP operation is implemented. Optional narration returns a
-contract-shaped 501. See `../contracts/v1/openapi.yaml`, `schemas.json`,
+contract-shaped 501 when disabled; configured ElevenLabs narration returns
+owner-authorized expiring audio URLs. See `../contracts/v1/openapi.yaml`, `schemas.json`,
 `stream.schema.json` and the shared fixtures. The supplied contract is copied
 verbatim and its hash is frozen. The integrated React/Zod consumer now passes
 the same shared fixtures and real browser flows with HTTP and WebSocket data.
@@ -179,7 +180,10 @@ Optional [Tiger ingestion](../docs/release/tiger-handoff.md) uses
 `SNOWFLAKE_ENABLED` and the documented server-side key-pair configuration; their
 default-app route and comparison UI are integrated. Both default to disabled.
 Capabilities retain `persistence=local`; `snowflake` reflects the enabled adapter.
-ElevenLabs narration remains unavailable and `narration=false` pending C's branch.
+[ElevenLabs narration](../docs/release/narration-handoff.md) uses
+`ENABLE_NARRATION`, the documented voice/model and server-side key. It defaults
+to disabled; `narration` reflects the enabled adapter. Generated media requires
+both owner authorization and the returned expiring signature.
 Selecting `PERSISTENCE_MODE=postgres` still fails configuration clearly. These
 services are not prerequisites for simulation, history, export or branching.
 See [release verification](../docs/release/validation-report.md) for real-service

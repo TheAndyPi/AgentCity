@@ -1,0 +1,6 @@
+.narration .narration-status {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}

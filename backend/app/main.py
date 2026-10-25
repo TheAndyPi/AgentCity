@@ -23,6 +23,7 @@ from app.api.security import COOKIE, Security
 from app.api.views import Cursors, agent_detail, agent_records, frame, overview
 from app.infrastructure.config import AppConfig
 from app.infrastructure.errors import DomainError, require
+from app.narration.router import install_narration, narrate
 from app.service import Service, Transaction
 from app.simulation.scenarios import event_report
 from app.simulation.state import now, uid
@@ -34,7 +35,7 @@ Limit = Annotated[int, Query(ge=1, le=100)]
 API = "/api/v1"
 
 
-def create_app(config: AppConfig | None = None):
+def create_app(config: AppConfig | None = None, narration_config=None, narration_transport=None):
     runtime = config or AppConfig.from_env()
     snowflake_config = SnowflakeConfig.from_env()
 
@@ -213,7 +214,7 @@ def create_app(config: AppConfig | None = None):
                 max_agents=runtime.max_agents,
                 max_concurrent_running_simulations=runtime.max_running,
                 gemini=runtime.gemini_enabled,
-                narration=False,
+                narration=request.app.state.narration.enabled,
                 snowflake=app.state.integrations.state.comparison.config.enabled,
                 persistence="local",
                 replay=True,
@@ -772,8 +773,7 @@ def create_app(config: AppConfig | None = None):
 
     @app.post(API + "/simulations/{sid}/narration", response_model=c.Success[c.NarrationResult])
     async def narration(request: Request, sid: str, body: c.NarrationRequest):
-        resolved(request, sid)
-        raise DomainError("FEATURE_UNAVAILABLE", "Narration integration is unavailable", 501)
+        return await narrate(request, sid, body)
 
     @app.websocket(API + "/simulations/{sid}/stream")
     async def stream(websocket: WebSocket, sid: str):
@@ -926,6 +926,7 @@ def create_app(config: AppConfig | None = None):
     app.state.integrations = integrations
     app.mount(API + "/integrations", integrations)
     install_snowflake(app, snowflake_config)
+    install_narration(app, narration_config, narration_transport)
     if runtime.frontend_dist:
         from app.infrastructure.frontend import mount_frontend
 

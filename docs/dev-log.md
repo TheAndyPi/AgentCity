@@ -244,3 +244,20 @@ Automatic review blocked cleanup of one stopped temporary PostgreSQL bootstrap
 folder; it remains outside the workspace and has no effect on the app/tests.
 Generated browser screenshots were retained as evidence after cleanup review
 also rejected their deletion.
+### Machine C: ElevenLabs narration
+
+Branch `codex/elevenlabs-narration` (commits `e418385`..HEAD on `dev` `2d22559`).
+Files: `backend/app/narration/**`, narration tests/fake/fixture, browser test
+(`frontend/narration-e2e/`, `scripts/narration-e2e.mjs`), opt-in live smoke
+(`scripts/narration-live-smoke.mjs`), `Narration.tsx` states, and the `main.py`
+wiring also delivered as `docs/release/narration-wiring.patch`.
+New configuration names: `ENABLE_NARRATION`, `ELEVENLABS_API_KEY`,
+`ELEVENLABS_VOICE_ID`, `ELEVENLABS_CHARACTER_VOICE_IDS`, `ELEVENLABS_MODEL_ID`,
+`ELEVENLABS_OUTPUT_FORMAT`, `NARRATION_PUBLIC_ORIGIN`, `NARRATION_*` limits.
+Tests: narration backend 42 passed; N-07 browser 1 passed; frontend 150 passed;
+43 contract hashes match. Live ElevenLabs verified once at 2026-10-25T03:45:45Z
+(separate from fixtures). Known failure: `test_repeat_evacuations_count_each_citizen_once`
+also fails on clean `dev`. Combined with Snowflake, B's two S-05 tests must use
+`app.state.integrations` instead of `app.routes[0]`.
+Next (A): apply wiring, `.env.example` lines and README note from
+[narration-handoff.md](release/narration-handoff.md); B: the one-line test fix.

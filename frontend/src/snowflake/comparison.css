@@ -1,17 +1,16 @@
 .snowflake-comparison {
   margin-block: 1.5rem;
-  border-block: 1px solid var(--border, #635473);
+  border-block: 1px solid var(--line, #635473);
   padding-block: 1.25rem;
 }
 .snowflake-comparison h3 {
   margin: 0.5rem 0;
-  font-family: "Chakra Petch", sans-serif;
+  font-family: var(--font-display, "Chakra Petch", sans-serif);
 }
 .snowflake-kicker {
-  color: #9acfd9;
+  color: var(--cyan, #9acfd9);
   font:
-    500 0.75rem "Chakra Petch",
-    sans-serif;
+    500 0.75rem var(--font-tech, "Chakra Petch", sans-serif);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -27,7 +26,7 @@
   padding: 0.75rem;
   color: inherit;
   background: transparent;
-  border: 1px solid #635473;
+  border: 1px solid var(--line, #635473);
   border-radius: 0.25rem;
 }
 .snowflake-sources {
@@ -36,7 +35,7 @@
   flex-wrap: wrap;
   margin-top: 1.5rem;
   font-size: 0.85rem;
-  color: #9acfd9;
+  color: var(--cyan, #9acfd9);
 }
 .snowflake-pins {
   display: grid;
@@ -68,7 +67,7 @@
 .snowflake-table td {
   padding: 0.6rem 0.3rem;
   text-align: right;
-  border-bottom: 1px solid #63547366;
+  border-bottom: 1px solid var(--line, #63547366);
 }
 .snowflake-table th:first-child {
   text-align: left;
