@@ -6,10 +6,10 @@
     {
       "method": "POST",
       "path": "/api/v1/simulations",
-      "idempotency_key": "f5e50fb3-f333-4d26-b53d-3d69fe6935d4",
+      "idempotency_key": "c16456a9-2d69-4b71-9240-90ca381cc472",
       "request": {
         "config": {
-          "name": "Live integration 1792898475494",
+          "name": "Live integration 1792902445949",
           "seed": 42,
           "mode": "sandbox",
           "population": 10,
@@ -39,12 +39,12 @@
       "status": 202,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "f5e50fb3-f333-4d26-b53d-3d69fe6935d4",
+        "request_id": "c16456a9-2d69-4b71-9240-90ca381cc472",
         "data": {
-          "id": "simulation_253b1889045b42058901f81931a1f9c0",
-          "name": "Live integration 1792898475494",
+          "id": "simulation_52a0685520414a05b099c56851206c09",
+          "name": "Live integration 1792902445949",
           "config": {
-            "name": "Live integration 1792898475494",
+            "name": "Live integration 1792902445949",
             "seed": 42,
             "mode": "sandbox",
             "population": 10,
@@ -70,8 +70,8 @@
             "tick_seconds": 10,
             "max_ticks": 10000
           },
-          "created_at": "2026-10-25T03:21:15.948920Z",
-          "updated_at": "2026-10-25T03:21:15.948920Z",
+          "created_at": "2026-10-25T04:27:26.421212Z",
+          "updated_at": "2026-10-25T04:27:26.421212Z",
           "status": "initializing",
           "pause_reason": null,
           "archived": false,
@@ -99,8 +99,8 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/initial-scenario",
-      "idempotency_key": "1ba9be0d-b064-4725-a0cd-4661abc45ae1",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/initial-scenario",
+      "idempotency_key": "be3ca7b0-cbca-4bb7-b6bd-e9c2fbe1973c",
       "request": {
         "preview_id": "preview_00000048",
         "decision": "confirm",
@@ -109,13 +109,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "1ba9be0d-b064-4725-a0cd-4661abc45ae1",
+        "request_id": "be3ca7b0-cbca-4bb7-b6bd-e9c2fbe1973c",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -141,8 +141,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:17.860381Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:28.346817Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -156,7 +156,7 @@
             "parent_simulation_id": null,
             "fork_ref": null,
             "latest_snapshot_id": "snapshot_00000050",
-            "saved_at": "2026-10-25T03:21:17.860403Z",
+            "saved_at": "2026-10-25T04:27:28.346835Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -174,7 +174,7 @@
             "queued_tick": 0,
             "start_tick": null,
             "end_tick": null,
-            "affected_agent_count": 4,
+            "affected_agent_count": 2,
             "affected_polygon": [
               {
                 "x": 0,
@@ -200,8 +200,8 @@
                 "model": "flood",
                 "label": "A flood severity 60 for 2 ticks",
                 "position": {
-                  "x": 27,
-                  "y": 55
+                  "x": 51,
+                  "y": 49
                 },
                 "scale": 0.85,
                 "rotation": 5.923,
@@ -212,8 +212,8 @@
                 "model": "flood",
                 "label": "A flood severity 60 for 2 ticks",
                 "position": {
-                  "x": 61,
-                  "y": 47
+                  "x": 19,
+                  "y": 59
                 },
                 "scale": 0.85,
                 "rotation": 3.946,
@@ -224,8 +224,8 @@
                 "model": "flood",
                 "label": "A flood severity 60 for 2 ticks",
                 "position": {
-                  "x": 35,
-                  "y": 53
+                  "x": 41,
+                  "y": 51
                 },
                 "scale": 0.85,
                 "rotation": 3.004,
@@ -236,8 +236,8 @@
                 "model": "flood",
                 "label": "A flood severity 60 for 2 ticks",
                 "position": {
-                  "x": 49,
-                  "y": 67
+                  "x": 47,
+                  "y": 65
                 },
                 "scale": 0.85,
                 "rotation": 6.264,
@@ -248,8 +248,8 @@
                 "model": "flood",
                 "label": "A flood severity 60 for 2 ticks",
                 "position": {
-                  "x": 45,
-                  "y": 37
+                  "x": 49,
+                  "y": 55
                 },
                 "scale": 0.85,
                 "rotation": 4.483,
@@ -260,12 +260,12 @@
           },
           "snapshot": {
             "id": "snapshot_00000050",
-            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "ref": {
               "tick": 0,
               "revision": 6
             },
-            "created_at": "2026-10-25T03:21:17.860403Z",
+            "created_at": "2026-10-25T04:27:28.346835Z",
             "reason": "pre_event",
             "label": "Before A flood severity 60 for 2 ticks"
           }
@@ -274,10 +274,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "92a9b32f-3963-4892-8218-69d2545b4dd7",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "11b907eb-c8b0-49a4-9f63-327c25bcc94d",
       "request": {
-        "request_id": "92a9b32f-3963-4892-8218-69d2545b4dd7",
+        "request_id": "11b907eb-c8b0-49a4-9f63-327c25bcc94d",
         "expected_control_version": 1,
         "command": {
           "type": "step",
@@ -287,13 +287,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "92a9b32f-3963-4892-8218-69d2545b4dd7",
+        "request_id": "11b907eb-c8b0-49a4-9f63-327c25bcc94d",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -319,8 +319,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:18.048540Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:28.549429Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -334,7 +334,7 @@
             "parent_simulation_id": null,
             "fork_ref": null,
             "latest_snapshot_id": "snapshot_00000050",
-            "saved_at": "2026-10-25T03:21:17.860403Z",
+            "saved_at": "2026-10-25T04:27:28.346835Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -351,10 +351,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "d0d5fcab-157f-4ab9-9ad8-6d13503eab49",
       "request": {
-        "request_id": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
+        "request_id": "d0d5fcab-157f-4ab9-9ad8-6d13503eab49",
         "expected_control_version": 2,
         "command": {
           "type": "step",
@@ -364,13 +364,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "7d716f5d-3ef9-4baa-9829-94387cc4d8cc",
+        "request_id": "d0d5fcab-157f-4ab9-9ad8-6d13503eab49",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -396,8 +396,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:18.282797Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:28.796472Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -411,7 +411,7 @@
             "parent_simulation_id": null,
             "fork_ref": null,
             "latest_snapshot_id": "snapshot_00000050",
-            "saved_at": "2026-10-25T03:21:17.860403Z",
+            "saved_at": "2026-10-25T04:27:28.346835Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -428,10 +428,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "b1ad7ecd-a53c-4a79-9ce6-38997441f03e",
       "request": {
-        "request_id": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
+        "request_id": "b1ad7ecd-a53c-4a79-9ce6-38997441f03e",
         "expected_control_version": 3,
         "command": {
           "type": "step",
@@ -441,13 +441,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "7da4d3e6-4e84-45f0-861b-c68373039cb1",
+        "request_id": "b1ad7ecd-a53c-4a79-9ce6-38997441f03e",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -473,8 +473,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:18.519794Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:29.043810Z",
             "status": "paused",
             "pause_reason": "outcome",
             "archived": false,
@@ -488,7 +488,7 @@
             "parent_simulation_id": null,
             "fork_ref": null,
             "latest_snapshot_id": "snapshot_00000050",
-            "saved_at": "2026-10-25T03:21:17.860403Z",
+            "saved_at": "2026-10-25T04:27:28.346835Z",
             "pending_outcome_event_ids": [
               "event_00000051"
             ],
@@ -507,10 +507,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "24ac8154-477e-4201-8c56-150f8c99e6af",
       "request": {
-        "request_id": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
+        "request_id": "24ac8154-477e-4201-8c56-150f8c99e6af",
         "expected_control_version": 5,
         "command": {
           "type": "acknowledge_outcome",
@@ -521,13 +521,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "c8971c77-dfdd-435c-a70b-1b00b3ec0aec",
+        "request_id": "24ac8154-477e-4201-8c56-150f8c99e6af",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -553,8 +553,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:18.879061Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:29.411671Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -568,7 +568,7 @@
             "parent_simulation_id": null,
             "fork_ref": null,
             "latest_snapshot_id": "snapshot_00000050",
-            "saved_at": "2026-10-25T03:21:17.860403Z",
+            "saved_at": "2026-10-25T04:27:28.346835Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -585,19 +585,19 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/interventions",
-      "idempotency_key": "f109c3bc-ddaa-47ce-a095-7eb54be837ca",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/interventions",
+      "idempotency_key": "11b7c2d8-da42-48c3-bc32-2ab508302e20",
       "request": {
         "expected_control_version": 6
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "f109c3bc-ddaa-47ce-a095-7eb54be837ca",
+        "request_id": "11b7c2d8-da42-48c3-bc32-2ab508302e20",
         "data": {
-          "id": "intervention_00000113",
-          "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
-          "expires_at": "2026-10-25T03:31:19.561380Z",
+          "id": "intervention_00000115",
+          "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
+          "expires_at": "2026-10-25T04:37:30.131002Z",
           "based_on": {
             "tick": 3,
             "revision": 12
@@ -609,10 +609,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/scenario-previews",
-      "idempotency_key": "49cae770-de71-4d89-b026-a7aa47f3825e",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/scenario-previews",
+      "idempotency_key": "622cbb76-e3cd-490d-98c6-ec142a38eef4",
       "request": {
-        "intervention_id": "intervention_00000113",
+        "intervention_id": "intervention_00000115",
         "source": "custom",
         "source_event_id": null,
         "prompt": "A festival for 1 tick",
@@ -621,17 +621,17 @@
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "49cae770-de71-4d89-b026-a7aa47f3825e",
+        "request_id": "622cbb76-e3cd-490d-98c6-ec142a38eef4",
         "data": {
-          "id": "preview_1f473c759b8e431caa8731b1d8f94947",
-          "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+          "id": "preview_cd7fee9df6e840cda21c9c53af287115",
+          "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
           "source": "custom",
           "source_event_id": null,
           "based_on": {
             "tick": 3,
             "revision": 12
           },
-          "expires_at": "2026-10-25T03:31:19.753169Z",
+          "expires_at": "2026-10-25T04:37:30.330509Z",
           "interpretation": "A festival for 1 tick Citizens respond in their own way over 1 ticks.",
           "spec": {
             "title": "A festival for 1 tick",
@@ -680,8 +680,8 @@
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 53,
-                  "y": 75
+                  "x": 81,
+                  "y": 79
                 },
                 "scale": 1,
                 "rotation": 1.997,
@@ -692,8 +692,8 @@
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 81,
-                  "y": 57
+                  "x": 83,
+                  "y": 91
                 },
                 "scale": 1,
                 "rotation": 3.759,
@@ -704,8 +704,8 @@
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 91,
-                  "y": 59
+                  "x": 87,
+                  "y": 53
                 },
                 "scale": 1,
                 "rotation": 0.087,
@@ -760,23 +760,23 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/scenario-commits",
-      "idempotency_key": "80574eff-9e04-4d1e-b529-97cbe890d476",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/scenario-commits",
+      "idempotency_key": "ddbb0d36-7a2f-43b4-971b-5fa3899d332b",
       "request": {
-        "intervention_id": "intervention_00000113",
-        "preview_id": "preview_1f473c759b8e431caa8731b1d8f94947",
+        "intervention_id": "intervention_00000115",
+        "preview_id": "preview_cd7fee9df6e840cda21c9c53af287115",
         "expected_control_version": 7
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "80574eff-9e04-4d1e-b529-97cbe890d476",
+        "request_id": "ddbb0d36-7a2f-43b4-971b-5fa3899d332b",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -802,8 +802,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:19.885920Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:30.492492Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -816,8 +816,8 @@
             "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000115",
-            "saved_at": "2026-10-25T03:21:19.885933Z",
+            "latest_snapshot_id": "snapshot_00000117",
+            "saved_at": "2026-10-25T04:27:30.492510Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -828,7 +828,7 @@
             "initial_preview": null
           },
           "event": {
-            "id": "event_00000116",
+            "id": "event_00000118",
             "title": "A festival for 1 tick",
             "kind": "festival",
             "status": "queued",
@@ -854,15 +854,15 @@
                 "y": 128
               }
             ],
-            "pre_event_snapshot_id": "snapshot_00000115",
+            "pre_event_snapshot_id": "snapshot_00000117",
             "summary": "Event will begin on the next simulation tick",
             "scene": [
               {
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 53,
-                  "y": 75
+                  "x": 81,
+                  "y": 79
                 },
                 "scale": 1,
                 "rotation": 1.997,
@@ -873,8 +873,8 @@
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 81,
-                  "y": 57
+                  "x": 83,
+                  "y": 91
                 },
                 "scale": 1,
                 "rotation": 3.759,
@@ -885,8 +885,8 @@
                 "model": "stage",
                 "label": "A festival for 1 tick",
                 "position": {
-                  "x": 91,
-                  "y": 59
+                  "x": 87,
+                  "y": 53
                 },
                 "scale": 1,
                 "rotation": 0.087,
@@ -896,13 +896,13 @@
             ]
           },
           "snapshot": {
-            "id": "snapshot_00000115",
-            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "id": "snapshot_00000117",
+            "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "ref": {
               "tick": 3,
               "revision": 12
             },
-            "created_at": "2026-10-25T03:21:19.885933Z",
+            "created_at": "2026-10-25T04:27:30.492510Z",
             "reason": "pre_event",
             "label": "Before A festival for 1 tick"
           }
@@ -911,10 +911,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "00191b65-1471-4eaf-9145-48ad27fc8525",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "ab3142be-a4b4-44cf-a3c5-c3500368c49e",
       "request": {
-        "request_id": "00191b65-1471-4eaf-9145-48ad27fc8525",
+        "request_id": "ab3142be-a4b4-44cf-a3c5-c3500368c49e",
         "expected_control_version": 8,
         "command": {
           "type": "step",
@@ -924,13 +924,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "00191b65-1471-4eaf-9145-48ad27fc8525",
+        "request_id": "ab3142be-a4b4-44cf-a3c5-c3500368c49e",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -956,8 +956,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:20.088501Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:30.763977Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -970,8 +970,8 @@
             "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000115",
-            "saved_at": "2026-10-25T03:21:19.885933Z",
+            "latest_snapshot_id": "snapshot_00000117",
+            "saved_at": "2026-10-25T04:27:30.492510Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -988,10 +988,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "dff14b3f-5d7a-43a1-8a05-43a6dc718308",
       "request": {
-        "request_id": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
+        "request_id": "dff14b3f-5d7a-43a1-8a05-43a6dc718308",
         "expected_control_version": 9,
         "command": {
           "type": "step",
@@ -1001,13 +1001,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "fbbf1bb6-66f9-4e63-ba1f-62e374a4a5c2",
+        "request_id": "dff14b3f-5d7a-43a1-8a05-43a6dc718308",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -1033,8 +1033,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:20.346277Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:30.996748Z",
             "status": "paused",
             "pause_reason": "outcome",
             "archived": false,
@@ -1047,10 +1047,10 @@
             "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000115",
-            "saved_at": "2026-10-25T03:21:19.885933Z",
+            "latest_snapshot_id": "snapshot_00000117",
+            "saved_at": "2026-10-25T04:27:30.492510Z",
             "pending_outcome_event_ids": [
-              "event_00000116"
+              "event_00000118"
             ],
             "initialization": {
               "stage": "ready",
@@ -1067,25 +1067,25 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/branches",
-      "idempotency_key": "ebf68a31-af51-4e65-a540-cb7e104e2ddd",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/branches",
+      "idempotency_key": "2ecbdf10-6c29-4d37-a5db-db84bb417791",
       "request": {
-        "name": "Live integration 1792898475494 · before event",
+        "name": "Live integration 1792902445949 · before event",
         "source": {
           "kind": "snapshot",
-          "snapshot_id": "snapshot_00000115"
+          "snapshot_id": "snapshot_00000117"
         }
       },
       "status": 201,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "ebf68a31-af51-4e65-a540-cb7e104e2ddd",
+        "request_id": "2ecbdf10-6c29-4d37-a5db-db84bb417791",
         "data": {
           "simulation": {
-            "id": "simulation_0f97e3d2ba424655a0db576701dab655",
-            "name": "Live integration 1792898475494 · before event",
+            "id": "simulation_acb2d63e8cd645a1affca38653b1263a",
+            "name": "Live integration 1792902445949 · before event",
             "config": {
-              "name": "Live integration 1792898475494 · before event",
+              "name": "Live integration 1792902445949 · before event",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -1111,8 +1111,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:20.664240Z",
-            "updated_at": "2026-10-25T03:21:20.664257Z",
+            "created_at": "2026-10-25T04:27:31.293565Z",
+            "updated_at": "2026-10-25T04:27:31.293586Z",
             "status": "paused",
             "pause_reason": "loaded",
             "archived": false,
@@ -1123,13 +1123,13 @@
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
             "agent_count": 10,
-            "parent_simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "parent_simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "fork_ref": {
               "tick": 3,
               "revision": 12
             },
-            "latest_snapshot_id": "snapshot_00000116",
-            "saved_at": "2026-10-25T03:21:20.664317Z",
+            "latest_snapshot_id": "snapshot_00000118",
+            "saved_at": "2026-10-25T04:27:31.293662Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -1140,25 +1140,25 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000116",
-            "simulation_id": "simulation_0f97e3d2ba424655a0db576701dab655",
+            "id": "snapshot_00000118",
+            "simulation_id": "simulation_acb2d63e8cd645a1affca38653b1263a",
             "ref": {
               "tick": 3,
               "revision": 13
             },
-            "created_at": "2026-10-25T03:21:20.664317Z",
+            "created_at": "2026-10-25T04:27:31.293662Z",
             "reason": "branch",
-            "label": "Branch from simulation_253b1889045b42058901f81931a1f9c0 at revision 12"
+            "label": "Branch from simulation_52a0685520414a05b099c56851206c09 at revision 12"
           }
         }
       }
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "d3bc10e8-38e3-4d14-a44f-22ec1ad3bd3e",
       "request": {
-        "request_id": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
+        "request_id": "d3bc10e8-38e3-4d14-a44f-22ec1ad3bd3e",
         "expected_control_version": 11,
         "command": {
           "type": "save",
@@ -1169,13 +1169,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "6a5f9ae8-cad2-482a-9e77-95e8e3760403",
+        "request_id": "d3bc10e8-38e3-4d14-a44f-22ec1ad3bd3e",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -1201,8 +1201,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:20.724765Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:31.384095Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -1215,10 +1215,10 @@
             "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000161",
-            "saved_at": "2026-10-25T03:21:20.724810Z",
+            "latest_snapshot_id": "snapshot_00000175",
+            "saved_at": "2026-10-25T04:27:31.384135Z",
             "pending_outcome_event_ids": [
-              "event_00000116"
+              "event_00000118"
             ],
             "initialization": {
               "stage": "ready",
@@ -1229,13 +1229,13 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000161",
-            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "id": "snapshot_00000175",
+            "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "ref": {
               "tick": 5,
               "revision": 16
             },
-            "created_at": "2026-10-25T03:21:20.724810Z",
+            "created_at": "2026-10-25T04:27:31.384135Z",
             "reason": "navigation",
             "label": "Saved before navigation"
           },
@@ -1245,10 +1245,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_253b1889045b42058901f81931a1f9c0/commands",
-      "idempotency_key": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
+      "path": "/api/v1/simulations/simulation_52a0685520414a05b099c56851206c09/commands",
+      "idempotency_key": "66ff81db-7b86-466d-b909-b200c9fdb4db",
       "request": {
-        "request_id": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
+        "request_id": "66ff81db-7b86-466d-b909-b200c9fdb4db",
         "expected_control_version": 12,
         "command": {
           "type": "save",
@@ -1259,13 +1259,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "0e7d91a7-e8bf-4a7a-9042-2d8ae911b9c7",
+        "request_id": "66ff81db-7b86-466d-b909-b200c9fdb4db",
         "data": {
           "simulation": {
-            "id": "simulation_253b1889045b42058901f81931a1f9c0",
-            "name": "Live integration 1792898475494",
+            "id": "simulation_52a0685520414a05b099c56851206c09",
+            "name": "Live integration 1792902445949",
             "config": {
-              "name": "Live integration 1792898475494",
+              "name": "Live integration 1792902445949",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -1291,8 +1291,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:15.948920Z",
-            "updated_at": "2026-10-25T03:21:20.920801Z",
+            "created_at": "2026-10-25T04:27:26.421212Z",
+            "updated_at": "2026-10-25T04:27:31.562771Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -1305,10 +1305,10 @@
             "agent_count": 10,
             "parent_simulation_id": null,
             "fork_ref": null,
-            "latest_snapshot_id": "snapshot_00000162",
-            "saved_at": "2026-10-25T03:21:20.920849Z",
+            "latest_snapshot_id": "snapshot_00000176",
+            "saved_at": "2026-10-25T04:27:31.562813Z",
             "pending_outcome_event_ids": [
-              "event_00000116"
+              "event_00000118"
             ],
             "initialization": {
               "stage": "ready",
@@ -1319,13 +1319,13 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000162",
-            "simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "id": "snapshot_00000176",
+            "simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "ref": {
               "tick": 5,
               "revision": 17
             },
-            "created_at": "2026-10-25T03:21:20.920849Z",
+            "created_at": "2026-10-25T04:27:31.562813Z",
             "reason": "navigation",
             "label": "Saved before navigation"
           },
@@ -1335,10 +1335,10 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/simulations/simulation_0f97e3d2ba424655a0db576701dab655/commands",
-      "idempotency_key": "9232c0f0-17ba-4613-a358-52f776cbb274",
+      "path": "/api/v1/simulations/simulation_acb2d63e8cd645a1affca38653b1263a/commands",
+      "idempotency_key": "95bbb3fe-41f6-4c4d-9a0e-a37037c889a6",
       "request": {
-        "request_id": "9232c0f0-17ba-4613-a358-52f776cbb274",
+        "request_id": "95bbb3fe-41f6-4c4d-9a0e-a37037c889a6",
         "expected_control_version": 0,
         "command": {
           "type": "save",
@@ -1349,13 +1349,13 @@
       "status": 200,
       "response": {
         "schema_version": "1.0.0",
-        "request_id": "9232c0f0-17ba-4613-a358-52f776cbb274",
+        "request_id": "95bbb3fe-41f6-4c4d-9a0e-a37037c889a6",
         "data": {
           "simulation": {
-            "id": "simulation_0f97e3d2ba424655a0db576701dab655",
-            "name": "Live integration 1792898475494 · before event",
+            "id": "simulation_acb2d63e8cd645a1affca38653b1263a",
+            "name": "Live integration 1792902445949 · before event",
             "config": {
-              "name": "Live integration 1792898475494 · before event",
+              "name": "Live integration 1792902445949 · before event",
               "seed": 42,
               "mode": "sandbox",
               "population": 10,
@@ -1381,8 +1381,8 @@
               "tick_seconds": 10,
               "max_ticks": 10000
             },
-            "created_at": "2026-10-25T03:21:20.664240Z",
-            "updated_at": "2026-10-25T03:21:21.387306Z",
+            "created_at": "2026-10-25T04:27:31.293565Z",
+            "updated_at": "2026-10-25T04:27:32.099287Z",
             "status": "paused",
             "pause_reason": "manual",
             "archived": false,
@@ -1393,13 +1393,13 @@
             "speed_multiplier": 1,
             "achieved_ticks_per_second": 0,
             "agent_count": 10,
-            "parent_simulation_id": "simulation_253b1889045b42058901f81931a1f9c0",
+            "parent_simulation_id": "simulation_52a0685520414a05b099c56851206c09",
             "fork_ref": {
               "tick": 3,
               "revision": 12
             },
-            "latest_snapshot_id": "snapshot_00000117",
-            "saved_at": "2026-10-25T03:21:21.387344Z",
+            "latest_snapshot_id": "snapshot_00000119",
+            "saved_at": "2026-10-25T04:27:32.099332Z",
             "pending_outcome_event_ids": [],
             "initialization": {
               "stage": "ready",
@@ -1410,13 +1410,13 @@
             "initial_preview": null
           },
           "snapshot": {
-            "id": "snapshot_00000117",
-            "simulation_id": "simulation_0f97e3d2ba424655a0db576701dab655",
+            "id": "snapshot_00000119",
+            "simulation_id": "simulation_acb2d63e8cd645a1affca38653b1263a",
             "ref": {
               "tick": 3,
               "revision": 14
             },
-            "created_at": "2026-10-25T03:21:21.387344Z",
+            "created_at": "2026-10-25T04:27:32.099332Z",
             "reason": "navigation",
             "label": "Saved before navigation"
           },

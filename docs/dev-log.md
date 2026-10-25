@@ -261,3 +261,36 @@ also fails on clean `dev`. Combined with Snowflake, B's two S-05 tests must use
 `app.state.integrations` instead of `app.routes[0]`.
 Next (A): apply wiring, `.env.example` lines and README note from
 [narration-handoff.md](release/narration-handoff.md); B: the one-line test fix.
+
+## 2026-10-25 - All assignment branches integrated with current frontend
+
+User authorized merging A, B and C into dev, with the frontend design already
+on dev taking precedence. Fetched dev/frontend tip was `e6fbc39`; A/B/C tips
+were `b35bd45`, `37c5fbc` and `dc894e6`. A already contained B. Normal merges
+`8761ac2` and `291a1db` preserve all branch history and both shared integrations
+and authorized narration media. No force push or old frontend replacement.
+
+All existing pages, theme/styles, world rendering/palette, gears, HUD, city art
+and controls remain byte-identical to `e6fbc39`. New comparison styles use those
+theme variables. Narration and Drawer receive only functional integration work.
+Server/deploy environment examples now include the consumed narration settings.
+
+`6649d1a` adds a real default-app cross-adapter regression and fixes test-only
+assumptions about decimal output and removed neighbor controls. Do not restore
+the removed neighbor strip to fix tests. Core browser tests disable all optional
+providers explicitly; adapter acceptance uses controlled transports. The final
+merged gates and remaining live/deployment limitations are recorded in
+[the combined dev merge report](release/dev-merge-2026-10-25.md). Earlier branch
+reports and their outdated 'C absent' status remain dated historical evidence.
+
+Final verification on `6649d1a`: clean frontend lock install and `pip check`
+passed; `npm test` passed **153 frontend tests**, **394 backend tests / 2 opt-in
+SQL skips**, all **43 frozen core hashes/DTO/OpenAPI/stream checks**, Ruff lint
+and **104** Python files' formatting. Production build passed. Full core browser
+passed **26/26** with no flaky/skipped cases; Snowflake browser **3/3**, narration
+playback **1/1**. Full and production npm audits both zero. No new paid/live
+vendor calls, cloud configuration or hosting changes. Prior branch live evidence
+is preserved; Snowflake schema privileges and Vultr/HTTPS verification remain
+external release gates. Updated tracked test reports/screenshots show this merged
+frontend. Fetch/recheck current dev before starting new work; do not reapply the
+old service wiring patches, as all three are now integrated.

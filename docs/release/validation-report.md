@@ -1,5 +1,9 @@
 # Machine A combined release verification
 
+Historical branch report: see [the 2026-10-25 dev merge verification](dev-merge-2026-10-25.md)
+for the later integration of A, B, C and the updated frontend. Results below
+describe the original branch candidate and retain its then-current limitations.
+
 Date: 2026-10-24, America/New_York. **The three-service hosted release is not ready.**
 Machine A's Tiger implementation and available Machine B integration are functional;
 remaining gates require C's narration branch, Snowflake privileges and authorized
