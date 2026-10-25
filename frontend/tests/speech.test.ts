@@ -31,33 +31,20 @@ it("shows the latest recent bubble for every speaker in the wide view", () => {
     "latest",
     "reply",
   ]);
-  expect(speechBySpeaker(frame, [c.id]).size).toBe(2);
+  expect(speechBySpeaker(frame, [c.id]).size).toBe(0);
+  expect([...speechBySpeaker(frame, [a.id]).keys()]).toEqual([a.id]);
   expect([...speechBySpeaker(frame, [b.id, c.id]).keys()]).toEqual([b.id]);
 });
 
-it("separates nearby speech bubbles within the viewport", () => {
+it("keeps overlapping speech anchored and dims only bubbles behind nearer speech", () => {
   const bubbles = [
-    { id: "a", x: 500, y: 300, width: 170, height: 100 },
-    { id: "b", x: 590, y: 310, width: 170, height: 85 },
-    { id: "c", x: 580, y: 300, width: 170, height: 110 },
+    { id: "back", x: 500, y: 300, width: 170, height: 100, depth: 0.5 },
+    { id: "front", x: 590, y: 310, width: 170, height: 85, depth: 0.1 },
+    { id: "separate", x: 50, y: 50, width: 170, height: 110, depth: 0.8 },
   ];
   const offsets = layoutSpeech(bubbles, 1440, 900);
-  const placed = bubbles.map((b) => ({
-    ...b,
-    x: b.x + offsets.get(b.id)!.x,
-    y: b.y + offsets.get(b.id)!.y,
-  }));
-  for (let i = 0; i < placed.length; i++) {
-    const a = placed[i];
-    expect(a.x).toBeGreaterThanOrEqual(8);
-    expect(a.x + a.width).toBeLessThanOrEqual(1432);
-    for (const b of placed.slice(i + 1)) {
-      expect(
-        a.x + a.width <= b.x ||
-          b.x + b.width <= a.x ||
-          a.y + a.height <= b.y ||
-          b.y + b.height <= a.y,
-      ).toBe(true);
-    }
-  }
+  expect(offsets.get("back")).toEqual({ x: 0, y: 0, obscured: true });
+  expect(offsets.get("front")).toEqual({ x: 0, y: 0, obscured: false });
+  expect(offsets.get("separate")).toEqual({ x: 0, y: 0, obscured: false });
+  expect(layoutSpeech([bubbles[0]], 1440, 900).get("back")?.obscured).toBe(false);
 });

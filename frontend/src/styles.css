@@ -5160,7 +5160,7 @@ input[type="range"] {
 .life-hint {
   position: absolute;
   left: 50%;
-  bottom: 48px;
+  bottom: calc(48px + var(--audio-dock-height, 0px));
   transform: translateX(-50%);
   display: flex;
   gap: 12px;
@@ -5599,7 +5599,7 @@ input[type="range"] {
 .character-speech:after {
   content: "";
   position: absolute;
-  left: 50%;
+  left: var(--speech-tail-left, 50%);
   top: 100%;
   border: 5px solid transparent;
   border-top-color: #fff9ec;

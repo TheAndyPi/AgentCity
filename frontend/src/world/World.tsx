@@ -607,7 +607,7 @@ export default function World(props: Props) {
                 .filter(
                   (b) => props.disasters!.conditions[b.id]?.integrity < 100,
                 )
-                .map((b) => {
+                .map((b, _, damagedBuildings) => {
                   const bounds = buildingBounds(b);
                   const c = props.disasters!.conditions[b.id];
                   return (
@@ -631,8 +631,12 @@ export default function World(props: Props) {
                         zIndexRange={[6, 0]}
                         style={{ pointerEvents: "none" }}
                       >
-                        <span className="damage-label">
-                          {c.stage} · {c.integrity.toFixed(0)}%
+                        <span
+                          className="damage-label"
+                          aria-label={`${c.stage} · ${c.integrity.toFixed(0)}% integrity`}
+                        >
+                          {damagedBuildings.length >= 5 ? "!" : `${c.stage} ·`}{" "}
+                          {c.integrity.toFixed(0)}%
                         </span>
                       </Html>
                     </group>
@@ -1260,7 +1264,7 @@ function World2D(props: Props) {
             }
           }}
         >
-          <title>{activityLabel(a)}</title>
+          <title>{activityLabel(a, frame)}</title>
           <MapWalker
             agent={a}
             frame={frame}

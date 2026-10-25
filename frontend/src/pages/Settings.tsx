@@ -42,7 +42,14 @@ type SettingsOperation = {
   request?: { key: string; body: Preferences };
 };
 export default function Settings() {
-  const { client, settings, setSettings, notice } = useApp();
+  const {
+    client,
+    settings,
+    setSettings,
+    notice,
+    audioPreferences,
+    setAudioPreferences,
+  } = useApp();
   const [shortcuts, setShortcuts] = useState<Shortcuts>(settings.shortcuts),
     [shortcutsDirty, setShortcutsDirty] = useState(false),
     [busy, setBusy] = useState(false),
@@ -239,9 +246,42 @@ export default function Settings() {
               />
             </label>
           </Section>
+          <Section number="02" title="Conversation audio">
+            {(
+              [
+                [
+                  "auto_play_conversations",
+                  "Play conversations automatically",
+                  "Opening two citizens talking plays their conversation.",
+                ],
+                [
+                  "slow_simulation_for_audio",
+                  "Slow simulation in conversation view",
+                  "Use 0.25× speed when entering conversation view and restore your previous speed when leaving.",
+                ],
+              ] as const
+            ).map(([key, title, description]) => (
+              <label className="setting-toggle" key={key}>
+                <span>
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={audioPreferences[key]}
+                  onChange={(e) =>
+                    setAudioPreferences({
+                      ...audioPreferences,
+                      [key]: e.target.checked,
+                    })
+                  }
+                />
+              </label>
+            ))}
+          </Section>
           <Section
             id="custom-agents"
-            number="02"
+            number="03"
             title="Custom agents"
             description="Create citizens you can add to any simulation."
           >
@@ -296,7 +336,7 @@ export default function Settings() {
             )}
           </Section>
           <Section
-            number="03"
+            number="04"
             title="Keyboard shortcuts"
             description="Shortcuts work when the city map has focus."
           >

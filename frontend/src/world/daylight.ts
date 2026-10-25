@@ -31,7 +31,24 @@ export function curfewActive(frame: WorldFrame) {
     : minute >= policy.start_minute || minute < policy.end_minute;
 }
 
-export function activityLabel(agent: WorldFrame["agents"][number]) {
+export function activityLabel(
+  agent: WorldFrame["agents"][number],
+  frame?: WorldFrame,
+) {
+  const session = frame?.conversation_sessions?.find(
+    (session) =>
+      session.status === "accepted" &&
+      session.participant_ids.includes(agent.id),
+  );
+  if (session || agent.routine_state === "talking" || agent.action === "talk") {
+    const partnerIds = session
+      ? session.participant_ids.filter((id) => id !== agent.id)
+      : [agent.action_target_id];
+    const names = partnerIds
+      .map((id) => frame?.agents.find((other) => other.id === id)?.name)
+      .filter(Boolean);
+    if (names.length) return `Talking with ${names.join(", ")}`;
+  }
   switch (agent.routine_state) {
     case "sleeping":
       return "Sleeping";

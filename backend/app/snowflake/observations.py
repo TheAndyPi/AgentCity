@@ -362,8 +362,9 @@ class ObservationService:
         async with self.reads:
             try:
                 async with asyncio.timeout(self.config.deadline):
-                    async with self.gate:
-                        return await self.transport.execute(shape, values)
+                    # Reads are independent SQL statements; ingestion must not
+                    # serialize all dashboard queries behind the write gate.
+                    return await self.transport.execute(shape, values)
             except TimeoutError:
                 raise VendorUnavailable("query_deadline") from None
 

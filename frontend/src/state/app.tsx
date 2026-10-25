@@ -14,7 +14,26 @@ import { defaultSettings } from "../api/defaults";
 import { Modal, Field, Button, ErrorBox } from "../components/ui";
 import { MouseTrail } from "../components/MouseTrail";
 import { CityZoom, type CityShot } from "../components/CityStrip";
+type AudioPreferences = {
+  auto_play_conversations: boolean;
+  slow_simulation_for_audio: boolean;
+};
+function readAudioPreferences(): AudioPreferences {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("agentcity:conversation-audio") ?? "{}",
+    );
+    return {
+      auto_play_conversations: saved?.auto_play_conversations !== false,
+      slow_simulation_for_audio: saved?.slow_simulation_for_audio !== false,
+    };
+  } catch {
+    return { auto_play_conversations: true, slow_simulation_for_audio: true };
+  }
+}
 type AppState = {
+  audioPreferences: AudioPreferences;
+  setAudioPreferences: (value: AudioPreferences) => void;
   client: AgentCityClient;
   settings: Settings;
   setSettings: (s: Settings) => void;
@@ -32,6 +51,18 @@ export function AppProvider({
   children: ReactNode;
 }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [audioPreferences, setAudioPreferences] =
+    useState(readAudioPreferences);
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "agentcity:conversation-audio",
+        JSON.stringify(audioPreferences),
+      );
+    } catch {
+      /* private browsing */
+    }
+  }, [audioPreferences]);
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [message, setMessage] = useState("");
   const [needsLogin, setNeedsLogin] = useState(false),
@@ -93,6 +124,8 @@ export function AppProvider({
   return (
     <Context.Provider
       value={{
+        audioPreferences,
+        setAudioPreferences,
         client,
         settings,
         setSettings,

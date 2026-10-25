@@ -13,6 +13,7 @@ import type {
   Trends,
 } from "./schema";
 import "./observations.css";
+import { QuickSummary } from "./QuickSummary";
 
 export type ObservationsPanelProps = {
   simulationId: string;
@@ -672,12 +673,17 @@ export function ObservationsPanel({
       aria-labelledby={`${id}-title`}
       aria-busy={busy}
     >
-      <div className="snowflake-kicker">Snowflake / recorded evidence</div>
-      <h3 id={`${id}-title`}>Observations</h3>
-      <p className="muted">
-        City trends and changes around events. These are observed changes;
-        overlapping events and other activity can contribute.
+      <h3 id={`${id}-title`} className="observations-intro-title">
+        How is your city changing?
+      </h3>
+      <p className="muted observations-intro">
+        Track city wellbeing, then explore changes around events.
       </p>
+      <QuickSummary
+        key={`${simulationId}:${readOnly ? revision : "live"}`}
+        simulationId={simulationId}
+        revision={revision}
+      />
       {client.mode !== "live" ? (
         <p className="observations-notice">
           Snowflake observations require a live city connection. Existing local
@@ -685,6 +691,17 @@ export function ObservationsPanel({
         </p>
       ) : (
         <>
+          <div className="observations-history-heading">
+            <h4>Recorded history</h4>
+            <button
+              type="button"
+              className="observations-refresh"
+              onClick={retry}
+              disabled={busy}
+            >
+              {busy ? "Checking…" : "Refresh"}
+            </button>
+          </div>
           <div className="observations-status" role="status" aria-live="polite">
             {status ? (
               <>
@@ -692,25 +709,19 @@ export function ObservationsPanel({
                   {status.state === "disabled"
                     ? "Observations disabled"
                     : status.state === "healthy"
-                      ? "Warehouse up to date"
+                      ? "History up to date"
                       : status.state === "backfilling"
-                        ? "Backfilling history"
+                        ? "Preparing your city history"
                         : status.state === "lagged"
-                          ? "Warehouse catching up"
-                          : "Warehouse unavailable"}
+                          ? "History is catching up"
+                          : "History temporarily unavailable"}
                 </strong>
-                {status.enabled && (
-                  <span>
-                    {" "}
-                    revision{" "}
-                    {status.ingested_revision < 0
-                      ? "pending"
-                      : status.ingested_revision}{" "}
-                    / {status.published_revision} · {status.lag_revisions}{" "}
-                    revisions behind
-                  </span>
+                {status.enabled && status.state !== "healthy" && (
+                  <small>
+                    Your city snapshot is available above. Detailed history
+                    updates automatically.
+                  </small>
                 )}
-                {status.error_code && <small>{status.error_code}</small>}
               </>
             ) : busy ? (
               "Loading observation status…"
@@ -734,130 +745,152 @@ export function ObservationsPanel({
           )}
           {status?.enabled && (
             <>
-              <p className="observations-provenance">
-                {readOnly
-                  ? "Historical view"
-                  : "Refreshes about every 30 seconds while visible"}{" "}
-                · requested revision {selection.through_revision} · coverage{" "}
-                {data?.trends.coverage.state ?? status.coverage.state}
-                {data?.trends.coverage.from_tick !== null &&
-                  data?.trends.coverage.from_tick !== undefined && (
-                    <>
-                      {" "}
-                      · ticks {data.trends.coverage.from_tick}–
-                      {data.trends.coverage.through_tick ?? "pending"}
-                    </>
-                  )}
-              </p>
-              <div className="observations-filters">
-                <label htmlFor={`${id}-metric`}>
-                  Measure
-                  <select
-                    id={`${id}-metric`}
-                    aria-label="Measure"
-                    value={metric}
-                    onChange={(e) => setMetric(e.target.value)}
-                  >
-                    {!data?.metrics.items.some(
-                      (item) => item.id === metric,
-                    ) && (
-                      <option value={metric}>
-                        {metric.replaceAll("_", " ")}
-                      </option>
+              <details className="observations-sync-details">
+                <summary>Data & sync details</summary>
+                <p className="observations-provenance">
+                  {readOnly
+                    ? "Historical view"
+                    : "Refreshes about every 30 seconds while visible"}{" "}
+                  · requested revision {selection.through_revision} · coverage{" "}
+                  {data?.trends.coverage.state ?? status.coverage.state}
+                  {data?.trends.coverage.from_tick !== null &&
+                    data?.trends.coverage.from_tick !== undefined && (
+                      <>
+                        {" "}
+                        · ticks {data.trends.coverage.from_tick}–
+                        {data.trends.coverage.through_tick ?? "pending"}
+                      </>
                     )}
-                    {(data?.metrics.items ?? []).map((item) => (
-                      <option
-                        key={item.id}
-                        value={item.id}
-                        disabled={
-                          !!selectedAgent &&
-                          ["cooperation_count", "conflict_count"].includes(
-                            item.id,
-                          )
-                        }
+                  {" · "}synced revision{" "}
+                  {status.ingested_revision < 0
+                    ? "pending"
+                    : status.ingested_revision}{" "}
+                  / {status.published_revision}
+                  {status.error_code && <span> · {status.error_code}</span>}
+                </p>
+              </details>
+              {data && (
+                <details className="observations-filter-section" open>
+                  <summary>Explore measures and filters</summary>
+                  <div className="observations-filters">
+                    <label htmlFor={`${id}-metric`}>
+                      Measure
+                      <select
+                        id={`${id}-metric`}
+                        aria-label="Measure"
+                        value={metric}
+                        onChange={(e) => setMetric(e.target.value)}
                       >
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label htmlFor={`${id}-agent`}>
-                  Citizen
-                  <select
-                    id={`${id}-agent`}
-                    aria-label="Citizen"
-                    value={selectedAgent}
-                    onChange={(e) => {
-                      setSelectedAgent(e.target.value);
-                      if (
-                        e.target.value &&
-                        ["cooperation_count", "conflict_count"].includes(metric)
-                      )
-                        setMetric("health");
-                    }}
-                  >
-                    <option value="">Whole city</option>
-                    {selectedAgent &&
-                      !agents.some((agent) => agent.id === selectedAgent) && (
-                        <option value={selectedAgent}>{selectedAgent}</option>
-                      )}
-                    {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label htmlFor={`${id}-event`}>
-                  Event
-                  <select
-                    id={`${id}-event`}
-                    aria-label="Event"
-                    value={selectedEvent}
-                    onChange={(e) => setSelectedEvent(e.target.value)}
-                  >
-                    <option value="">All events</option>
-                    {selectedEvent &&
-                      !events.some(
-                        (event) => event.event_id === selectedEvent,
-                      ) && (
-                        <option value={selectedEvent}>{selectedEvent}</option>
-                      )}
-                    {events.map((event) => (
-                      <option key={event.event_id} value={event.event_id}>
-                        {event.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label htmlFor={`${id}-from`}>
-                  From tick
-                  <input
-                    id={`${id}-from`}
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="Beginning"
-                    value={startText}
-                    onChange={(e) => setStartText(e.target.value)}
-                  />
-                </label>
-                <label htmlFor={`${id}-to`}>
-                  Through tick
-                  <input
-                    id={`${id}-to`}
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="Latest in revision"
-                    value={endText}
-                    onChange={(e) => setEndText(e.target.value)}
-                  />
-                </label>
-                <button type="button" onClick={applyInterval}>
-                  Apply interval
-                </button>
-              </div>
+                        {!data?.metrics.items.some(
+                          (item) => item.id === metric,
+                        ) && (
+                          <option value={metric}>
+                            {metric.replaceAll("_", " ")}
+                          </option>
+                        )}
+                        {(data?.metrics.items ?? []).map((item) => (
+                          <option
+                            key={item.id}
+                            value={item.id}
+                            disabled={
+                              !!selectedAgent &&
+                              ["cooperation_count", "conflict_count"].includes(
+                                item.id,
+                              )
+                            }
+                          >
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label htmlFor={`${id}-agent`}>
+                      Citizen
+                      <select
+                        id={`${id}-agent`}
+                        aria-label="Citizen"
+                        value={selectedAgent}
+                        onChange={(e) => {
+                          setSelectedAgent(e.target.value);
+                          if (
+                            e.target.value &&
+                            ["cooperation_count", "conflict_count"].includes(
+                              metric,
+                            )
+                          )
+                            setMetric("health");
+                        }}
+                      >
+                        <option value="">Whole city</option>
+                        {selectedAgent &&
+                          !agents.some(
+                            (agent) => agent.id === selectedAgent,
+                          ) && (
+                            <option value={selectedAgent}>
+                              {selectedAgent}
+                            </option>
+                          )}
+                        {agents.map((agent) => (
+                          <option key={agent.id} value={agent.id}>
+                            {agent.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label htmlFor={`${id}-event`}>
+                      Event
+                      <select
+                        id={`${id}-event`}
+                        aria-label="Event"
+                        value={selectedEvent}
+                        onChange={(e) => setSelectedEvent(e.target.value)}
+                      >
+                        <option value="">All events</option>
+                        {selectedEvent &&
+                          !events.some(
+                            (event) => event.event_id === selectedEvent,
+                          ) && (
+                            <option value={selectedEvent}>
+                              {selectedEvent}
+                            </option>
+                          )}
+                        {events.map((event) => (
+                          <option key={event.event_id} value={event.event_id}>
+                            {event.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label htmlFor={`${id}-from`}>
+                      From tick
+                      <input
+                        id={`${id}-from`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Beginning"
+                        value={startText}
+                        onChange={(e) => setStartText(e.target.value)}
+                      />
+                    </label>
+                    <label htmlFor={`${id}-to`}>
+                      Through tick
+                      <input
+                        id={`${id}-to`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Latest in revision"
+                        value={endText}
+                        onChange={(e) => setEndText(e.target.value)}
+                      />
+                    </label>
+                    <button type="button" onClick={applyInterval}>
+                      Apply interval
+                    </button>
+                  </div>
+                </details>
+              )}
               {selectedAgent && onAgent && (
                 <button type="button" onClick={() => onAgent(selectedAgent)}>
                   Inspect selected citizen
@@ -865,8 +898,8 @@ export function ObservationsPanel({
               )}
               {!data && !busy && status.coverage.state === "unavailable" && (
                 <p className="muted">
-                  No complete warehouse revision is available yet. The
-                  simulation can continue while ingestion catches up.
+                  Your first history report is being prepared. Keep the
+                  simulation running to collect more observations.
                 </p>
               )}
               {data && (
@@ -1032,14 +1065,6 @@ export function ObservationsPanel({
               )}
             </>
           )}
-          <button
-            type="button"
-            className="observations-refresh"
-            onClick={retry}
-            disabled={busy}
-          >
-            Refresh observations
-          </button>
         </>
       )}
     </section>

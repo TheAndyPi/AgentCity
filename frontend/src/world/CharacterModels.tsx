@@ -50,6 +50,15 @@ const material = new THREE.MeshStandardMaterial({
   metalness: 0.15,
 });
 const glowMaterial = new THREE.MeshBasicMaterial({ toneMapped: false });
+// Reveal only the fragments hidden by the city, preserving the normal model.
+const highlightMaterial = new THREE.MeshBasicMaterial({
+  color: "#00f0ff",
+  transparent: true,
+  opacity: 0.65,
+  depthFunc: THREE.GreaterDepth,
+  depthWrite: false,
+  toneMapped: false,
+});
 const shape = {
   body: new THREE.CapsuleGeometry(0.38, 0.52, 2, 6),
   head: new THREE.SphereGeometry(0.43, 8, 6),
@@ -81,6 +90,21 @@ export default function CharacterModels({
   reducedMotion: boolean;
 }) {
   const meshes = useRef<Partial<Record<Part, THREE.InstancedMesh>>>({});
+  const highlightMeshes = useRef<Partial<Record<Part, THREE.InstancedMesh>>>(
+    {},
+  );
+  const speech = speechBySpeaker(frame, focus);
+  const highlightedAgents = frame.agents.filter(
+    (agent) =>
+      agent.id === selected ||
+      focus.includes(agent.id) ||
+      speech.has(agent.id) ||
+      agent.action === "talk" ||
+      agent.action === "warn",
+  );
+  const highlightSlots = new Map(
+    highlightedAgents.map((agent, index) => [agent.id, index]),
+  );
   const labelElements = useRef(new Map<string, HTMLDivElement>());
   const bubbles = useRef(new Map<string, HTMLDivElement>());
   const labels = useRef(new Map<string, THREE.Group>());
@@ -211,6 +235,14 @@ export default function CharacterModels({
         object.updateMatrix();
         mesh.setMatrixAt(slot, object.matrix);
         mesh.setColorAt(slot, color.set(fill));
+        const highlightIndex = highlightSlots.get(a.id);
+        const overlay = highlightMeshes.current[part];
+        if (highlightIndex !== undefined && overlay) {
+          overlay.setMatrixAt(
+            double.has(part) ? highlightIndex * 2 + (slot % 2) : highlightIndex,
+            object.matrix,
+          );
+        }
       };
       put("body", i, 0, 1.14, 0, 1, 1, 0.76, look.shirt);
       put("head", i, 0, 2.0, 0, 1.03, 1.08, 0.94, look.skin);
@@ -337,7 +369,7 @@ export default function CharacterModels({
       if (!label || element.style.visibility === "hidden") return [];
       const screen = new THREE.Vector3(
         label.position.x,
-        3.25,
+        2.65,
         label.position.z,
       ).project(camera);
       // Offscreen speakers must not push visible bubbles away from their anchors.
@@ -355,7 +387,8 @@ export default function CharacterModels({
             (element.offsetWidth * scale) / 2,
           y:
             ((1 - screen.y) * size.height) / 2 -
-            (element.offsetHeight * scale) / 2,
+            element.offsetHeight * scale - 12,
+          depth: screen.z,
           width: element.offsetWidth * scale,
           height: element.offsetHeight * scale,
         },
@@ -364,12 +397,24 @@ export default function CharacterModels({
     const offsets = layoutSpeech(screenBubbles, size.width, size.height);
     for (const [id, element] of bubbles.current) {
       const offset = offsets.get(id);
-      element.style.transform = `translate(${offset?.x ?? 0}px, ${offset?.y ?? 0}px) scale(${scale})`;
+      element.style.filter = offset?.obscured
+        ? "grayscale(1) brightness(0.65)"
+        : "";
+      element.dataset.obscured = String(offset?.obscured ?? false);
+      // Html centers its content; lift the bubble's bottom above the head anchor.
+      const lift = (element.offsetHeight * scale) / 2 + 12;
+      element.style.transform = `translate(${offset?.x ?? 0}px, ${(offset?.y ?? 0) - lift}px) scale(${scale})`;
+      element.style.setProperty(
+        "--speech-tail-left",
+        `${Math.max(12, Math.min(element.offsetWidth - 22, element.offsetWidth / 2 - (offset?.x ?? 0) / scale - 5))}px`,
+      );
     }
     for (const part of parts) {
       const mesh = meshes.current[part];
       if (!mesh) continue;
       mesh.instanceMatrix.needsUpdate = true;
+      const overlay = highlightMeshes.current[part];
+      if (overlay) overlay.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
   });
@@ -382,14 +427,13 @@ export default function CharacterModels({
       if (agent) onSelect(agent.id);
     }
   };
-  const speech = speechBySpeaker(frame, focus);
   const labeled = frame.agents.filter(
     (a) =>
       !a.active ||
       a.emotion === "unconscious" ||
       speech.has(a.id) ||
       focus.includes(a.id) ||
-      a.id === selected,
+      highlightSlots.has(a.id),
   );
   return (
     <>
@@ -409,9 +453,28 @@ export default function CharacterModels({
           onClick={(e) => pick(part, e)}
         />
       ))}
+      {highlightedAgents.length > 0 &&
+        parts.map((part) => (
+          <instancedMesh
+            key={`highlight-${part}-${highlightedAgents.length}`}
+            ref={(mesh) => {
+              if (mesh) highlightMeshes.current[part] = mesh;
+              else delete highlightMeshes.current[part];
+            }}
+            args={[
+              shape[part],
+              highlightMaterial,
+              highlightedAgents.length * (double.has(part) ? 2 : 1),
+            ]}
+            dispose={null}
+            frustumCulled={false}
+            renderOrder={10}
+            raycast={() => {}}
+          />
+        ))}
       {labeled.map((a) => {
         const line = speech.get(a.id);
-        const highlighted = focus.includes(a.id) || a.id === selected;
+        const highlighted = highlightSlots.has(a.id);
         return (
           <group
             key={a.id}
@@ -422,17 +485,23 @@ export default function CharacterModels({
             position={[a.position.x, 0, a.position.y]}
           >
             {highlighted && (
-              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.12, 0]}>
+              <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0.12, 0]}
+                renderOrder={11}
+              >
                 <ringGeometry args={[0.8, 0.96, 24]} />
                 <meshBasicMaterial
                   color="#00f0ff"
+                  depthTest={false}
+                  depthWrite={false}
                   side={THREE.DoubleSide}
                   toneMapped={false}
                 />
               </mesh>
             )}
             <Html
-              position={[0, line ? 3.25 : 3.0, 0]}
+              position={[0, line ? 2.65 : 3.0, 0]}
               center
               zIndexRange={[8, 0]}
               style={{ pointerEvents: "none" }}

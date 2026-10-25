@@ -47,7 +47,11 @@ export default function LiveVoiceProvider({
   store,
   disasters,
   listeningPoint,
+  slowSimulation,
+  inConversationView,
 }: {
+  inConversationView: boolean;
+  slowSimulation: () => Promise<(() => Promise<void>) | undefined>;
   children: ReactNode;
   scope: ListeningScope;
   frame: WorldFrame;
@@ -55,7 +59,7 @@ export default function LiveVoiceProvider({
   disasters?: DisasterState | null;
   listeningPoint?: { x: number; y: number };
 }) {
-  const { client, capabilities } = useApp();
+  const { client, capabilities, audioPreferences, notifyError } = useApp();
   const voices = useMemo(
     () => new LiveVoices(client, new Audio(), preferences(), () => new Audio()),
     [client, store],
@@ -71,24 +75,6 @@ export default function LiveVoiceProvider({
   const available =
     capabilities?.narration ||
     Object.values(sound.categories).some((v) => v !== "unconfigured");
-  const dock = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const node = dock.current;
-    const stage = node?.previousElementSibling;
-    if (!node || !(stage instanceof HTMLElement)) return;
-    const sync = () =>
-      stage.style.setProperty(
-        "--audio-dock-height",
-        `${node.getBoundingClientRect().height + 12}px`,
-      );
-    sync();
-    const observer = new ResizeObserver(sync);
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
-      stage.style.removeProperty("--audio-dock-height");
-    };
-  }, [available, expanded, sounds]);
   const currentAudio = useRef({ view, sound });
   currentAudio.current = { view, sound };
   const scopeKey = JSON.stringify(scope);
@@ -104,6 +90,48 @@ export default function LiveVoiceProvider({
     document.querySelectorAll("audio").forEach((audio) => audio.pause());
     voices.configure(scope, frame);
   }, [voices, scopeKey]);
+  useEffect(() => {
+    if (
+      audioPreferences.auto_play_conversations &&
+      capabilities?.narration &&
+      scope.subject?.kind === "interaction"
+    ) {
+      voices.listenToConversation();
+    }
+  }, [
+    voices,
+    scopeKey,
+    audioPreferences.auto_play_conversations,
+    capabilities?.narration,
+  ]);
+  useEffect(() => {
+    if (
+      !audioPreferences.slow_simulation_for_audio ||
+      !inConversationView ||
+      scope.revision !== null
+    )
+      return;
+    // Hold the speed for the entire focused view, including silence and synthesis.
+    let stopped = false;
+    let restore: (() => Promise<void>) | undefined;
+    void slowSimulation()
+      .then((undo) => {
+        if (stopped) return undo?.();
+        restore = undo;
+      })
+      .catch(notifyError);
+    return () => {
+      stopped = true;
+      if (restore) void restore().catch(notifyError);
+    };
+  }, [
+    inConversationView,
+    audioPreferences.slow_simulation_for_audio,
+    scope.simulation,
+    scope.revision,
+    slowSimulation,
+    notifyError,
+  ]);
   useLayoutEffect(() => {
     voices.historicalFrame(frame);
   }, [voices, frame]);
@@ -171,7 +199,6 @@ export default function LiveVoiceProvider({
       {children}
       {available && (
         <section
-          ref={dock}
           className={`live-voices${expanded ? " is-expanded" : " is-collapsed"}`}
           aria-label="Live voices"
           data-sound-enabled={sound.enabled}

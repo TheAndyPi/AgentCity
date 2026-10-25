@@ -109,6 +109,7 @@ export class LiveVoices {
   private volume = 0.8;
   private hidden = false;
   private discardNextFrame = false;
+  private pendingCurrentDialogue = false;
   readonly player: HTMLAudioElement;
   private view!: VoiceView;
 
@@ -233,7 +234,15 @@ export class LiveVoices {
         ? frame
         : null;
     this.baseline(frame);
+    this.pendingCurrentDialogue = scope.revision === null;
+    this.admitCurrentDialogue();
     this.emit();
+  }
+  private admitCurrentDialogue() {
+    if (!this.pendingCurrentDialogue || !this.latest || !this.canPlay()) return;
+    this.pendingCurrentDialogue = false;
+    this.baseline(this.latest);
+    this.admit([...this.latest.recent_dialogue].sort(order), this.latest.ref.revision);
   }
   private baseline(frame: WorldFrame) {
     this.cursor = [...frame.recent_dialogue].sort(order).at(-1) ?? null;
@@ -376,7 +385,7 @@ export class LiveVoices {
     );
   }
   private pump() {
-    if (!this.canPlay() || this.unlocking) return;
+    if (!this.canPlay()) return;
     // One current item + at most two next utterances, with at most two requests
     // in flight. At overload no further prefetch is admitted.
     {
@@ -395,7 +404,7 @@ export class LiveVoices {
       }
     }
     const head = this.queue[0];
-    if (!head || !head.result || this.speaking || this.starting) return;
+    if (!head || !head.result || this.speaking || this.starting || this.unlocking) return;
     if (Date.parse(head.result.expires_at) <= Date.now() + 1000) {
       this.releasePreload(head);
       head.result = undefined;
@@ -561,8 +570,11 @@ export class LiveVoices {
             "Browser playback was blocked. Resume listening to allow audio.";
           this.emit();
         });
+      this.admitCurrentDialogue();
+      this.pump();
       return;
     }
+    this.admitCurrentDialogue();
     this.pump();
   }
   pause() {
@@ -630,11 +642,29 @@ export class LiveVoices {
     }
     this.enable();
   }
+  listenToConversation() {
+    if (!this.latest || this.scope?.subject?.kind !== "interaction") return;
+    if (this.scope.revision !== null) {
+      this.replay();
+      return;
+    }
+    // A focus change may already have queued these lines while voices were enabled.
+    if (this.queue.length) {
+      this.enable();
+      return;
+    }
+    // Start synthesis from visible dialogue without a history round trip.
+    this.clear();
+    this.pendingCurrentDialogue = false;
+    this.enable();
+    this.baseline(this.latest);
+    this.admit([...this.latest.recent_dialogue].sort(order), this.latest.ref.revision);
+  }
   replay() {
     if (!this.latest || this.scope?.subject?.kind !== "interaction") return;
     this.clear();
-    this.enabled = true;
-    this.paused = false;
+    this.pendingCurrentDialogue = false;
+    this.enable();
     void this.reconcile(this.latest, true);
   }
   revoke() {

@@ -15,6 +15,7 @@ export function speechBySpeaker(frame: WorldFrame, focus: string[] = []) {
       age < 0 ||
       (!live && age > 3) ||
       !agents.has(line.speaker_id) ||
+      (focus.length > 0 && !focus.includes(line.speaker_id)) ||
       (focus.length > 1 &&
         (!focus.includes(line.speaker_id) ||
           !line.recipient_ids.some((id) => focus.includes(id))))
@@ -33,56 +34,25 @@ type Bubble = {
   y: number;
   width: number;
   height: number;
+  depth?: number;
 };
 
-/** Keep nearby speakers readable in screen space without moving their models. */
-export function layoutSpeech(bubbles: Bubble[], width: number, height: number) {
-  const placed: Bubble[] = [];
-  const offsets = new Map<string, { x: number; y: number }>();
-  const gap = 10;
+/** Keep speech anchored to its speaker; dim bubbles behind nearer speech. */
+export function layoutSpeech(bubbles: Bubble[], _width: number, _height: number) {
   const overlaps = (a: Bubble, b: Bubble) =>
-    a.x < b.x + b.width + gap &&
-    a.x + a.width + gap > b.x &&
-    a.y < b.y + b.height + gap &&
-    a.y + a.height + gap > b.y;
-  for (const bubble of bubbles) {
-    const clamp = (p: Bubble) => ({
-      ...p,
-      x: Math.max(8, Math.min(width - p.width - 8, p.x)),
-      y: Math.max(8, Math.min(height - p.height - 8, p.y)),
-    });
-    let next = clamp(bubble);
-    if (placed.some((p) => overlaps(next, p))) {
-      // Consider every free edge together; stepping around only the first
-      // collision can oscillate between two neighbors in a crowded overview.
-      const xs = [
-        next.x,
-        8,
-        width - next.width - 8,
-        ...placed.flatMap((p) => [p.x - next.width - gap, p.x + p.width + gap]),
-      ];
-      const ys = [
-        next.y,
-        8,
-        height - next.height - 8,
-        ...placed.flatMap((p) => [
-          p.y - next.height - gap,
-          p.y + p.height + gap,
-        ]),
-      ];
-      const candidates = xs.flatMap((x) =>
-        ys.map((y) => clamp({ ...bubble, x, y })),
-      );
-      const free = candidates.filter((p) =>
-        placed.every((other) => !overlaps(p, other)),
-      );
-      const cost = (p: Bubble) => (p.x - bubble.x) ** 2 + (p.y - bubble.y) ** 2;
-      if (free.length) next = free.sort((a, b) => cost(a) - cost(b))[0];
-    }
-    placed.push(next);
-    offsets.set(bubble.id, { x: next.x - bubble.x, y: next.y - bubble.y });
-  }
-  return offsets;
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y;
+  // Match Html's camera-depth ordering, with a stable tie break.
+  const ordered = [...bubbles].sort(
+    (a, b) => (a.depth ?? 0) - (b.depth ?? 0) || a.id.localeCompare(b.id),
+  );
+  return new Map(ordered.map((bubble, index) => [bubble.id, {
+    x: 0,
+    y: 0,
+    obscured: ordered.slice(0, index).some((front) => overlaps(bubble, front)),
+  }]));
 }
 
 /** Orthographic zoom should shrink speech along with the neighborhood. */

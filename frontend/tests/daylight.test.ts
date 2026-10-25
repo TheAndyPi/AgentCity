@@ -77,6 +77,8 @@ describe("calendar and daily life", () => {
       },
     ];
     expect(speechBySpeaker(frame).get(agent.id)?.text).toBe("Take your time.");
+    expect(activityLabel(agent, frame)).toBe(`Talking with ${frame.agents[1].name}`);
+    expect(activityLabel(frame.agents[1], frame)).toBe(`Talking with ${agent.name}`);
     frame.conversation_sessions[0].status = "ended";
     expect(speechBySpeaker(frame).size).toBe(0);
     agent.routine_state = "sleeping";

@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { pretty } from "../api/defaults";
 import type { Plan, PlanResult } from "./schema";
+import type { SceneObject } from "../api/types";
+import { ScenarioDiorama } from "../world/ScenarioScene";
 
 function timingText(t: {
   start_tick: number;
@@ -27,9 +29,11 @@ function timingText(t: {
 export function PlanPreview({
   result,
   plan,
+  scene = [],
 }: {
   result: PlanResult;
   plan: Plan | null;
+  scene?: SceneObject[];
 }) {
   const summary = result.summary;
   const text = (key: string) =>
@@ -62,6 +66,7 @@ export function PlanPreview({
           )}
         </section>
       )}
+      <ScenarioDiorama objects={scene} />
       {summary && (
         <>
           <section>

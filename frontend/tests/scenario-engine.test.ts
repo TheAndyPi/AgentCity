@@ -57,6 +57,25 @@ const ready: PlanResult = {
   },
 };
 
+it("keeps the 3D scene visible alongside interpreted plan details", () => {
+  const html = renderToStaticMarkup(
+    createElement(PlanPreview, {
+      result: ready,
+      plan: ready.plan,
+      scene: [{
+        model: "robot",
+        label: "Aid robot",
+        position: { x: 30, y: 30 },
+        scale: 1,
+        rotation: 0,
+        color: "#8bb9db",
+      }],
+    }),
+  );
+  expect(html).toContain('aria-label="3D scenario preview: robot"');
+  expect(html).toContain("Interpreted changes");
+});
+
 function transport(
   answer: unknown,
   calls: unknown[][],

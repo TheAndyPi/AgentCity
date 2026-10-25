@@ -227,8 +227,8 @@ describe("live conversation voices", () => {
     });
     await flush();
     expect(pages).toBe(2);
-    expect(s.voices.getSnapshot().queued).toBe(5);
-    for (let n = 2; n <= 6; n++) {
+    expect(s.voices.getSnapshot().queued).toBe(6);
+    for (let n = 1; n <= 6; n++) {
       await flush();
       expect(s.voices.getSnapshot().speaking?.id).toBe(line(n).id);
       s.player.end();
@@ -282,20 +282,21 @@ describe("live conversation voices", () => {
     await flush();
     expect(calls.map((c) => c.id)).toEqual([line(1).id, line(2).id]);
   });
-  it("LV-03 starts at current commit, deduplicates control revisions/transport snapshots and remount", async () => {
+  it("LV-03 reads existing dialogue immediately and deduplicates subsequent snapshots", async () => {
     const { voices, calls, player } = setup();
     voices.configure(scope("b"), frame(1, [line(1)]));
     voices.enable();
+    expect(calls.map((call) => call.id)).toEqual([line(1).id]);
     for (let rev = 2; rev < 5; rev++)
       voices.ingest(frame(rev, [line(1), line(2)]));
     await flush();
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
     player.end();
     voices.dispose();
     voices.configure(scope("b"), frame(6, [line(1), line(2)]));
     voices.ingest(frame(7, [line(1), line(2)]));
     await flush();
-    expect(calls).toHaveLength(1);
+    expect(calls.map((call) => call.id)).toEqual([line(1).id, line(2).id, line(1).id, line(2).id]);
   });
   it("LV-04 aborts pending old work and stops playing on subject/simulation changes", async () => {
     const s = setup(),
@@ -322,7 +323,7 @@ describe("live conversation voices", () => {
     expect(s.player.src).toBe("");
     s.voices.ingest(frame(2, [line(2)], "branch"));
     await flush();
-    expect(s.calls).toHaveLength(2);
+    expect(s.calls).toHaveLength(4);
   });
   it("LV-05 requires a gesture, preserves audio pause, hides without backlog and handles autoplay denial", async () => {
     const { voices, calls, player } = setup();
@@ -352,12 +353,12 @@ describe("live conversation voices", () => {
     voices.enable();
     voices.ingest(frame(4, [line(3)]));
     await flush();
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
     voices.mute(true);
     voices.ingest(frame(5, [line(4)]));
     voices.mute(false);
     await flush();
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
   });
   it("LV-06 bounds paid prefetch to two pending calls and shows overload without dropping ordinary turns", async () => {
     const s = setup(),
@@ -441,6 +442,31 @@ describe("live conversation voices", () => {
     expect(pages).toBe(4);
     expect(s.voices.getSnapshot().missed).toBe(true);
   });
+  it("requests focused audio before history fetches or media unlock completes", async () => {
+    const s = setup();
+    s.page(async () => { throw new Error("History should not be requested"); });
+    s.voices.configure(scope("chat", "interaction"), frame(1, [line(2), line(1)]));
+    s.voices.listenToConversation();
+    expect(s.calls.map((call) => call.id)).toEqual([line(1).id, line(2).id]);
+    await flush();
+    s.voices.ingest(frame(2, [line(1), line(2)]));
+    expect(s.calls).toHaveLength(2);
+    expect(s.player.played).toEqual([result(line(1).id).audio_url]);
+  });
+  it("replay starts a selected conversation without enabling the radio first", async () => {
+    const s = setup();
+    s.voices.configure(scope("chat", "interaction"), frame(1, [line(1)]));
+    s.page(async () => ({
+      items: [line(1), line(2, "a", "b", "other")],
+      next_cursor: null,
+      revision: 1,
+    }));
+    s.voices.replay();
+    await flush();
+    expect(s.voices.getSnapshot().enabled).toBe(true);
+    expect(s.calls.map((call) => call.id)).toEqual([line(1).id]);
+    expect(s.player.played).toEqual([result(line(1).id).audio_url]);
+  });
   it("LV-09 scrubbing stops audio; historical replay is explicit and revision pinned", async () => {
     const s = setup();
     s.voices.enable();
@@ -458,6 +484,7 @@ describe("live conversation voices", () => {
     s.voices.configure(scope("chat", "interaction"), frame(10, [line(10)]));
     s.voices.ingest(frame(11, [line(10)]));
     await flush();
-    expect(s.calls).toHaveLength(2);
+    expect(s.calls).toHaveLength(3);
+    expect(s.calls[2].id).toBe(line(10).id);
   });
 });

@@ -19,7 +19,7 @@ export function SnowflakeComparison({
     [suppliedClient],
   );
   const [question, setQuestion] = useState(
-    "What recorded differences accompany lower cooperation in B?",
+    "Summarize the largest recorded differences between these histories.",
   );
   const [operation, setOperation] = useState<{
     body: ComparisonRequest;
@@ -40,12 +40,6 @@ export function SnowflakeComparison({
       generation.current++;
     };
   }, [selection]);
-  if (!enabled)
-    return (
-      <p className="muted">
-        Snowflake comparison is disabled. The history chart remains available.
-      </p>
-    );
   async function run(retry: boolean) {
     if (!b || busy) return;
     const op =
@@ -70,6 +64,15 @@ export function SnowflakeComparison({
       if (current === generation.current) setBusy(false);
     }
   }
+  useEffect(() => {
+    if (enabled && b) void run(false);
+  }, [selection, client]);
+  if (!enabled)
+    return (
+      <p className="muted">
+        Snowflake comparison is disabled. The history chart remains available.
+      </p>
+    );
   return (
     <section
       className="snowflake-comparison"
@@ -81,23 +84,29 @@ export function SnowflakeComparison({
         Both revisions are pinned before retrieval. Each result keeps its
         original values and sources.
       </p>
-      <label>
-        Comparison question
-        <textarea
-          maxLength={500}
-          value={question}
-          disabled={busy || !!error}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-      </label>
-      <button
-        className="button primary"
-        disabled={!b || busy || !question.trim() || !!error}
-        onClick={() => void run(false)}
-      >
-        {busy ? "Retrieving evidence…" : "Compare pinned histories"}
-      </button>
-      {!b && <p>Choose another history to compare.</p>}
+      <details>
+        <summary>Ask a specific question (optional)</summary>
+        <label>
+          Comparison question
+          <textarea
+            maxLength={500}
+            value={question}
+            disabled={busy || !!error}
+            onChange={(e) => setQuestion(e.target.value)}
+          />
+        </label>
+        <button
+          className="button primary"
+          disabled={!b || busy || !question.trim() || !!error}
+          onClick={() => void run(false)}
+        >
+          {busy ? "Retrieving evidence…" : "Compare pinned histories"}
+        </button>
+      </details>
+      {busy && <p role="status">Comparing the available recorded data…</p>}
+      {!b && (
+        <p>City data is available above. A second history adds a comparison.</p>
+      )}
       {error && (
         <div role="alert">
           <p>{error}</p>

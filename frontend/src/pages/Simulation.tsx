@@ -62,6 +62,7 @@ import ScenarioDialog, {
 import LifeHUD from "../components/LifeHUD";
 import OutcomeDialog from "../components/OutcomeDialog";
 import LiveVoiceProvider from "../narration/LiveVoiceProvider";
+import { slowForConversation } from "../narration/speed";
 import { useDisasters } from "../disasters/useDisasters";
 import ConditionPanel from "../disasters/ConditionPanel";
 import { resolveSubject } from "../narration/live";
@@ -97,6 +98,7 @@ export default function Simulation() {
     setFocused([]);
     setFollow(null);
     setWatchedInteraction(null);
+    camera.current("reset");
   }, []);
   const [revision, setRevision] = useState<number | null>(null),
     [historical, setHistorical] = useState<WorldFrame | null>(null),
@@ -172,6 +174,13 @@ export default function Simulation() {
     },
     [client, refresh, revision],
   );
+  const slowSimulation = useCallback(async () => {
+    if (revision !== null || commandPending.current) return;
+    return slowForConversation(
+      () => latest.current,
+      (value) => execute({ type: "set_speed", value }),
+    );
+  }, [execute, revision]);
   const navigationAllowed = useRef(false),
     savingBlockedNavigation = useRef(false);
   useEffect(() => {
@@ -321,7 +330,6 @@ export default function Simulation() {
   }, []);
   const resetCamera = useCallback(() => {
     closeFocus();
-    camera.current("reset");
   }, [closeFocus]);
   const unfollow = useCallback(() => setFollow(null), []);
   const onFallback = useCallback(() => {
@@ -1084,6 +1092,11 @@ export default function Simulation() {
       </div>
       {stack.length > 0 && (
         <Drawer
+          onLocate={(agentId) => {
+            setWatchedInteraction(null);
+            setFocused([agentId]);
+            setFollow(agentId);
+          }}
           onWatch={(ids, interactionId) => {
             setWatchedInteraction(interactionId ?? null);
             setFocused(ids);
@@ -1165,6 +1178,8 @@ export default function Simulation() {
   );
   return (
     <LiveVoiceProvider
+      inConversationView={focused.length > 0}
+      slowSimulation={slowSimulation}
       store={store}
       disasters={disasters}
       listeningPoint={listeningPoint}

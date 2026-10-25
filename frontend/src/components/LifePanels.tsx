@@ -173,10 +173,12 @@ export function TraitsRoster({
   frame,
   revision,
   onAgent,
+  onLocate,
 }: {
   frame: WorldFrame;
   revision: number;
   onAgent: (id: string) => void;
+  onLocate?: (id: string) => void;
 }) {
   const { client } = useApp();
   const [query, setQuery] = useState("");
@@ -221,7 +223,10 @@ export function TraitsRoster({
           <button
             className={`roster-citizen ${id === agent.id ? "selected" : ""}`}
             key={agent.id}
-            onClick={() => setSelected(agent.id)}
+            onClick={() => {
+              setSelected(agent.id);
+              onLocate?.(agent.id);
+            }}
             aria-pressed={id === agent.id}
           >
             <CitizenPortrait name={agent.name} />

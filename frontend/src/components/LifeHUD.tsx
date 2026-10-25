@@ -105,6 +105,12 @@ export default function LifeHUD({
     `${frame.simulation.id}:${selected?.id}:${readOnly ? frame.ref.revision : "live"}`,
   );
   const condition = selected ? behavior.data?.citizens[selected.id] : undefined;
+  const behaviorEvents = (behavior.data?.events ?? [])
+    .filter(
+      (event) =>
+        event.actor_id === selected?.id || event.target_id === selected?.id,
+    )
+    .slice(-3);
   const archive = useDialoguePages(
     client,
     frame.simulation.id,
@@ -290,13 +296,6 @@ export default function LifeHUD({
   };
   return (
     <>
-      {!selected && (
-        <div className="life-hint">
-          <p>
-            <small>Select a citizen to follow them or see their details.</small>
-          </p>
-        </div>
-      )}
       {selected && (
         <>
           <div className={`life-focus-panel ${second ? "pair" : ""}`}>
@@ -356,7 +355,7 @@ export default function LifeHUD({
               <div className="focus-thought">
                 <span>ON THEIR MIND</span>
                 <p>
-                  {activityLabel(selected)}.{" "}
+                  {activityLabel(selected, frame)}.{" "}
                   {selected.thought_bubble ||
                     detail.data?.profile.primary_goal ||
                     "Taking in the neighborhood."}
@@ -427,21 +426,14 @@ export default function LifeHUD({
                     ))}
                 </div>
               )}
-              {condition && (
+              {condition && behaviorEvents.length > 0 && (
                 <div className="focus-thought" aria-label="Behavior evidence">
-                  {(behavior.data?.events ?? [])
-                    .filter(
-                      (event) =>
-                        event.actor_id === selected.id ||
-                        event.target_id === selected.id,
-                    )
-                    .slice(-3)
-                    .map((event) => (
-                      <small key={event.id} style={{ display: "block" }}>
-                        {pretty(event.kind)} · Tick {event.tick}:{" "}
-                        {event.description}
-                      </small>
-                    ))}
+                  {behaviorEvents.map((event) => (
+                    <small key={event.id} style={{ display: "block" }}>
+                      {pretty(event.kind)} · Tick {event.tick}:{" "}
+                      {event.description}
+                    </small>
+                  ))}
                 </div>
               )}
               {behavior.error && (

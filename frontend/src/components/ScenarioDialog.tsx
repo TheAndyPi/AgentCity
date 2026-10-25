@@ -1022,6 +1022,7 @@ export function InitialScenarioDialog({
       {initialPlan.data?.plan && initialPlan.data.summary ? (
         <PlanPreview
           plan={initialPlan.data.plan}
+          scene={simulation.initial_preview?.spec.scene}
           result={{
             status: "ready",
             plan: initialPlan.data.plan,

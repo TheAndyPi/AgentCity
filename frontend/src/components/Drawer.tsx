@@ -1,3 +1,5 @@
+import "./overview.css";
+import { activityLabel } from "../world/daylight";
 import { useDialoguePages } from "../state/dialogue";
 import BehaviorEvidencePanel from "../behavior/BehaviorEvidencePanel";
 import { useEffect, useRef, useState } from "react";
@@ -75,8 +77,10 @@ export default function Drawer({
   setFollow,
   readOnly,
   onWatch,
+  onLocate,
 }: {
   readOnly: boolean;
+  onLocate?: (id: string) => void;
   onWatch?: (ids: string[], interactionId?: string) => void;
   stack: DrawerNode[];
   frame: WorldFrame;
@@ -136,7 +140,7 @@ export default function Drawer({
         {!["search", "traits", "feed"].includes(top.type) && (
           <div className="revision-label">Tick {frame.ref.tick}</div>
         )}
-        {["overview", "agent", "event"].includes(top.type) && (
+        {["agent", "event"].includes(top.type) && (
           <Button
             kind="secondary"
             onClick={() =>
@@ -158,7 +162,11 @@ export default function Drawer({
           <TraitsRoster
             frame={frame}
             revision={revision}
-            onAgent={(id) => onPush({ type: "agent", id })}
+            onLocate={onLocate}
+            onAgent={(id) => {
+              onLocate?.(id);
+              onPush({ type: "agent", id });
+            }}
           />
         ) : top.type === "agent" ? (
           <AgentInspector
@@ -300,11 +308,7 @@ function AgentInspector({
         </span>
         <span>
           <Navigation size={15} />
-          {a.routine_state === "sleeping"
-            ? "Sleeping"
-            : a.routine_state === "returning_home"
-              ? "Heading home"
-              : pretty(a.action)}
+          {activityLabel(a, frame)}
         </span>
         <button
           aria-pressed={follow === id}
@@ -1024,18 +1028,31 @@ function OverviewPanel({
   ) : !r.data ? (
     <Busy />
   ) : (
-    <>
-      <h3>How your city is doing</h3>
-      {client.mode === "live" && (
-        <a
-          className="button secondary"
-          href={client.exportUrl(frame.simulation.id, revision)}
-          download
+    <div className="city-overview">
+      <div className="overview-heading">
+        <h3>How your city is doing</h3>
+        <p className="muted">
+          Activity, city systems, and the changes that matter.
+        </p>
+      </div>
+      <div className="overview-actions">
+        <Button
+          kind="secondary"
+          onClick={() => onPush({ type: "observations" })}
         >
-          Export metrics CSV
-        </a>
-      )}
-      <div className="overview-counts">
+          <Eye size={14} /> Observations
+        </Button>
+        {client.mode === "live" && (
+          <a
+            className="button secondary"
+            href={client.exportUrl(frame.simulation.id, revision)}
+            download
+          >
+            Export metrics CSV
+          </a>
+        )}
+      </div>
+      <div className="overview-counts" aria-label="City activity">
         <span>
           <strong>{r.data.metrics.cooperation_count}</strong>cooperative actions
         </span>
@@ -1088,7 +1105,7 @@ function OverviewPanel({
           <EvidenceLinks evidence={r.evidence} onPush={onPush} />
         </details>
       ))}
-    </>
+    </div>
   );
 }
 function AgentPicker({
