@@ -294,3 +294,33 @@ is preserved; Snowflake schema privileges and Vultr/HTTPS verification remain
 external release gates. Updated tracked test reports/screenshots show this merged
 frontend. Fetch/recheck current dev before starting new work; do not reapply the
 old service wiring patches, as all three are now integrated.
+
+## 2026-10-25 - New feature-refinement assignments
+
+The user requested written implementation tasks for live conversation voices and
+richer character survival/personality/class behavior. These are specifications;
+no new simulation or audio behavior is implemented by this documentation change.
+
+- [Live conversation voices](prompts/live-conversation-voices.md): scoped automatic
+  dialogue playback for the watched citizen/conversation, stable unique voice IDs,
+  one bounded audio queue, browser permission, focus/replay/reconnect isolation,
+  and LV-01 through LV-10 executable acceptance requirements. Extend the existing
+  narration service/voice store rather than rebuilding them.
+- [Survival, personality and class conflict](prompts/agent-survival-personality-class-conflict.md):
+  death, fainting, a new independent Mental meter, weighted crisis modes including
+  aggression/fire/withdrawal, physical hospital rescues, extra trait/need
+  combinations, conserved wealth classes and knowledge-bound class hostility.
+  AB-01 through AB-17 require actual engine/API/persistence/browser coverage.
+
+**User clarified death semantics:** either Health <=0 OR Fullness <=0 is fatal
+independently. Existing Fullness is `100-hunger`; Energy is `100-fatigue`.
+Current HUD's fourth meter is Social, not Mental; do not silently rename it.
+Unconscious citizens remain living/observable but cannot act; death takes
+precedence. Compassion can overcome class bias; new aggression/fire still passes
+physical Game Master legality. Preserve current dev frontend design.
+
+Audio owns narration modules; behavior owns engine/state and coordinated contract
+evolution. Coordinate shared focus/HUD hooks instead of replacing one another's
+files. Core v1 snapshots remain frozen: new action/life schemas need an explicit
+versioned API/migration and matching consumers/security. Existing secrets, runtime
+data and the running dev server are unchanged by these task files.
