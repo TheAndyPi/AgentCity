@@ -341,3 +341,20 @@ Mental as `100-stress`. AB-05 adds independent threshold boundaries; new AB-18/1
 cover combined triggers, exit hysteresis and persisted stress/Mental interaction.
 This update changes task specifications only; concurrent implementation edits
 are outside this documentation commit.
+
+### Intuitive metric-to-need coupling specified
+
+The user requested Happiness, Safety, Trust, Resources and Stress to affect
+Mental, Social and Energy. The behavior assignment now includes a causal matrix,
+initial versioned per-tick coefficients/caps, trusted-contact Social multipliers,
+rest-only Energy multipliers and per-contribution explanations. Social fulfillment
+remains `100-needs.social`; Energy remains `100-needs.fatigue`; Mental is separate.
+
+No passive social satisfaction, free working stamina or nutrition from unused
+supplies. Derived Safety/Resources/Trust use canonical causes and local directed
+ties; one frozen-input coupling phase executes per physical tick, never per frame
+or read. New AB-20 through AB-23 cover exact effects, directions, neutral bands,
+real interactions/rest/nutrition, time scaling, feedback/deduplication, restart and
+long-run recovery. Existing Mental <=10 OR Stress >=80 crisis thresholds and
+Health/Fullness death precedence remain unchanged. This is a task-specification
+update, not implementation or validation of the new engine model.
