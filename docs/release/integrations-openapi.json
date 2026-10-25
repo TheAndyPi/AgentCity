@@ -1717,6 +1717,1118 @@
           }
         ]
       }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/status": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Status",
+        "operationId": "status_snowflake_observations_v1_simulations__sid__status_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Through Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_Status_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/metrics": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Metrics",
+        "operationId": "metrics_snowflake_observations_v1_simulations__sid__metrics_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Through Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_Metrics_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/trends": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Trends",
+        "operationId": "trends_snowflake_observations_v1_simulations__sid__trends_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Through Revision"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "health",
+              "title": "Metric"
+            }
+          },
+          {
+            "name": "start_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Start Tick"
+            }
+          },
+          {
+            "name": "end_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 9007199254740991,
+              "title": "End Tick"
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_Trends_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/events": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Events",
+        "operationId": "events_snowflake_observations_v1_simulations__sid__events_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Through Revision"
+            }
+          },
+          {
+            "name": "start_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Start Tick"
+            }
+          },
+          {
+            "name": "end_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 9007199254740991,
+              "title": "End Tick"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_Events_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/events/{event_id}": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Event Detail",
+        "operationId": "event_detail_snowflake_observations_v1_simulations__sid__events__event_id__get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Through Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_EventDetail_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/snowflake/observations/v1/simulations/{sid}/changes": {
+      "get": {
+        "tags": [
+          "Snowflake observations"
+        ],
+        "summary": "Changes",
+        "operationId": "changes_snowflake_observations_v1_simulations__sid__changes_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "through_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Through Revision"
+            }
+          },
+          {
+            "name": "start_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Start Tick"
+            }
+          },
+          {
+            "name": "end_tick",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 9007199254740991,
+              "title": "End Tick"
+            }
+          },
+          {
+            "name": "agent_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "event_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "entity_kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(agent|relationship|opinion|event)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Kind"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response_Changes_"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2030,36 +3142,11 @@
         ],
         "title": "BehaviorSnapshot"
       },
-      "Citation": {
+      "Change": {
         "properties": {
-          "simulation_id": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "title": "Simulation Id"
-          },
-          "revision": {
-            "type": "integer",
-            "maximum": 9007199254740991.0,
-            "minimum": 0.0,
-            "title": "Revision"
-          },
           "id": {
             "type": "string",
             "title": "Id"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "event",
-              "decision"
-            ],
-            "title": "Kind"
-          },
-          "record_id": {
-            "type": "string",
-            "title": "Record Id"
           },
           "tick": {
             "type": "integer",
@@ -2067,28 +3154,168 @@
             "minimum": 0.0,
             "title": "Tick"
           },
-          "excerpt": {
-            "type": "string",
-            "title": "Excerpt"
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
           },
-          "url": {
+          "entity_kind": {
             "type": "string",
-            "title": "Url"
+            "title": "Entity Kind"
+          },
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "before": {
+            "title": "Before"
+          },
+          "after": {
+            "title": "After"
+          },
+          "link": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "temporal"
+            ],
+            "title": "Link"
+          },
+          "event_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Event Ids"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evidence"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "simulation_id",
-          "revision",
           "id",
-          "kind",
-          "record_id",
           "tick",
-          "excerpt",
-          "url"
+          "revision",
+          "entity_kind",
+          "entity_id",
+          "agent_id",
+          "field",
+          "before",
+          "after",
+          "link",
+          "event_ids",
+          "evidence"
         ],
-        "title": "Citation"
+        "title": "Change"
+      },
+      "ChangeCounts": {
+        "properties": {
+          "explicit": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Explicit"
+          },
+          "temporal": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Temporal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "explicit",
+          "temporal"
+        ],
+        "title": "ChangeCounts"
+      },
+      "Changes": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next After"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "items",
+          "next_after"
+        ],
+        "title": "Changes"
       },
       "CommitRequest": {
         "properties": {
@@ -2160,7 +3387,7 @@
           },
           "citations": {
             "items": {
-              "$ref": "#/components/schemas/Citation"
+              "$ref": "#/components/schemas/app__snowflake__dto__Citation"
             },
             "type": "array",
             "title": "Citations"
@@ -2397,6 +3624,53 @@
         "type": "object",
         "title": "Condition"
       },
+      "Coverage": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "partial",
+              "unavailable"
+            ],
+            "title": "State"
+          },
+          "from_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Tick"
+          },
+          "through_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Through Tick"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "from_tick",
+          "through_tick"
+        ],
+        "title": "Coverage"
+      },
       "Difference": {
         "properties": {
           "metric": {
@@ -2456,6 +3730,27 @@
           "unit"
         ],
         "title": "Difference"
+      },
+      "Distribution": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "Distribution"
       },
       "Episode": {
         "properties": {
@@ -2630,6 +3925,227 @@
         ],
         "title": "ErrorDetail"
       },
+      "Event": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "start_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Tick"
+          },
+          "end_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Tick"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "title",
+          "status",
+          "start_tick",
+          "end_tick"
+        ],
+        "title": "Event"
+      },
+      "EventDetail": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/Measurement"
+          },
+          "resolution": {
+            "$ref": "#/components/schemas/Measurement"
+          },
+          "followup": {
+            "$ref": "#/components/schemas/Measurement"
+          },
+          "followup_complete": {
+            "type": "boolean",
+            "title": "Followup Complete"
+          },
+          "change_counts": {
+            "$ref": "#/components/schemas/ChangeCounts"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/app__snowflake__observations_models__Observation"
+            },
+            "type": "array",
+            "title": "Observations"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/app__snowflake__observations_models__Citation"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "overlaps": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Overlaps"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Changes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "event",
+          "baseline",
+          "resolution",
+          "followup",
+          "followup_complete",
+          "change_counts",
+          "observations",
+          "citations",
+          "overlaps",
+          "changes"
+        ],
+        "title": "EventDetail"
+      },
+      "Events": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next After"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "items",
+          "next_after"
+        ],
+        "title": "Events"
+      },
       "Evidence": {
         "properties": {
           "event_ids": {
@@ -2706,7 +4222,7 @@
           },
           "observations": {
             "items": {
-              "$ref": "#/components/schemas/Observation"
+              "$ref": "#/components/schemas/app__snowflake__dto__Observation"
             },
             "type": "array",
             "title": "Observations"
@@ -2900,32 +4416,159 @@
         ],
         "title": "Issue"
       },
-      "Observation": {
+      "Measurement": {
         "properties": {
-          "fact_id": {
-            "type": "string",
-            "title": "Fact Id"
+          "tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tick"
           },
-          "text": {
-            "type": "string",
-            "title": "Text"
-          },
-          "citation_ids": {
-            "items": {
-              "type": "string"
+          "city": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
-            "type": "array",
-            "title": "Citation Ids"
+            "type": "object",
+            "title": "City"
+          },
+          "cohort": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Cohort"
+          },
+          "denominators": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "integer",
+                    "maximum": 9007199254740991.0,
+                    "minimum": 0.0
+                  },
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denominators"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "fact_id",
-          "text",
-          "citation_ids"
+          "tick",
+          "city",
+          "cohort"
         ],
-        "title": "Observation"
+        "title": "Measurement"
+      },
+      "Metric": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "denominator": {
+            "type": "string",
+            "title": "Denominator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "unit",
+          "denominator"
+        ],
+        "title": "Metric"
+      },
+      "Metrics": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Metric"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "items"
+        ],
+        "title": "Metrics"
       },
       "PinnedHistory": {
         "properties": {
@@ -2973,6 +4616,78 @@
           "prompt"
         ],
         "title": "PlanRequest"
+      },
+      "Point": {
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "sample_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Sample Count"
+          },
+          "denominator": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Denominator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tick",
+          "revision",
+          "mean",
+          "min",
+          "max",
+          "sample_count",
+          "denominator"
+        ],
+        "title": "Point"
       },
       "Progress": {
         "properties": {
@@ -3134,6 +4849,156 @@
         ],
         "title": "Ref"
       },
+      "Response_Changes_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Changes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[Changes]"
+      },
+      "Response_EventDetail_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EventDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[EventDetail]"
+      },
+      "Response_Events_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[Events]"
+      },
+      "Response_Metrics_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Metrics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[Metrics]"
+      },
+      "Response_Status_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[Status]"
+      },
+      "Response_Trends_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Trends"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Response[Trends]"
+      },
       "RestLesson": {
         "properties": {
           "id": {
@@ -3232,6 +5097,100 @@
         ],
         "title": "RestLesson"
       },
+      "Status": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "healthy",
+              "backfilling",
+              "lagged",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "published_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Published Revision"
+          },
+          "ingested_revision": {
+            "type": "integer",
+            "minimum": -1.0,
+            "title": "Ingested Revision"
+          },
+          "lag_revisions": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Lag Revisions"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "enabled",
+          "state",
+          "published_revision",
+          "ingested_revision",
+          "lag_revisions",
+          "error_code"
+        ],
+        "title": "Status"
+      },
       "StatusResponse": {
         "properties": {
           "schema_version": {
@@ -3321,6 +5280,86 @@
         ],
         "title": "TigerStatus"
       },
+      "Trends": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "const": "snowflake",
+            "title": "Source"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "requested_revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Requested Revision"
+          },
+          "effective_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Revision"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Items"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "distribution": {
+            "items": {
+              "$ref": "#/components/schemas/Distribution"
+            },
+            "type": "array",
+            "title": "Distribution"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "simulation_id",
+          "requested_revision",
+          "effective_revision",
+          "coverage",
+          "metric",
+          "unit",
+          "items",
+          "events",
+          "distribution"
+        ],
+        "title": "Trends"
+      },
       "ValidateRequest": {
         "properties": {
           "plan": {
@@ -3381,6 +5420,66 @@
         ],
         "title": "Failure"
       },
+      "app__snowflake__dto__Citation": {
+        "properties": {
+          "simulation_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Simulation Id"
+          },
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "event",
+              "decision"
+            ],
+            "title": "Kind"
+          },
+          "record_id": {
+            "type": "string",
+            "title": "Record Id"
+          },
+          "tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "simulation_id",
+          "revision",
+          "id",
+          "kind",
+          "record_id",
+          "tick",
+          "excerpt",
+          "url"
+        ],
+        "title": "Citation"
+      },
       "app__snowflake__dto__Failure": {
         "properties": {
           "schema_version": {
@@ -3404,6 +5503,93 @@
           "error"
         ],
         "title": "Failure"
+      },
+      "app__snowflake__dto__Observation": {
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "title": "Fact Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "citation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Citation Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fact_id",
+          "text",
+          "citation_ids"
+        ],
+        "title": "Observation"
+      },
+      "app__snowflake__observations_models__Citation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "tick",
+          "revision",
+          "description"
+        ],
+        "title": "Citation"
+      },
+      "app__snowflake__observations_models__Observation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "citation_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Citation Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "citation_ids"
+        ],
+        "title": "Observation"
       }
     }
   }

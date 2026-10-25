@@ -12,6 +12,19 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 import httpx
 
 SQL = Path(__file__).parent / "sql"
+OBSERVATION_SHAPES = {
+    "obs_ingest",
+    "obs_verify",
+    "obs_publish",
+    "obs_receipt",
+    "obs_head",
+    "obs_delete_facts",
+    "obs_delete_revisions",
+    "obs_trends",
+    "obs_events",
+    "obs_changes",
+    "obs_event_detail",
+}
 
 
 class VendorUnavailable(Exception):
@@ -70,7 +83,8 @@ class SnowflakeTransport:
             return httpx.Response(response.status_code, content=bytes(content))
 
     async def execute(self, shape, values=()):
-        if shape not in {"ingest", "query", "explain", "001_setup", "smoke_schema"}:
+        observation = shape in OBSERVATION_SHAPES
+        if shape not in {"ingest", "query", "explain", "001_setup", "smoke_schema"} | OBSERVATION_SHAPES:
             raise ValueError("Unapproved SQL shape")
         config = self.config
         body = dict(
@@ -98,15 +112,51 @@ class SnowflakeTransport:
                 if shape == "ingest":
                     identity = json.dumps([config.account, config.database, config.schema, *values[:4]])
                     params = {"requestId": str(uuid5(NAMESPACE_URL, identity)), "retry": "true"}
+                elif shape in {"obs_ingest", "obs_publish", "obs_delete_facts", "obs_delete_revisions"}:
+                    identity = json.dumps([config.account, config.database, config.schema, shape, *values])
+                    params = {"requestId": str(uuid5(NAMESPACE_URL, identity)), "retry": "true"}
                 response = await self._request("POST", url, params=params, json=body, headers=headers)
                 for _ in range(20):
                     if len(response.content) > 2_000_000:
                         raise VendorUnavailable()
                     if response.status_code == 200:
                         result = response.json()
-                        if int(result.get("resultSetMetaData", {}).get("numRows", 0)) > 2:
+                        total = int(result.get("resultSetMetaData", {}).get("numRows", 0))
+                        if total > (10000 if observation else 2):
                             raise VendorUnavailable()
-                        return result.get("data", [])
+                        rows = list(result.get("data", []))
+                        partitions = result.get("resultSetMetaData", {}).get("partitionInfo", [])
+                        if observation and len(partitions) > 1:
+                            handle = result.get("statementHandle", "")
+                            if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", handle) or len(partitions) > 32:
+                                raise VendorUnavailable("invalid_partitions")
+                            size = len(response.content)
+                            for partition in range(1, len(partitions)):
+                                page = await self._request(
+                                    "GET",
+                                    url + "/" + handle,
+                                    params={"partition": str(partition)},
+                                    headers=headers,
+                                )
+                                size += len(page.content)
+                                if page.status_code != 200 or size > 8_000_000:
+                                    raise VendorUnavailable("partition_unavailable")
+                                rows.extend(page.json().get("data", []))
+                                if len(rows) > 10000:
+                                    raise VendorUnavailable("result_too_large")
+                            if len(rows) != total:
+                                raise VendorUnavailable("incomplete_partitions")
+                        if len(rows) > (10000 if observation else 2):
+                            raise VendorUnavailable("result_too_large")
+                        if (
+                            observation
+                            and shape
+                            not in {"obs_ingest", "obs_publish", "obs_delete_facts", "obs_delete_revisions"}
+                            and "numRows" in result.get("resultSetMetaData", {})
+                            and len(rows) != total
+                        ):
+                            raise VendorUnavailable("incomplete_result")
+                        return rows
                     if response.status_code not in {202, 408}:
                         message = response.json().get("message", "").lower()
                         category = next(

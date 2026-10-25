@@ -61,9 +61,12 @@ class ComparisonService:
             value = exported["data"].model_dump(mode="json")
             pinned = service.owned(owner, item.simulation_id, item.revision)
             if pinned.conditions:
+                from app.disasters.models import StateView
                 from app.disasters.physics import view
 
-                value["disaster_projection"] = view(pinned)
+                # A published head and its persisted checkpoint must hash alike:
+                # model defaults can be integers until read back as typed floats.
+                value["disaster_projection"] = StateView.model_validate(view(pinned)).model_dump(mode="json")
                 value["disaster_projection"]["totals"] = dict(
                     damaged_buildings=sum(c.integrity < 100 for c in pinned.conditions.values()),
                     structural_transitions=sum(d.units == "integrity" for d in pinned.damage_records),
@@ -243,6 +246,8 @@ def create_snowflake_app(parent, config=None, transport=None):
 
 def install_snowflake(parent, config=None, transport=None):
     """Compose with the coordinator's shared child, preserving one prefix mount."""
+    from app.snowflake.observations_api import install_observations
+
     extension = create_snowflake_app(parent, config, transport)
     child = getattr(parent.state, "integrations", None)
     if child is not None:
@@ -260,6 +265,13 @@ def install_snowflake(parent, config=None, transport=None):
         parent.mount("/api/v1/integrations", child)
         mount = parent.router.routes.pop()
         parent.router.routes.insert(0, mount)
+    install_observations(
+        child,
+        parent,
+        child.state.comparison.config,
+        transport=transport,
+        gate=child.state.comparison.gate,
+    )
     if getattr(parent.state, "snowflake_lifespan_installed", False):
         return parent
     parent.state.snowflake_lifespan_installed = True
@@ -269,8 +281,10 @@ def install_snowflake(parent, config=None, transport=None):
     async def lifespan(app):
         async with original(app):
             try:
+                await child.state.observations.start()
                 yield
             finally:
+                await child.state.observations.close()
                 await child.state.comparison.close()
 
     parent.router.lifespan_context = lifespan

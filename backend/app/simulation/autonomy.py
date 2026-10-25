@@ -68,7 +68,8 @@ def routine_destination(state, citizen):
     ):
         return home, "Go home to rest and regain my energy"
     phase = (
-        state.simulation.tick // legacy_ticks(state, 16) + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
+        state.simulation.tick // legacy_ticks(state, 16)
+        + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
     ) % 3
     kind = ["work", "community", "shop"][phase]
     facilities = [

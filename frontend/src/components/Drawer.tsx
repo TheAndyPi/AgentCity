@@ -31,6 +31,7 @@ import * as S from "../api/schemas";
 import Narration from "./Narration";
 import { SnowflakeComparison } from "../snowflake/SnowflakeComparison";
 import { SnowflakeClient } from "../snowflake/client";
+import ObservationsPanel from "../snowflake/observations/ObservationsPanel";
 import {
   AgentSystemsPanel,
   CitySystemsPanel,
@@ -46,6 +47,7 @@ export type DrawerNode =
   | { type: "events" }
   | { type: "event"; id: string }
   | { type: "overview" }
+  | { type: "observations"; agentId?: string; eventId?: string }
   | { type: "overlays" }
   | { type: "agents" }
   | { type: "feed" }
@@ -58,6 +60,7 @@ const titles = {
   events: "City chronicle",
   event: "A turning point",
   overview: "The bigger picture",
+  observations: "Observations",
   overlays: "A different perspective",
   agents: "Bring someone new",
   feed: "Conversations",
@@ -144,6 +147,24 @@ export default function Drawer({
         {!["search", "traits", "feed"].includes(top.type) && (
           <div className="revision-label">Tick {frame.ref.tick}</div>
         )}
+        {["overview", "agent", "event"].includes(top.type) && (
+          <Button
+            kind="secondary"
+            onClick={() =>
+              onPush({
+                type: "observations",
+                ...(top.type === "agent" ? { agentId: top.id } : {}),
+                ...(top.type === "event" ? { eventId: top.id } : {}),
+              })
+            }
+          >
+            {top.type === "agent"
+              ? "Observe this citizen"
+              : top.type === "event"
+                ? "Observe event changes"
+                : "Observations"}
+          </Button>
+        )}
         {top.type === "search" || top.type === "traits" ? (
           <TraitsRoster
             frame={frame}
@@ -207,6 +228,16 @@ export default function Drawer({
             frame={frame}
             revision={readOnly ? revision : undefined}
             onPush={onPush}
+          />
+        ) : top.type === "observations" ? (
+          <ObservationsPanel
+            simulationId={frame.simulation.id}
+            revision={revision}
+            readOnly={readOnly}
+            agentId={top.agentId}
+            eventId={top.eventId}
+            onAgent={(id) => onPush({ type: "agent", id })}
+            onEvent={(id) => onPush({ type: "event", id })}
           />
         ) : (
           <ComparePanel

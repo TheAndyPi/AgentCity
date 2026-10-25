@@ -36,6 +36,7 @@ export default defineConfig({
         LLM_MODE: "rules",
         TIGER_ENABLED: "false",
         SNOWFLAKE_ENABLED: "false",
+        SNOWFLAKE_OBSERVATIONS_ENABLED: "false",
         ENABLE_NARRATION: "false",
         DATA_DIR: resolve("../backend/.tmp", `integration-e2e-${process.pid}`),
         ALLOWED_ORIGINS:
@@ -53,6 +54,7 @@ export default defineConfig({
         LLM_MODE: "rules",
         TIGER_ENABLED: "false",
         SNOWFLAKE_ENABLED: "false",
+        SNOWFLAKE_OBSERVATIONS_ENABLED: "false",
         ENABLE_NARRATION: "false",
         DATA_DIR: resolve("../backend/.tmp", `production-e2e-${process.pid}`),
         ALLOWED_ORIGINS: "http://127.0.0.1:10801",

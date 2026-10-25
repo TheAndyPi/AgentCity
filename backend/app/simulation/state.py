@@ -88,6 +88,7 @@ class Citizen(Model):
 
 
 class EventRuntime(Model):
+    observation_baseline: dict[str, Any] | None = None
     physical_legacy: bool = False
     cancelled: bool = False
     physical: Parameters | None = None

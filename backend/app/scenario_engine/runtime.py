@@ -59,6 +59,12 @@ def on_tick_start(state):
 
 
 def activate_plan(state, record, runtime):
+    from app.snowflake.observations_projection import capture_baseline
+
+    # The core activation path records earlier, before any physical effects.
+    # Preserve that baseline when a scenario plan shares the same event.
+    if runtime.observation_baseline is None:
+        runtime.observation_baseline = capture_baseline(state)
     systems = state.systems
     plan = ScenarioPlan.model_validate(record.plan)
     now = state.simulation.tick

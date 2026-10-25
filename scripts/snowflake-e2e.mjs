@@ -35,6 +35,7 @@ const child = spawn(
       LLM_MODE: "rules",
       TIGER_ENABLED: "false",
       SNOWFLAKE_ENABLED: "false",
+      SNOWFLAKE_OBSERVATIONS_ENABLED: "false",
       ALLOWED_ORIGINS: "http://127.0.0.1:15174,http://127.0.0.1:10820",
       AGENTCITY_BACKEND_URL: "http://127.0.0.1:10820",
     },

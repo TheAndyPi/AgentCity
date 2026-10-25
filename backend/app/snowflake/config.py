@@ -7,6 +7,8 @@ from pathlib import Path
 @dataclass(frozen=True)
 class SnowflakeConfig:
     enabled: bool = False
+    observations_enabled: bool = False
+    observation_poll_seconds: float = 30
     account: str = ""
     user: str = ""
     database: str = ""
@@ -23,6 +25,8 @@ class SnowflakeConfig:
     def from_env(cls):
         return cls(
             enabled=os.getenv("SNOWFLAKE_ENABLED", "false").lower() == "true",
+            observations_enabled=os.getenv("SNOWFLAKE_OBSERVATIONS_ENABLED", "false").lower() == "true",
+            observation_poll_seconds=float(os.getenv("SNOWFLAKE_OBSERVATION_POLL_SECONDS", "30")),
             **{
                 name: os.getenv("SNOWFLAKE_" + name.upper(), "")
                 for name in ("account", "user", "database", "schema", "warehouse", "role", "private_key_file")
@@ -32,7 +36,9 @@ class SnowflakeConfig:
         )
 
     def validate(self):
-        if not self.enabled:
+        if not 1 <= self.observation_poll_seconds <= 300:
+            raise ValueError("Snowflake observation poll interval must be between 1 and 300 seconds")
+        if not self.enabled and not self.observations_enabled:
             return
         if not re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*", self.account):
             raise ValueError("Invalid Snowflake account identifier")

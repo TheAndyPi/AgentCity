@@ -12,9 +12,16 @@ from app.simulation.indexes import DialogueIndex
 
 def line(number, speaker="a", recipients=None, heard=None):
     return c.Dialogue(
-        id=f"line_{number}", interaction_id=f"interaction_{number // 2}", tick=number,
-        speaker_id=speaker, recipient_ids=recipients or ["b"], audible_to_ids=heard or ["c"],
-        text=f"Message {number}", intent="talk", emotion="calm", end_conversation=False,
+        id=f"line_{number}",
+        interaction_id=f"interaction_{number // 2}",
+        tick=number,
+        speaker_id=speaker,
+        recipient_ids=recipients or ["b"],
+        audible_to_ids=heard or ["c"],
+        text=f"Message {number}",
+        intent="talk",
+        emotion="calm",
+        end_conversation=False,
     )
 
 

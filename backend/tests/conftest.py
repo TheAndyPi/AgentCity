@@ -24,7 +24,9 @@ def write(client, path, body, method="POST", key=None):
 
 def create_city(client, **config):
     response = write(
-        client, "/simulations", dict(config=dict(name="Test city", seed=42, population=10, tick_seconds=10) | config)
+        client,
+        "/simulations",
+        dict(config=dict(name="Test city", seed=42, population=10, tick_seconds=10) | config),
     )
     assert response.status_code == 202, response.text
     sid = response.json()["data"]["id"]
