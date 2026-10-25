@@ -1,0 +1,70 @@
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -24,6 +24,8 @@
+ from app.infrastructure.config import AppConfig
+ from app.infrastructure.errors import DomainError, require
+ from app.service import Service, Transaction
++from app.snowflake.config import SnowflakeConfig
++from app.snowflake.router import install_snowflake
+ from app.simulation.scenarios import event_report
+ from app.simulation.state import now, uid
+
+@@ -34,6 +36,7 @@
+
+ def create_app(config: AppConfig | None = None):
+     runtime = config or AppConfig.from_env()
++    snowflake_config = SnowflakeConfig.from_env()
+
+     @asynccontextmanager
+     async def lifespan(app):
+@@ -208,7 +211,7 @@
+                 max_concurrent_running_simulations=runtime.max_running,
+                 gemini=runtime.gemini_enabled,
+                 narration=False,
+-                snowflake=False,
++                snowflake=snowflake_config.enabled,
+                 persistence="local",
+                 replay=True,
+                 branching=True,
+@@ -914,6 +917,7 @@
+         return schema
+
+     app.openapi = openapi
++    install_snowflake(app, snowflake_config)
+     if runtime.frontend_dist:
+         from app.infrastructure.frontend import mount_frontend
+
+--- a/frontend/src/components/Drawer.tsx
++++ b/frontend/src/components/Drawer.tsx
+@@ -27,6 +27,8 @@
+ import type { Overlay } from "../world/World";
+ import * as S from "../api/schemas";
+ import Narration from "./Narration";
++import { SnowflakeComparison } from "../snowflake/SnowflakeComparison";
++import { SnowflakeClient } from "../snowflake/client";
+ import { Conversations, Personality, TraitsRoster } from "./LifePanels";
+ import { ReportMetrics } from "./OutcomeDialog";
+ export type DrawerNode =
+@@ -1207,7 +1209,8 @@
+   revision: number;
+   otherId?: string;
+ }) {
+-  const { client } = useApp();
++  const { client, capabilities } = useApp();
++  const [snowflakeClient] = useState(() => new SnowflakeClient(client.transport));
+   const worlds = useQuery(
+     async () => [
+       ...(await client.simulations()),
+@@ -1370,6 +1373,12 @@
+             Endpoint ticks can differ. Separate model runs do not establish
+             statistical significance.
+           </p>
++          <SnowflakeComparison
++            enabled={client.mode === "live" && !!capabilities?.snowflake}
++            a={{ simulation_id: frame.simulation.id, revision }}
++            b={{ simulation_id: data.data.sim.id, revision: data.data.sim.revision }}
++            client={snowflakeClient}
++          />
+         </>
+       )}
+     </>
