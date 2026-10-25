@@ -148,6 +148,12 @@ def test_safe_helper_can_still_aid_a_nearby_victim_in_a_hazard(client):
         "A flood will not occur",
         "A flood isn't expected",
         "A festival without any fire",
+        "No flood or fire today",
+        "There will not be a flood",
+        "There won't be a storm",
+        "Neither flood nor fire",
+        "No floods, fires or storms",
+        "A flood or fire won't happen",
     ],
 )
 def test_negated_hazards_create_neither_damage_nor_hazard_scenery(client, prompt):
@@ -170,6 +176,10 @@ def test_negated_hazards_create_neither_damage_nor_hazard_scenery(client, prompt
         ("A flood is not expected, but a fire starts", {"fire"}),
         ("No severe flood today. A festival opens", {"festival"}),
         ("A severe flood starts without any fire", {"flood"}),
+        ("There's no flood and a fire starts", {"fire"}),
+        ("No flood, a fire is coming", {"fire"}),
+        ("No severe flood or major fire, just a festival", {"festival"}),
+        ("A flood and fire hit the east", {"flood", "fire"}),
     ],
 )
 def test_negation_is_scoped_to_each_mention(prompt, expected):
@@ -185,6 +195,9 @@ def test_negation_is_scoped_to_each_mention(prompt, expected):
         ("Build a new hospital", "construction"),
         ("A new building is constructed", "construction"),
         ("Workers are building a new school", "construction"),
+        ("Create a new building", "construction"),
+        ("Add two houses", "construction"),
+        ("A new hospital appears", "construction"),
     ],
 )
 def test_unsupported_building_actions_remain_narrative_and_survive_repeat(client, prompt, limitation):
@@ -211,6 +224,45 @@ def test_unsupported_building_actions_remain_narrative_and_survive_repeat(client
     repeated = compile_preview(restored, "repeat", source_event_id=event.id)
     assert repeated.unsupported_requests == preview.unsupported_requests
     assert repeated.spec == preview.spec
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Aid workers add supplies to the shelter",
+        "Don't create a new building",
+        "Create a festival near the school",
+    ],
+)
+def test_non_construction_mentions_of_buildings_are_supported(prompt):
+    from app.simulation.scenarios import unsupported_physical_requests
+
+    assert unsupported_physical_requests(prompt) == []
+
+
+def test_regional_construction_request_gets_specific_notice(client):
+    state, _, _ = world(client)
+    preview = compile_preview(state, "custom", "Create a new building in the north")
+    assert preview.unsupported_requests == [
+        "Building construction is unsupported; scene illustrations do not alter city buildings."
+    ]
+    assert any("construction is unsupported" in warning for warning in preview.warnings)
+
+
+@pytest.mark.parametrize(
+    ("prompt", "region"),
+    [
+        ("A feast in the square", None),
+        ("A beast wanders the streets", None),
+        ("A festival in the eastern blocks", "east"),
+        ("A storm in the northeast", "north"),
+        ("Snow falls on the south-west", "west"),
+    ],
+)
+def test_regions_require_whole_direction_words(prompt, region):
+    from app.simulation.scenarios import region as named_region
+
+    assert named_region(prompt.lower()) == region
 
 
 def test_custom_illustrations_do_not_claim_construction(client):
