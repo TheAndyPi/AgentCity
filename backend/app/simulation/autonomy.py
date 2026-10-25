@@ -23,6 +23,9 @@ def social_choice(state, citizen, candidates):
         affection = tie.affection if tie else 40
         score = affection * 0.5 + (tie.trust * 0.2 if tie else 0)
         score += citizen.profile.traits.curiosity * (1 - familiarity / 100) * 0.35
+        from app.behavior.classes import affinity
+
+        score += affinity(citizen, other) * 6
         score -= distance(citizen.summary.position, other.summary.position) * 0.6
         name = other.summary.name.split()[0]
         if (

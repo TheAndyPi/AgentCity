@@ -180,8 +180,16 @@ def metric_delta(citizen, metric, delta, proof):
 
 
 def hazard_severity(state, position):
+    fires = [
+        f.severity
+        for f in state.behavior.fires.values()
+        if not f.extinguished
+        and f.end_tick > state.simulation.tick
+        and distance(position, f.position) <= f.radius
+    ]
     return max(
-        [
+        fires
+        + [
             effect.severity
             for runtime in state.events.values()
             if runtime.summary.status == "active"
@@ -224,7 +232,7 @@ def perception(state, citizen, index=None):
         f"Hunger {citizen.needs.hunger:.1f}, fatigue {citizen.needs.fatigue:.1f}",
     ]
     facts += [
-        f"Observed {c.summary.name} ({c.summary.id}) at ({c.summary.position.x:.1f}, {c.summary.position.y:.1f}), {distance(p, c.summary.position):.1f}m away, doing {c.summary.action}"
+        f"Observed {c.summary.name} ({c.summary.id}) at ({c.summary.position.x:.1f}, {c.summary.position.y:.1f}), {distance(p, c.summary.position):.1f}m away, doing {c.summary.action}; {c.condition.life}; visible injury {c.needs.health < 45}"
         for c in nearby
     ]
     facts += [

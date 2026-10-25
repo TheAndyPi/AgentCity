@@ -695,6 +695,8 @@ def activate(state):
 
 
 def apply_effects(state):
+    from app.behavior.vitals import evaluate, living
+
     for runtime in state.events.values():
         if runtime.summary.status != "active":
             continue
@@ -705,6 +707,8 @@ def apply_effects(state):
             ):
                 continue
             for effect in runtime.spec.effects:
+                if not living(citizen):
+                    break
                 if effect.type == "hazard":
                     damage = effect.severity / 100 * ({"flood": 1, "fire": 2, "storm": 0.5}[effect.hazard])
                     citizen.needs.health = clamp(citizen.needs.health - damage)
@@ -737,6 +741,8 @@ def apply_effects(state):
                     metric_delta(citizen, "happiness", effect.happiness_delta, proof)
                     metric_delta(citizen, "stress", effect.stress_delta, proof)
                     citizen.needs.health = clamp(citizen.needs.health + effect.health_delta)
+
+                evaluate(state, citizen, "Scenario effect", proof)
 
 
 def finish_events(state):

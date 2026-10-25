@@ -1,6 +1,315 @@
 {
   "components": {
     "schemas": {
+      "Analytics": {
+        "additionalProperties": false,
+        "properties": {
+          "counters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counters",
+            "type": "object"
+          },
+          "dead": {
+            "title": "Dead",
+            "type": "integer"
+          },
+          "deaths_by_cause": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Deaths By Cause",
+            "type": "object"
+          },
+          "living": {
+            "title": "Living",
+            "type": "integer"
+          },
+          "means_population": {
+            "const": "living including unconscious",
+            "title": "Means Population",
+            "type": "string"
+          },
+          "population": {
+            "title": "Population",
+            "type": "integer"
+          },
+          "population_composition_changed": {
+            "title": "Population Composition Changed",
+            "type": "boolean"
+          },
+          "snowflake_behavior_supported": {
+            "const": false,
+            "title": "Snowflake Behavior Supported",
+            "type": "boolean"
+          },
+          "survival_fraction": {
+            "title": "Survival Fraction",
+            "type": "number"
+          },
+          "tiger_behavior_supported": {
+            "const": false,
+            "title": "Tiger Behavior Supported",
+            "type": "boolean"
+          },
+          "unconscious": {
+            "title": "Unconscious",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "population",
+          "living",
+          "unconscious",
+          "dead",
+          "survival_fraction",
+          "deaths_by_cause",
+          "counters",
+          "means_population",
+          "population_composition_changed",
+          "tiger_behavior_supported",
+          "snowflake_behavior_supported"
+        ],
+        "title": "Analytics",
+        "type": "object"
+      },
+      "BehaviorDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "action": {
+            "enum": [
+              "attack",
+              "ignite",
+              "rescue",
+              "admit",
+              "comfort",
+              "share",
+              "suppress"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "effects": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Effects",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "tick": {
+            "title": "Tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "tick",
+          "actor_id",
+          "action",
+          "target_id",
+          "accepted",
+          "reason"
+        ],
+        "title": "BehaviorDecision",
+        "type": "object"
+      },
+      "BehaviorEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "tick": {
+            "title": "Tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "tick",
+          "kind",
+          "actor_id",
+          "target_id",
+          "description",
+          "evidence"
+        ],
+        "title": "BehaviorEvent",
+        "type": "object"
+      },
+      "BehaviorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BehaviorSnapshot"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "2.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "BehaviorResponse",
+        "type": "object"
+      },
+      "BehaviorSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "activated_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated Tick"
+          },
+          "analytics": {
+            "$ref": "#/components/schemas/Analytics"
+          },
+          "citizens": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Condition"
+            },
+            "title": "Citizens",
+            "type": "object"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/BehaviorDecision"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/BehaviorEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "fires": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Fire"
+            },
+            "title": "Fires",
+            "type": "object"
+          },
+          "hospitals": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Hospital"
+            },
+            "title": "Hospitals",
+            "type": "object"
+          },
+          "learned_rules": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/RestLesson"
+              },
+              "type": "array"
+            },
+            "title": "Learned Rules",
+            "type": "object"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "simulation_id": {
+            "title": "Simulation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "simulation_id",
+          "ref",
+          "seed",
+          "rule_version",
+          "activated_tick",
+          "citizens",
+          "learned_rules",
+          "fires",
+          "hospitals",
+          "events",
+          "decisions",
+          "analytics"
+        ],
+        "title": "BehaviorSnapshot",
+        "type": "object"
+      },
       "Citation": {
         "additionalProperties": false,
         "properties": {
@@ -183,6 +492,164 @@
         "title": "ComparisonResponse",
         "type": "object"
       },
+      "Condition": {
+        "additionalProperties": false,
+        "properties": {
+          "care": {
+            "default": "none",
+            "enum": [
+              "none",
+              "claimed",
+              "carried",
+              "escorted",
+              "hospital"
+            ],
+            "title": "Care",
+            "type": "string"
+          },
+          "causes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Causes",
+            "type": "array"
+          },
+          "class_beliefs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Class Beliefs",
+            "type": "object"
+          },
+          "class_evidence_tick": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Class Evidence Tick",
+            "type": "object"
+          },
+          "cooldown_until": {
+            "default": 0,
+            "title": "Cooldown Until",
+            "type": "integer"
+          },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Episode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Evidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "helper_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Helper Id"
+          },
+          "hospital_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hospital Id"
+          },
+          "impacts": {
+            "items": {
+              "$ref": "#/components/schemas/Impact"
+            },
+            "title": "Impacts",
+            "type": "array"
+          },
+          "last_action_tick": {
+            "default": -1,
+            "title": "Last Action Tick",
+            "type": "integer"
+          },
+          "last_coupling_tick": {
+            "default": -1,
+            "title": "Last Coupling Tick",
+            "type": "integer"
+          },
+          "last_passive_tick": {
+            "default": -1,
+            "title": "Last Passive Tick",
+            "type": "integer"
+          },
+          "life": {
+            "default": "alive",
+            "enum": [
+              "alive",
+              "unconscious",
+              "dead"
+            ],
+            "title": "Life",
+            "type": "string"
+          },
+          "mental": {
+            "default": 70,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Mental",
+            "type": "number"
+          },
+          "patient_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Id"
+          },
+          "transition_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transition Tick"
+          },
+          "wealth_band": {
+            "default": "middle",
+            "enum": [
+              "poor",
+              "middle",
+              "rich"
+            ],
+            "title": "Wealth Band",
+            "type": "string"
+          }
+        },
+        "title": "Condition",
+        "type": "object"
+      },
       "Difference": {
         "additionalProperties": false,
         "properties": {
@@ -241,6 +708,89 @@
           "unit"
         ],
         "title": "Difference",
+        "type": "object"
+      },
+      "Episode": {
+        "additionalProperties": false,
+        "properties": {
+          "acted_tick": {
+            "default": -1,
+            "title": "Acted Tick",
+            "type": "integer"
+          },
+          "causes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Causes",
+            "type": "array"
+          },
+          "end_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Tick"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ignited": {
+            "default": false,
+            "title": "Ignited",
+            "type": "boolean"
+          },
+          "last_checked_tick": {
+            "default": -1,
+            "title": "Last Checked Tick",
+            "type": "integer"
+          },
+          "measurements": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Measurements",
+            "type": "object"
+          },
+          "mode": {
+            "enum": [
+              "withdrawal",
+              "panic",
+              "support",
+              "aggression",
+              "fire"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "stable_ticks": {
+            "default": 0,
+            "title": "Stable Ticks",
+            "type": "integer"
+          },
+          "start_tick": {
+            "title": "Start Tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "mode",
+          "start_tick",
+          "causes",
+          "measurements",
+          "rationale"
+        ],
+        "title": "Episode",
         "type": "object"
       },
       "Error": {
@@ -333,6 +883,51 @@
         "title": "ErrorDetail",
         "type": "object"
       },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_ids": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Decision Ids",
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "event_ids": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Event Ids",
+            "type": "array"
+          },
+          "memory_ids": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Memory Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "event_ids",
+          "decision_ids",
+          "memory_ids",
+          "description"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
       "Explanation": {
         "additionalProperties": false,
         "properties": {
@@ -378,6 +973,158 @@
           "observations"
         ],
         "title": "Explanation",
+        "type": "object"
+      },
+      "Fire": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "end_tick": {
+            "title": "End Tick",
+            "type": "integer"
+          },
+          "extinguished": {
+            "default": false,
+            "title": "Extinguished",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "radius": {
+            "title": "Radius",
+            "type": "number"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "number"
+          },
+          "start_tick": {
+            "title": "Start Tick",
+            "type": "integer"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_id",
+          "target_id",
+          "position",
+          "radius",
+          "severity",
+          "start_tick",
+          "end_tick"
+        ],
+        "title": "Fire",
+        "type": "object"
+      },
+      "Hospital": {
+        "additionalProperties": false,
+        "properties": {
+          "inventory": {
+            "$ref": "#/components/schemas/Inventory"
+          },
+          "patients": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Patients",
+            "type": "array"
+          },
+          "reservations": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Reservations",
+            "type": "object"
+          }
+        },
+        "required": [
+          "inventory"
+        ],
+        "title": "Hospital",
+        "type": "object"
+      },
+      "Impact": {
+        "additionalProperties": false,
+        "properties": {
+          "delta": {
+            "title": "Delta",
+            "type": "number"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence"
+          },
+          "meter": {
+            "enum": [
+              "mental",
+              "social",
+              "energy",
+              "health",
+              "fullness"
+            ],
+            "title": "Meter",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "tick": {
+            "title": "Tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tick",
+          "phase",
+          "meter",
+          "reason",
+          "delta",
+          "evidence"
+        ],
+        "title": "Impact",
+        "type": "object"
+      },
+      "Inventory": {
+        "additionalProperties": false,
+        "properties": {
+          "food": {
+            "minimum": 0.0,
+            "title": "Food",
+            "type": "number"
+          },
+          "supplies": {
+            "minimum": 0.0,
+            "title": "Supplies",
+            "type": "number"
+          },
+          "water": {
+            "minimum": 0.0,
+            "title": "Water",
+            "type": "number"
+          }
+        },
+        "required": [
+          "food",
+          "water",
+          "supplies"
+        ],
+        "title": "Inventory",
         "type": "object"
       },
       "Issue": {
@@ -594,6 +1341,127 @@
         "title": "Provenance",
         "type": "object"
       },
+      "Ref": {
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "tick": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tick",
+          "revision"
+        ],
+        "title": "Ref",
+        "type": "object"
+      },
+      "RestLesson": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "number"
+          },
+          "baseline": {
+            "title": "Baseline",
+            "type": "number"
+          },
+          "before": {
+            "title": "Before",
+            "type": "number"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "context": {
+            "default": "Personal recovery after energy collapse",
+            "title": "Context",
+            "type": "string"
+          },
+          "contradicting_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contradicting Source Ids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last_applied_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Applied Tick"
+          },
+          "learner_id": {
+            "title": "Learner Id",
+            "type": "string"
+          },
+          "origin": {
+            "const": "observed",
+            "default": "observed",
+            "title": "Origin",
+            "type": "string"
+          },
+          "outcome_revision": {
+            "title": "Outcome Revision",
+            "type": "integer"
+          },
+          "outcome_tick": {
+            "title": "Outcome Tick",
+            "type": "integer"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "supporting_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supporting Source Ids",
+            "type": "array"
+          },
+          "topic": {
+            "const": "rest_energy",
+            "default": "rest_energy",
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "learner_id",
+          "supporting_source_ids",
+          "contradicting_source_ids",
+          "outcome_tick",
+          "outcome_revision",
+          "confidence",
+          "baseline",
+          "before",
+          "after",
+          "rule_version"
+        ],
+        "title": "RestLesson",
+        "type": "object"
+      },
       "StatusResponse": {
         "properties": {
           "data": {
@@ -683,6 +1551,25 @@
         "title": "TigerStatus",
         "type": "object"
       },
+      "Vec2": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "Vec2",
+        "type": "object"
+      },
       "app__contracts__Failure": {
         "additionalProperties": false,
         "properties": {
@@ -741,6 +1628,298 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/behavior/v2/simulations/{sid}": {
+      "get": {
+        "operationId": "read_behavior_v2_simulations__sid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "title": "Sid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BehaviorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Read"
+      }
+    },
+    "/behavior/v2/simulations/{sid}/export": {
+      "get": {
+        "operationId": "read_behavior_v2_simulations__sid__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "title": "Sid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BehaviorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__contracts__Failure"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Read"
+      }
+    },
     "/snowflake/comparisons": {
       "post": {
         "description": "Two explicit owned history revisions. No caller SQL. The parent session cookie, allowed Origin, CSRF token, and canonical UUID idempotency key are required for writes. Exact successful retries return the durable receipt; changed bodies conflict.",

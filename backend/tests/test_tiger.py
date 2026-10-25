@@ -596,3 +596,22 @@ def test_t06_real_postgres_public_worker_branch_and_restart(tmp_path):
     finally:
         with psycopg.connect(url, sslmode="verify-full", connect_timeout=5) as connection:
             connection.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+def test_published_deletion_before_head_removal_does_not_spin(integrated):
+    client, sink, _ = integrated
+    sid = create_city(client)["id"]
+    caught_up(client, sid)
+    service = client.app.state.service
+    worker = service.tiger
+    client.portal.call(worker.close)
+    journal = service.repo.meta["simulations"].pop(sid)
+    try:
+        # This is the real publication gap: committed metadata no longer has
+        # the source, while the service still exposes its old in-memory head.
+        assert sid in service.heads
+        before = len(sink.calls)
+        assert client.portal.call(worker.reconcile) is False
+        assert len(sink.calls) == before
+    finally:
+        service.repo.meta["simulations"][sid] = journal

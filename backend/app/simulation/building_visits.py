@@ -30,7 +30,14 @@ def interior_slot(state, citizen, building):
         and c.summary.active
         and building.id in {c.inside_building_id, c.entering_building_id}
     ]
-    if not building.functional or len(reserved) >= building.capacity:
+    hospital = state.behavior.hospitals.get(building.id)
+    represented_helpers = {c.summary.id for c in reserved} | {citizen.summary.id}
+    bookings = (
+        sum(helper_id not in represented_helpers for helper_id in hospital.reservations.values())
+        if hospital
+        else 0
+    )
+    if not building.functional or len(reserved) + bookings >= building.capacity:
         return None
     occupied = [
         c.summary.path[-1] if c.entering_building_id == building.id and c.summary.path else c.summary.position

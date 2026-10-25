@@ -1,0 +1,365 @@
+{
+  "data": {
+    "activated_tick": 0,
+    "analytics": {
+      "counters": {
+        "crisis": 1,
+        "death": 1,
+        "faint": 1,
+        "redistribution": 1,
+        "rules_activated": 1
+      },
+      "dead": 1,
+      "deaths_by_cause": {
+        "health": 1
+      },
+      "living": 9,
+      "means_population": "living including unconscious",
+      "population": 10,
+      "population_composition_changed": true,
+      "snowflake_behavior_supported": false,
+      "survival_fraction": 0.9,
+      "tiger_behavior_supported": false,
+      "unconscious": 1
+    },
+    "citizens": {
+      "agent_00000038": {
+        "care": "none",
+        "causes": [
+          "energy"
+        ],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": {
+          "decision_ids": [],
+          "description": "Canonical threshold check",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "unconscious",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": 0,
+        "wealth_band": "poor"
+      },
+      "agent_00000039": {
+        "care": "none",
+        "causes": [
+          "health"
+        ],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": {
+          "decision_ids": [],
+          "description": "Canonical threshold check",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "dead",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": 0,
+        "wealth_band": "middle"
+      },
+      "agent_00000040": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": {
+          "acted_tick": -1,
+          "causes": [
+            "low_mental"
+          ],
+          "end_tick": null,
+          "id": "crisis_00000057",
+          "ignited": false,
+          "last_checked_tick": 0,
+          "measurements": {
+            "mental": 10.0,
+            "stress": 20.0
+          },
+          "mode": "support",
+          "rationale": "low_mental; personality/context weights {'withdrawal': 1.783389714706344, 'panic': 1.0, 'support': 3.7138955011421397, 'aggression': 0, 'fire': 0}",
+          "stable_ticks": 0,
+          "start_tick": 0
+        },
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 10.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "middle"
+      },
+      "agent_00000041": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "poor"
+      },
+      "agent_00000042": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "middle"
+      },
+      "agent_00000043": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "middle"
+      },
+      "agent_00000044": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "poor"
+      },
+      "agent_00000045": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "middle"
+      },
+      "agent_00000046": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "middle"
+      },
+      "agent_00000047": {
+        "care": "none",
+        "causes": [],
+        "class_beliefs": {},
+        "class_evidence_tick": {},
+        "cooldown_until": 0,
+        "episode": null,
+        "evidence": null,
+        "helper_id": null,
+        "hospital_id": null,
+        "impacts": [],
+        "last_action_tick": -1,
+        "last_coupling_tick": -1,
+        "last_passive_tick": -1,
+        "life": "alive",
+        "mental": 70.0,
+        "patient_id": null,
+        "transition_tick": null,
+        "wealth_band": "poor"
+      }
+    },
+    "decisions": [],
+    "events": [
+      {
+        "actor_id": null,
+        "description": "Live rules 2.0.0; legacy Mental defaults to 70",
+        "evidence": {
+          "decision_ids": [],
+          "description": "Live rules 2.0.0; legacy Mental defaults to 70",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "id": "behavior_00000048",
+        "kind": "rules_activated",
+        "target_id": null,
+        "tick": 0
+      },
+      {
+        "actor_id": null,
+        "description": "Fixed household resource pool redistributed by spawn index weights 0.4/0.8/1.8; independent of names and traits",
+        "evidence": {
+          "decision_ids": [],
+          "description": "Fixed household resource pool redistributed by spawn index weights 0.4/0.8/1.8; independent of names and traits",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "id": "behavior_00000049",
+        "kind": "redistribution",
+        "target_id": null,
+        "tick": 0
+      },
+      {
+        "actor_id": "agent_00000038",
+        "description": "Unconscious: energy depleted; waiting for passive recovery or care",
+        "evidence": {
+          "decision_ids": [],
+          "description": "Canonical threshold check",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "id": "behavior_00000051",
+        "kind": "faint",
+        "target_id": null,
+        "tick": 0
+      },
+      {
+        "actor_id": "agent_00000039",
+        "description": "Dead at tick 0: health",
+        "evidence": {
+          "decision_ids": [],
+          "description": "Canonical threshold check",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "id": "behavior_00000052",
+        "kind": "death",
+        "target_id": null,
+        "tick": 0
+      },
+      {
+        "actor_id": "agent_00000040",
+        "description": "support: low_mental; personality/context weights {'withdrawal': 1.783389714706344, 'panic': 1.0, 'support': 3.7138955011421397, 'aggression': 0, 'fire': 0}",
+        "evidence": {
+          "decision_ids": [],
+          "description": "support: low_mental; personality/context weights {'withdrawal': 1.783389714706344, 'panic': 1.0, 'support': 3.7138955011421397, 'aggression': 0, 'fire': 0}",
+          "event_ids": [],
+          "memory_ids": []
+        },
+        "id": "behavior_00000058",
+        "kind": "crisis",
+        "target_id": null,
+        "tick": 0
+      }
+    ],
+    "fires": {},
+    "hospitals": {
+      "building_00000002": {
+        "inventory": {
+          "food": 6.0,
+          "supplies": 6.0,
+          "water": 6.0
+        },
+        "patients": [],
+        "reservations": {}
+      }
+    },
+    "learned_rules": {
+      "agent_00000038": [],
+      "agent_00000039": [],
+      "agent_00000040": [],
+      "agent_00000041": [],
+      "agent_00000042": [],
+      "agent_00000043": [],
+      "agent_00000044": [],
+      "agent_00000045": [],
+      "agent_00000046": [],
+      "agent_00000047": []
+    },
+    "ref": {
+      "revision": 6,
+      "tick": 0
+    },
+    "rule_version": "2.0.0",
+    "seed": 42,
+    "simulation_id": "simulation_c3a40053706648d7b9dfd779e62165ba"
+  },
+  "request_id": "behavior-fixture",
+  "schema_version": "2.0.0"
+}

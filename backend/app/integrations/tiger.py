@@ -301,6 +301,7 @@ class TigerIngestor:
             if head is None or self._revision(sid) >= head.simulation.revision:
                 continue
             self.after = sid
+            advanced = False
             for _ in range(self.config.tiger_revision_batch):
                 head = self.service.heads.get(sid)
                 revision = self._revision(sid) + 1
@@ -329,8 +330,11 @@ class TigerIngestor:
                     await save
                     raise
                 self.progress = progress
+                advanced = True
                 await asyncio.sleep(0)
-            return True
+            # The journal can publish a deletion before the service removes its
+            # old head. No work means wait/yield, never a tight True/pending loop.
+            return advanced
         return False
 
     async def run(self):
