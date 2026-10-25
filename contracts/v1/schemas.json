@@ -645,6 +645,7 @@
               "pause": "#/$defs/Pause",
               "play": "#/$defs/Play",
               "save": "#/$defs/Save",
+              "set_relationship": "#/$defs/SetRelationship",
               "set_speed": "#/$defs/SetSpeed",
               "step": "#/$defs/Step",
               "unarchive": "#/$defs/Unarchive"
@@ -675,6 +676,9 @@
             },
             {
               "$ref": "#/$defs/AddAgents"
+            },
+            {
+              "$ref": "#/$defs/SetRelationship"
             },
             {
               "$ref": "#/$defs/OverrideAgent"
@@ -4580,6 +4584,46 @@
       "title": "SessionInfo",
       "type": "object"
     },
+    "SetRelationship": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "set_relationship",
+          "title": "Type",
+          "type": "string"
+        },
+        "agent_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "target_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Target Id",
+          "type": "string"
+        },
+        "preset": {
+          "enum": [
+            "lovers",
+            "friends",
+            "rivals",
+            "acquaintances"
+          ],
+          "title": "Preset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "agent_id",
+        "target_id",
+        "preset"
+      ],
+      "title": "SetRelationship",
+      "type": "object"
+    },
     "SetSpeed": {
       "additionalProperties": false,
       "properties": {
@@ -5655,7 +5699,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "x-contract-version": "1.0.0",
-  "x-contract-revision": 3,
+  "x-contract-revision": 4,
   "x-types": {
     "Acknowledge": {
       "$ref": "#/$defs/Acknowledge"
@@ -5950,6 +5994,9 @@
     },
     "SessionInfo": {
       "$ref": "#/$defs/SessionInfo"
+    },
+    "SetRelationship": {
+      "$ref": "#/$defs/SetRelationship"
     },
     "SetSpeed": {
       "$ref": "#/$defs/SetSpeed"

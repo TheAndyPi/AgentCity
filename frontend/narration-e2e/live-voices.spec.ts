@@ -70,11 +70,6 @@ async function prepare(page: Page) {
   );
   await page.goto(`/simulations/${city.id}`);
   await expect(page.locator(".connection")).toHaveText("LIVE");
-  const audioToggle = page.getByRole("button", { name: "Open audio controls" });
-  await expect(audioToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("group", { name: "Sound mix" })).toBeHidden();
-  await audioToggle.click();
-  await expect(page.getByRole("group", { name: "Sound mix" })).toBeVisible();
   return { city, world, pair, commit };
 }
 async function watch(page: Page) {
@@ -99,6 +94,15 @@ test("LV-03 real reconnect and polling snapshots never repeat handled turns", as
   await watch(page);
   await monitor(page);
   const voices = page.getByRole("region", { name: "Live voices" });
+  await expect(
+    voices.getByRole("button", { name: "Enable live voices" }),
+  ).toBeHidden();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
+  await voices.getByRole("button", { name: "Hide city radio" }).click();
+  await expect(
+    voices.getByRole("button", { name: "Enable live voices" }),
+  ).toBeHidden();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
   await voices.getByRole("button", { name: "Enable live voices" }).click();
   await commit(
     pair.map((a) => a.id),
@@ -199,6 +203,10 @@ test("LV-01/02/10 four committed turns play automatically with distinct voices, 
   await watch(page);
   await monitor(page);
   const voices = page.getByRole("region", { name: "Live voices" });
+  await expect(
+    voices.getByRole("button", { name: "Enable live voices" }),
+  ).toBeHidden();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
   await voices.getByRole("button", { name: "Enable live voices" }).click();
   const before = await (await request.get(`${fake}/requests`)).json();
   const committed = await commit(
@@ -275,6 +283,10 @@ test("LV-04/05/10 focus changes abort stale work; autoplay failure and mute are 
   await watch(page);
   await monitor(page);
   const voices = page.getByRole("region", { name: "Live voices" });
+  await expect(
+    voices.getByRole("button", { name: "Enable live voices" }),
+  ).toBeHidden();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
   await voices.getByRole("button", { name: "Enable live voices" }).click();
   await request.post(`${fake}/hold`);
   await commit(
@@ -359,6 +371,7 @@ test("LV-04/05/10 focus changes abort stale work; autoplay failure and mute are 
   );
   await expect.poll(async () => (await played(page)).length).toBe(2);
   await page.reload();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
   await expect(
     voices.getByRole("button", { name: "Enable live voices" }),
   ).toBeVisible();
@@ -376,6 +389,10 @@ test("LV-06/09 overload is visible, replay is explicit, and mobile controls rema
   await watch(page);
   await monitor(page);
   const voices = page.getByRole("region", { name: "Live voices" });
+  await expect(
+    voices.getByRole("button", { name: "Enable live voices" }),
+  ).toBeHidden();
+  await voices.getByRole("button", { name: "Show city radio" }).click();
   const count = (await (await request.get(`${fake}/requests`)).json()).length;
   await voices.getByRole("button", { name: "Enable live voices" }).click();
   await voices
@@ -397,10 +414,5 @@ test("LV-06/09 overload is visible, replay is explicit, and mobile controls rema
   await expect(voices).not.toContainText("Missed/backlogged");
   const bounds = await voices.boundingBox();
   expect(bounds!.width).toBeLessThanOrEqual(390);
-  await voices.getByRole("button", { name: "Close audio controls" }).click();
-  await expect(voices.getByRole("group", { name: "Sound mix" })).toBeHidden();
-  await expect(page.getByRole("button", { name: "Step one tick", exact: true })).toBeVisible();
-  await voices.getByRole("button", { name: "Open audio controls" }).click();
-  await expect(voices.getByRole("group", { name: "Sound mix" })).toBeVisible();
   await page.screenshot({ path: "artifacts/narration/live-voices-mobile.png" });
 });

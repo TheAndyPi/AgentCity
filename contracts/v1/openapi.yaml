@@ -4187,6 +4187,7 @@ components:
           - $ref: '#/components/schemas/Archive'
           - $ref: '#/components/schemas/Unarchive'
           - $ref: '#/components/schemas/AddAgents'
+          - $ref: '#/components/schemas/SetRelationship'
           - $ref: '#/components/schemas/OverrideAgent'
           - $ref: '#/components/schemas/Acknowledge'
           title: Command
@@ -4200,6 +4201,7 @@ components:
               pause: '#/components/schemas/Pause'
               play: '#/components/schemas/Play'
               save: '#/components/schemas/Save'
+              set_relationship: '#/components/schemas/SetRelationship'
               set_speed: '#/components/schemas/SetSpeed'
               step: '#/components/schemas/Step'
               unarchive: '#/components/schemas/Unarchive'
@@ -6969,6 +6971,38 @@ components:
       - authenticated
       - csrf_token
       title: SessionInfo
+    SetRelationship:
+      properties:
+        type:
+          type: string
+          const: set_relationship
+          title: Type
+        agent_id:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Agent Id
+        target_id:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Target Id
+        preset:
+          type: string
+          enum:
+          - lovers
+          - friends
+          - rivals
+          - acquaintances
+          title: Preset
+      additionalProperties: false
+      type: object
+      required:
+      - type
+      - agent_id
+      - target_id
+      - preset
+      title: SetRelationship
     SetSpeed:
       properties:
         type:

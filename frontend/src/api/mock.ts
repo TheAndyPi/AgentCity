@@ -820,7 +820,7 @@ export class MockTransport implements Transport {
         r.frame.agents.push(...extra);
         s.agent_count = r.frame.agents.length;
         affected_agent_ids = extra.map((a) => a.id);
-      } else if (c.type === "override_agent") {
+      } else if (c.type === "override_agent" || c.type === "set_relationship") {
         if (r.hold)
           throw new ApiError(
             "INTERVENTION_OPEN",

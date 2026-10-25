@@ -1734,3 +1734,41 @@ body:has(.home) .mock-badge {
 :root[data-motion="reduced"] .home-lights > i {
   opacity: 0.25;
 }
+
+.citizen-influence {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.citizen-influence h3 {
+  margin: 0 0 6px;
+  color: var(--cyan);
+  font: 600 12px var(--font-tech);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.citizen-influence > p {
+  margin: 6px 0;
+  color: var(--muted);
+  font: 500 11px var(--font-tech);
+  overflow-wrap: anywhere;
+}
+.citizen-influence .meet-picker {
+  margin-top: 12px;
+}
+.citizen-influence textarea {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  max-height: 180px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 9px;
+  background: var(--input);
+  color: var(--text);
+  font: 500 12px var(--font-tech);
+}
+.citizen-influence [role="status"] {
+  color: var(--cyan);
+}

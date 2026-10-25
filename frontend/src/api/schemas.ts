@@ -728,6 +728,12 @@ export const command = z.discriminatedUnion("type", [
     ),
   }).strict(),
   obj({
+    type: z.literal("set_relationship"),
+    agent_id: id,
+    target_id: id,
+    preset: z.enum(["lovers", "friends", "rivals", "acquaintances"]),
+  }).strict(),
+  obj({
     type: z.literal("override_agent"),
     agent_id: id,
     metrics: metrics.partial(),

@@ -16,6 +16,7 @@ import type {
   CommandBody,
   Dialogue,
   Intent,
+  RelationshipPreset,
   WorldFrame,
 } from "../api/types";
 import { readBehavior } from "../behavior/client";
@@ -72,6 +73,9 @@ export default function LifeHUD({
   const { client } = useApp();
   const [partner, setPartner] = useState("");
   const [visit, setVisit] = useState("");
+  const [preset, setPreset] = useState<RelationshipPreset>("lovers");
+  const [draft, setDraft] = useState("");
+  const [feedback, setFeedback] = useState("");
   const [working, setWorking] = useState(false),
     [error, setError] = useState("");
   const transcript = useRef<HTMLDivElement>(null);
@@ -186,7 +190,8 @@ export default function LifeHUD({
             ),
         )
     : [];
-  const target = neighbors.find((a) => a.id === partner) ?? neighbors[0];
+  const target =
+    second ?? neighbors.find((a) => a.id === partner) ?? neighbors[0];
   const relation = detail.data?.relationships.items.find(
     (r) => r.to_agent_id === second?.id,
   );
@@ -194,6 +199,8 @@ export default function LifeHUD({
     setPartner("");
     setVisit("");
     setError("");
+    setDraft("");
+    setFeedback("");
   }, [selected?.id]);
   useEffect(() => {
     transcript.current?.scrollTo({
@@ -201,18 +208,23 @@ export default function LifeHUD({
       behavior: "auto",
     });
   }, [last?.id]);
-  const perform = async (action: "talk" | "rest" | "consume" | "move") => {
+  const perform = async (
+    action: "talk" | "rest" | "consume" | "move",
+    message?: string,
+  ) => {
     if (
       !selected ||
       (action === "talk" && !target) ||
       (action === "move" && !visitTarget) ||
       working ||
       locked ||
-      readOnly
+      readOnly ||
+      (message !== undefined && (!message.trim() || message.length > 2000))
     )
       return;
     setWorking(true);
     setError("");
+    setFeedback("");
     try {
       await onCommand({
         type: "override_agent",
@@ -229,11 +241,18 @@ export default function LifeHUD({
                 ? visitTarget!.id
                 : null,
           ),
+          ...(message !== undefined
+            ? { parameters: { ...lifeIntent(action).parameters, message } }
+            : {}),
           ...(action === "move"
             ? { motivation: `Visit ${visitTarget!.name}` }
             : {}),
         },
       });
+      if (message !== undefined) {
+        setDraft("");
+        setFeedback("Requested—delivery depends on reaching them.");
+      }
       if (action === "move" && frame.simulation.status !== "running")
         await onCommand({ type: "play" });
       if (action === "talk") {
@@ -255,6 +274,26 @@ export default function LifeHUD({
     !selected?.active ||
     condition?.life === "unconscious" ||
     (condition?.care !== undefined && condition.care !== "none");
+  const applyRelationship = async () => {
+    if (!selected || !target || disabled || !target.active) return;
+    setWorking(true);
+    setError("");
+    setFeedback("");
+    try {
+      await onCommand({
+        type: "set_relationship",
+        agent_id: selected.id,
+        target_id: target.id,
+        preset,
+      });
+      detail.reload();
+      setFeedback(`${selected.name} and ${target.name} are now ${preset}.`);
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setWorking(false);
+    }
+  };
   return (
     <>
       {!selected && (
@@ -484,6 +523,62 @@ export default function LifeHUD({
                   </button>
                 </>
               )}
+              <section className="citizen-influence" aria-label="Influence">
+                <h3>Influence</h3>
+                <p>
+                  {target
+                    ? `${selected.name} → ${target.name}`
+                    : "Choose another active citizen."}
+                </p>
+                <label className="meet-picker">
+                  <span>RELATIONSHIP</span>
+                  <select
+                    aria-label="Relationship preset"
+                    value={preset}
+                    disabled={disabled || !target?.active}
+                    onChange={(event) =>
+                      setPreset(event.target.value as RelationshipPreset)
+                    }
+                  >
+                    <option value="lovers">Lovers</option>
+                    <option value="friends">Friends</option>
+                    <option value="rivals">Rivals</option>
+                    <option value="acquaintances">Acquaintances</option>
+                  </select>
+                </label>
+                <button
+                  className="invite-button"
+                  disabled={disabled || !target?.active}
+                  onClick={() => void applyRelationship()}
+                >
+                  <Heart size={15} /> Apply relationship
+                </button>
+                <label className="meet-picker">
+                  <span>SAY THIS TO {target?.name ?? "A NEIGHBOR"}</span>
+                  <textarea
+                    aria-label="Exact line to say"
+                    rows={3}
+                    maxLength={2000}
+                    value={draft}
+                    disabled={disabled || !target?.active}
+                    placeholder="Type their exact words…"
+                    onChange={(event) => setDraft(event.target.value)}
+                  />
+                </label>
+                <button
+                  className="invite-button"
+                  disabled={
+                    disabled ||
+                    !target?.active ||
+                    !draft.trim() ||
+                    draft.length > 2000
+                  }
+                  onClick={() => void perform("talk", draft)}
+                >
+                  <MessageCircle size={15} /> Say this
+                </button>
+                {feedback && <p role="status">{feedback}</p>}
+              </section>
               {conversation && !second && (
                 <button
                   className="watch-chat"

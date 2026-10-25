@@ -1,0 +1,14 @@
+{
+  "model": "CommandRequest",
+  "valid": true,
+  "data": {
+    "request_id": "00000000-0000-4000-8000-000000000001",
+    "expected_control_version": 0,
+    "command": {
+      "type": "set_relationship",
+      "agent_id": "citizen-a",
+      "target_id": "citizen-b",
+      "preset": "lovers"
+    }
+  }
+}

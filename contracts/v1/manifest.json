@@ -3,7 +3,7 @@
   "schema_draft": "2020-12",
   "status": "frozen",
   "sha256": {
-    "CONTRACT.md": "a48548f77dbc425f3cf060a5555a941e109ddb1c67bb6178bb3fe28f69a7f3a0",
+    "CONTRACT.md": "6f283c24d6b0977b5fee35a3d8e35d301a3f01d9c48fcf7e010772110804677a",
     "fixtures/active_flood.json": "0bd2760520f21c121f7a6dd18125724bb5b1d9756934dc369dc834c7de4021dd",
     "fixtures/all_empty_lists.json": "6147e5143e7463a712064569218d29c9b98689a5b89e4b3b132b21a00e2f1074",
     "fixtures/archived_simulation.json": "7262e3617df276a1e588be1177e7a34d62091da084684795ba568d5117b03c89",
@@ -23,6 +23,7 @@
     "fixtures/invalid_missing_response_trait.json": "669196e82de815c20ddfc7596bb630c5171708e12e9565495b5074780f2a569c",
     "fixtures/invalid_pct.json": "129b9e7785d334134236b3d2b6ff45c8bb34ae062f4e13b06bb7da131b91014d",
     "fixtures/invalid_population.json": "61d3db8fb0f506acd9ec347813828fea201bef95d7b4018bc7469250edcf0150",
+    "fixtures/invalid_relationship_preset.json": "d3aa07d1531b3948b48d6e0d011f249c1e912f1bb3c52c5deab61a8fc9afaaf9",
     "fixtures/invalid_request_uuid.json": "46de403b403ab0734459348cd5663367987fd4b0f19883edc21142149c0c01d8",
     "fixtures/invalid_scene_color.json": "6c4b639f0940307ee625268385648bf73b5bb1eb66a1cd6d0baf5de2df6061aa",
     "fixtures/invalid_scene_model.json": "4694e264fb5dc466068e446fd50dd529c70eabc102109f606007e63f20aad5a1",
@@ -34,6 +35,7 @@
     "fixtures/pending_outcome.json": "06e399b91d99b2bce9648d344966c6b9ae86f480cacd0312e3b3f41486a91899",
     "fixtures/ready_paused_city.json": "16fc3b0a8c11931bac6f60dc5d2ccfb59413cd757c538250cbd1dc63f145e2a9",
     "fixtures/rejected_remote_help.json": "079a1d560b3432132d9e025c54c79c9a40abbda35aceae2ccc3c8a6c5faba683",
+    "fixtures/relationship_command.json": "23570c91108029789bffdf4e05135df7ca8ec3e58b9a910fdd164a5fb0f174bb",
     "fixtures/resolved_event_report.json": "8f96fe5d6cd3b7193735a1c55fcd5c13c1a369b55a89732af1cd31c92e5f9438",
     "fixtures/restored_branch.json": "de03622d03f82645d683daf6e71f4b44764b1879cb9a95c347ee0efdf78fa719",
     "fixtures/rules_fallback.json": "2370c27d7595e51accdd6740e0ae1e2feb6e80c0e6401e2725efc4684f69e889",
@@ -45,10 +47,10 @@
     "fixtures/transport_snapshot.json": "713be6372c7e530aa421517f6f3ab657e05995848bcf2a95cb48364216a54c17",
     "fixtures/valid_integral_json_numbers.json": "df47c4bb580b14e35bfcf25bd279c0041a6a9402927135f5d0dbca83172fe99f",
     "fixtures/validation_error.json": "ff8863be139260ced2601adbc1b447a433d9f847868d1ac36a1c0e552756f19e",
-    "openapi.yaml": "9f8763b6220e4df6b670f2475ec39b1361cc857dc42af01e413486819d151b1d",
-    "schemas.json": "d904ca71feb633b59c7bd18b8d60415a6ceefdf090de2ccf39e22e323d40aac0",
-    "stream.schema.json": "775714a5822e752e525c999e9b4566e2884ae72042083b397446e8e6b4023c2a"
+    "openapi.yaml": "5b40e9a7d5450787cd51dcabcb609fa852ed4a1e08e0074491776559bffe070e",
+    "schemas.json": "654b2bde6ed610ffab3b6fb0a017e9f069bb1acc431a3a0be04b0cb3d976e08a",
+    "stream.schema.json": "546146dc8ec13634c1bf88d29fa0477cbf3107c063efe2dc5d74a536bfe0680d"
   },
   "bootstrap_note": "Initial bootstrap validation corrected JSON Schema numeric bounds, UUID/date/name/unique-ID constraints, strict response fields, and documented middleware headers. Contract text and wire version unchanged. No frontend consumer was present.",
-  "snapshot_revision": 3
+  "snapshot_revision": 4
 }
