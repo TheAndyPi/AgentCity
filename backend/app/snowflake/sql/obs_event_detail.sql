@@ -79,7 +79,8 @@ snapshots AS (
 event_changes AS (
  SELECT f.* FROM facts f,target e
  WHERE f.KIND='change' AND (ARRAY_CONTAINS(e.PAYLOAD:event_id,f.PAYLOAD:event_ids)
- OR ARRAY_CONTAINS(e.PAYLOAD:event_id,f.PAYLOAD:active_event_ids))
+ OR ARRAY_CONTAINS(e.PAYLOAD:event_id,f.PAYLOAD:active_event_ids)
+ OR f.TICK BETWEEN e.PAYLOAD:start_tick::NUMBER AND COALESCE(e.PAYLOAD:end_tick::NUMBER+30,9007199254740991))
 ),
 direct_changes AS (
  SELECT * FROM event_changes f
@@ -105,13 +106,14 @@ SELECT TO_JSON(OBJECT_CONSTRUCT_KEEP_NULL(
  'changes',(SELECT COALESCE(ARRAY_AGG(OBJECT_CONSTRUCT_KEEP_NULL('id',f.FACT_ID,'tick',f.TICK,'revision',f.REVISION,
 'entity_kind',f.PAYLOAD:entity_kind,'entity_id',f.PAYLOAD:entity_id,'agent_id',f.PAYLOAD:agent_id,
 'field',f.PAYLOAD:field,'before',f.PAYLOAD:before,'after',f.PAYLOAD:after,
-'link',f.PAYLOAD:link,'event_ids',f.PAYLOAD:event_ids,
+'link',IFF(ARRAY_CONTAINS((SELECT PAYLOAD:event_id FROM target),f.PAYLOAD:event_ids),'explicit','temporal'),
+'event_ids',f.PAYLOAD:event_ids,
 'evidence',OBJECT_CONSTRUCT('records',COALESCE(f.PAYLOAD:evidence,ARRAY_CONSTRUCT()),
 'decision_ids',COALESCE(f.PAYLOAD:decision_ids,ARRAY_CONSTRUCT()),
 'active_event_ids',COALESCE(f.PAYLOAD:active_event_ids,ARRAY_CONSTRUCT())))) WITHIN GROUP(ORDER BY f.REVISION,f.FACT_ID),ARRAY_CONSTRUCT()) FROM direct_changes f),
  'citations',ARRAY_CONSTRUCT(),
- 'change_counts',(SELECT OBJECT_CONSTRUCT('explicit',COALESCE(COUNT_IF(PAYLOAD:link::VARCHAR='explicit'),0),
- 'temporal',COALESCE(COUNT_IF(PAYLOAD:link::VARCHAR='temporal'),0)) FROM event_changes),
+ 'change_counts',(SELECT OBJECT_CONSTRUCT('explicit',COALESCE(COUNT_IF(ARRAY_CONTAINS(e.PAYLOAD:event_id,f.PAYLOAD:event_ids)),0),
+ 'temporal',COALESCE(COUNT_IF(NOT ARRAY_CONTAINS(e.PAYLOAD:event_id,f.PAYLOAD:event_ids)),0)) FROM event_changes f,target e),
  'numeric_observations',(SELECT COALESCE(ARRAY_AGG(OBJECT_CONSTRUCT_KEEP_NULL(
  'metric',metric,'delta',delta,'revision',revision)),ARRAY_CONSTRUCT()) FROM numeric_facts)
 ))

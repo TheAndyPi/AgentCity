@@ -28,9 +28,9 @@ def living(payload):
     return payload.get("active") and payload.get("life") != "dead" and not payload.get("deleted")
 
 
-def change(fact):
+def change(fact, event_id=None):
     p = fact["payload"]
-    return dict(
+    result = dict(
         id=fact["id"],
         tick=fact["tick"],
         revision=fact["revision"],
@@ -42,6 +42,9 @@ def change(fact):
             active_event_ids=p.get("active_event_ids", []),
         ),
     )
+    if event_id is not None:
+        result["link"] = "explicit" if event_id in p.get("event_ids", []) else "temporal"
+    return result
 
 
 class ObservationFake:
@@ -135,6 +138,22 @@ class ObservationFake:
             rows = rows[params["offset"] : params["offset"] + params["limit"]]
             return [[json.dumps(marker(e["payload"]))] for e in rows]
         if shape == "obs_changes":
+            target = next(
+                (e["payload"] for e in self.events(facts) if e["entity_id"] == params.get("event_id")), None
+            )
+
+            def matches_event(fact):
+                if not params.get("event_id"):
+                    return True
+                p = fact["payload"]
+                return params["event_id"] in p.get("event_ids", []) + p.get("active_event_ids", []) or (
+                    target
+                    and target.get("start_tick") is not None
+                    and target["start_tick"]
+                    <= fact["tick"]
+                    <= (target["end_tick"] + 30 if target.get("end_tick") is not None else params["end_tick"])
+                )
+
             rows = [
                 f
                 for f in facts
@@ -142,14 +161,11 @@ class ObservationFake:
                 and params["start_tick"] <= f["tick"] <= params["end_tick"]
                 and (not params.get("agent_id") or f["payload"]["agent_id"] == params["agent_id"])
                 and (not params.get("entity_kind") or f["payload"]["entity_kind"] == params["entity_kind"])
-                and (
-                    not params.get("event_id")
-                    or params["event_id"]
-                    in f["payload"].get("event_ids", []) + f["payload"].get("active_event_ids", [])
-                )
+                and matches_event(f)
             ]
             return [
-                [json.dumps(change(f))] for f in rows[params["offset"] : params["offset"] + params["limit"]]
+                [json.dumps(change(f, params.get("event_id")))]
+                for f in rows[params["offset"] : params["offset"] + params["limit"]]
             ]
         if shape == "obs_trends":
             return encoded(self.trends(facts, params))
@@ -362,7 +378,13 @@ class ObservationFake:
             f
             for f in facts
             if f["kind"] == "change"
-            and eid in f["payload"].get("event_ids", []) + f["payload"].get("active_event_ids", [])
+            and (
+                eid in f["payload"].get("event_ids", []) + f["payload"].get("active_event_ids", [])
+                or (
+                    payload.get("start_tick") is not None
+                    and payload["start_tick"] <= f["tick"] <= (end + 30 if end is not None else math.inf)
+                )
+            )
         ]
         numeric = [
             dict(metric=k, delta=res["city"][k] - bas["city"][k], revision=resolution)
@@ -385,11 +407,11 @@ class ObservationFake:
             followup=follow,
             followup_complete=end is not None and latest_tick >= end + 30,
             overlaps=overlaps,
-            changes=[change(f) for f in changes[:100]],
+            changes=[change(f, eid) for f in changes[:100]],
             citations=[],
             numeric_observations=numeric,
             change_counts=dict(
-                explicit=sum(f["payload"]["link"] == "explicit" for f in changes),
-                temporal=sum(f["payload"]["link"] == "temporal" for f in changes),
+                explicit=sum(eid in f["payload"].get("event_ids", []) for f in changes),
+                temporal=sum(eid not in f["payload"].get("event_ids", []) for f in changes),
             ),
         )

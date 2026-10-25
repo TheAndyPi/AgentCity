@@ -62,7 +62,7 @@ class ObservationService:
         self.last_after = ""
         self.closed = False
         self.start_error = None
-        self.reads = asyncio.Semaphore(2)
+        self.reads = asyncio.Semaphore(8)
 
     @property
     def enabled(self):
