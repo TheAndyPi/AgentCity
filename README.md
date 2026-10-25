@@ -53,9 +53,39 @@ the preview cannot be confirmed and asks for an event kind, region, severity and
 duration, or a differently worded description. Props illustrate events;
 they do not add autonomous creatures, new citizens or collision obstacles.
 
+The AI event registry exposes the same scene catalog through `catalog_event`.
+Gemini can combine dinosaur, alien, robot and other catalog scenes with policy
+and behavioral changes in a single validated plan. These events retain the
+catalog's listed effects and bounded scene objects. For example, dinosaurs can
+appear with wellbeing effects; autonomous chasing, attacks and building
+destruction are not supplied by the dinosaur recipe and are explained as
+unsupported parts of a request.
+
 ## Configuration
 
 Defaults need no `.env` file. For server configuration, copy `backend/.env.example` to `backend/.env` and edit it. Root launchers load this file; environment variables take precedence. Relative server paths resolve from `backend/`. Secrets stay on the server. Never place provider keys in a `VITE_` variable.
+
+### Gemini event generation
+
+`LLM_SESSION_TOKEN_BUDGET` defaults to `200000` and limits automatic citizen
+decisions and optional background generation. Recorded token usage and conservative
+charges for requests without usage metadata persist in `DATA_DIR` across restarts.
+To permit more automatic requests, increase this setting in `backend/.env` and
+restart; restarting alone does not reset recorded usage.
+
+Explicit custom events use `LLM_EVENT_TOKEN_BUDGET` (default `100000`) for each
+planning request, shared across its corrections and transport retries. Background
+citizen usage cannot exhaust this allowance. All event usage is still recorded in
+the same persistent usage totals; the request rate, concurrency and timeout limits
+still apply. Changing either allowance requires restarting the backend.
+
+Event planning makes up to three generation/correction attempts within one
+85-second deadline, including queueing, authentication and bounded transport
+retries. Gemini chooses reasonable unspecified parameters, lists its assumptions,
+and validates every operation against the supported simulation changes. Partial
+plans explain unsupported parts. Budget, authentication, quota and connection
+failures show their cause and offer **Retry event**, manual composition or the
+keyword catalog.
 
 `PORT` changes the API port and `FRONTEND_PORT` changes the development UI port. The launcher forwards both HTTP and WebSocket requests and derives matching loopback origins unless `ALLOWED_ORIGINS` is explicitly configured. An occupied port produces an error; the launcher does not stop other services.
 

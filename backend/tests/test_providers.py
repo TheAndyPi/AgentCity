@@ -226,9 +226,96 @@ def test_budget_and_circuit_breaker_do_not_call_provider():
             httpx.AsyncClient(transport=httpx.MockTransport(handler)),
         )
         assert await gateway.decide("simulation", {"profile": {"name": "Example"}}) is None
+        assert gateway.request_error["category"] == "budget_exhausted"
         gateway.config = provider_config()
         gateway.open_until = time.monotonic() + 30
         assert await gateway.decide("simulation", {"profile": {"name": "Example"}}) is None
+        assert gateway.request_error["category"] == "circuit_open"
+        await gateway.close()
+
+    asyncio.run(run())
+
+
+def test_connection_failure_retries_then_recovers():
+    async def run():
+        usage = []
+        calls = 0
+
+        async def record(sid, counts):
+            usage.append(counts)
+
+        async def handler(request):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise httpx.ConnectError("temporary connection failure", request=request)
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {
+                                        "thought": True,
+                                        "text": "Internal reasoning is not part of the JSON result",
+                                    },
+                                    {"text": make_intent("rest").model_dump_json()},
+                                ]
+                            }
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+                },
+            )
+
+        gateway = Gateway(
+            provider_config(), record, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        )
+        result = await gateway.decide("simulation", {"profile": {"name": "Example"}})
+        assert result.action == "rest" and calls == 2
+        assert len(usage) == 2 and usage[0]["failed_calls"] == 1
+        assert gateway.request_error is None
+        await gateway.close()
+
+    asyncio.run(run())
+
+
+def test_request_errors_survive_concurrent_success():
+    async def run():
+        failed = asyncio.Event()
+        release = asyncio.Event()
+
+        async def record(sid, counts):
+            if sid == "failed":
+                failed.set()
+                await release.wait()
+
+        async def handler(request):
+            if "failed" in json.loads(request.content)["contents"][0]["parts"][0]["text"]:
+                return httpx.Response(403, json={"error": "sensitive provider details"})
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [{"content": {"parts": [{"text": make_intent("rest").model_dump_json()}]}}],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
+                },
+            )
+
+        gateway = Gateway(
+            provider_config(), record, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        )
+
+        async def failure():
+            assert await gateway.decide("failed", {"profile": {"name": "failed"}}) is None
+            return gateway.request_error
+
+        pending = asyncio.create_task(failure())
+        await failed.wait()
+        assert await gateway.decide("success", {"profile": {"name": "Success"}})
+        assert gateway.last_error is None
+        release.set()
+        assert await pending == {"category": "http", "http_status": 403}
         await gateway.close()
 
     asyncio.run(run())

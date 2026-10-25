@@ -1,12 +1,15 @@
 """Scenario interpreter: natural language to a validated, structured plan.
 
-Gemini returns a flat draft (one optional field per parameter, which keeps the
-response schema simple for structured output). The draft is normalized into
-typed operations and validated; on failure the model gets one correction
-attempt with the exact validation errors.
+Gemini returns compact parameter maps instead of dozens of nullable fields per
+operation. Every map is normalized into a registered typed operation and
+validated. Corrections share one finite deadline with transport retries.
 """
 
+import asyncio
 import json
+from typing import Any
+
+from pydantic import model_validator
 
 from app.contracts import Model
 from app.scenario_engine.registry import (
@@ -17,29 +20,18 @@ from app.scenario_engine.registry import (
     OPERATIONS,
     ORGANIZATIONS,
     POLICY_TARGETS,
-    AudienceKind,
-    BuildingKind,
     Category,
-    Channel,
-    Condition,
-    Eligibility,
-    Hazard,
-    Incentive,
     MetricId,
-    Norm,
     OperationType,
-    OrganizationKind,
-    PolicyTarget,
-    Region,
-    ResourceKind,
     System,
-    Topic,
-    Trait,
 )
 from app.scenario_engine.validator import summary, validate_plan
+from app.simulation.scenario_scene import CATALOG
 
 OUTPUT_TOKENS = 8192
 TIMEOUT_SECONDS = 40
+TOTAL_TIMEOUT_SECONDS = 85  # Includes queue/auth/retries; the browser allows 95 seconds.
+MAX_ATTEMPTS = 3
 
 MODE_GUIDANCE = {
     "sandbox": "Open-ended sandbox. Represent whatever the user describes.",
@@ -64,52 +56,18 @@ class OperationDraft(Model):
     type: OperationType
     id: str
     rationale: str
-    start_tick: int | None = None
-    duration_ticks: int | None = None
-    repeat_every: int | None = None
-    repeat_count: int | None = None
-    target: PolicyTarget | None = None
-    operation: str | None = None
-    value: float | None = None
-    building_id: str | None = None
-    building_kind: BuildingKind | None = None
-    region: Region | None = None
-    open: bool | None = None
-    capacity_multiplier: float | None = None
-    resource: ResourceKind | None = None
-    multiplier: float | None = None
-    available_share: float | None = None
-    audience_kind: AudienceKind | None = None
-    audience_share: float | None = None
-    audience_region: Region | None = None
-    organization_id: str | None = None
-    channel: Channel | None = None
-    topic: Topic | None = None
-    message: str | None = None
-    credibility: float | None = None
-    accurate: bool | None = None
-    delta: float | None = None
-    reason: str | None = None
-    norm: Norm | None = None
-    strength: float | None = None
-    kind: OrganizationKind | None = None
-    name: str | None = None
-    mission: str | None = None
-    eligibility: Eligibility | None = None
-    budget_per_tick: float | None = None
-    rally_every: int | None = None
-    founding_share: float | None = None
-    incentive: Incentive | None = None
-    amount: float | None = None
-    trait: Trait | None = None
-    selection: str | None = None
-    action: str | None = None
-    ties_per_agent: int | None = None
-    hazard: Hazard | None = None
-    severity: float | None = None
-    activity: str | None = None
-    condition: Condition | None = None
-    intensity: float | None = None
+    parameters: dict[str, Any]
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_flat_draft(cls, value):
+        """Accept earlier provider drafts; the generated schema uses parameter maps."""
+        if isinstance(value, dict) and "parameters" not in value:
+            identity = {key: value[key] for key in ("type", "id", "rationale") if key in value}
+            return identity | dict(
+                parameters={key: item for key, item in value.items() if key not in identity}
+            )
+        return value
 
 
 class PlanDraft(Model):
@@ -130,11 +88,11 @@ class PlanDraft(Model):
 
 
 def normalize(draft, prompt):
-    """Flat draft to the typed plan shape; fields that do not belong to an operation are dropped."""
+    """Parameter maps and legacy timing/audience aliases to the typed, validated plan shape."""
     operations = []
     for item in draft.operations:
         fields = OPERATION_MODELS[item.type].model_fields
-        data = item.model_dump(exclude_none=True)
+        data = {key: value for key, value in item.parameters.items() if value is not None}
         op = dict(type=item.type, id=item.id[:40] or "op", rationale=item.rationale[:300])
         timing = {
             k: data[k] for k in ("start_tick", "duration_ticks", "repeat_every", "repeat_count") if k in data
@@ -153,11 +111,16 @@ def normalize(draft, prompt):
                     audience[target] = data[source]
             if audience:
                 op["audience"] = audience
-        for name in fields:
-            if name in {"type", "id", "rationale", "timing", "audience"} or name not in data:
+        aliases = {"start_tick", "duration_ticks", "repeat_every", "repeat_count"}
+        if "audience" in fields:
+            aliases |= {"audience_kind", "audience_share", "audience_region"}
+            if "organization_id" not in fields:
+                aliases.add("organization_id")
+        for name in data:
+            if name in {"type", "id", "rationale"} or name in aliases:
                 continue
             op[name] = data[name]
-        if "value" in fields and "value" not in op and item.operation == "clear":
+        if "value" in fields and "value" not in op and data.get("operation") == "clear":
             op["value"] = None
         operations.append(op)
     return dict(
@@ -187,6 +150,22 @@ def build_prompt(state, prompt, mode):
             name: [f for f in model.model_fields if f not in {"type", "id", "timing", "rationale"}]
             for name, model in OPERATION_MODELS.items()
         },
+        required_parameters={
+            name: [
+                key
+                for key, field in model.model_fields.items()
+                if field.is_required() and key not in {"type", "id", "rationale"}
+            ]
+            for name, model in OPERATION_MODELS.items()
+        },
+        parameter_choices={
+            name: {
+                key: schema["enum"]
+                for key, schema in model.model_json_schema()["properties"].items()
+                if "enum" in schema and key not in {"target", "recipe"}
+            }
+            for name, model in OPERATION_MODELS.items()
+        },
         policy_targets={
             t: dict(minimum=lo, maximum=hi, unit=u, clearable=n, description=d)
             for t, (lo, hi, u, n, d, _) in POLICY_TARGETS.items()
@@ -195,6 +174,15 @@ def build_prompt(state, prompt, mode):
         organizations=ORGANIZATIONS,
         incentives=INCENTIVES,
         metrics=METRICS,
+        scene_catalog=[
+            dict(
+                id=recipe["id"],
+                examples=recipe["terms"][:4],
+                model=recipe["model"],
+                effects=recipe["effects"],
+            )
+            for recipe in CATALOG
+        ],
     )
     return (
         "You translate a user's scenario for a small simulated town into a structured plan of world "
@@ -203,6 +191,28 @@ def build_prompt(state, prompt, mode):
         "Rules:\n"
         "- Use only the registered operations, policy targets, building ids and organization ids below.\n"
         "- Represent every part of the request you can. Compose several operations for multi-part requests.\n"
+        "- The scene_catalog is also supported through catalog_event. For example dinosaurs appearing "
+        "is catalog_event with parameters.recipe=dinosaurs, not an unsupported hazard. Use catalog "
+        "recipes for their illustrated subjects and listed effects, composing them with other requested "
+        "changes. Do not claim a catalog subject is unsupported simply because it is not a physical_hazard.\n"
+        "- Catalog props do not become autonomous creatures and cannot chase, attack, eat or destroy. "
+        "If those extra behaviors are requested, explain them in unsupported while retaining the "
+        "supported appearance and catalog effects. Never invent those behaviors or unrelated hazards.\n"
+        "- unsupported contains only parts actually requested by this user. Do not list generic catalog "
+        "limitations or actions the user did not request there; put general modeling assumptions in "
+        "assumptions. For 'Dinosaurs appear in the town square for 20 ticks', return a ready catalog_event "
+        "using recipe dinosaurs and unsupported=[]; autonomous behavior was not requested.\n"
+        "- Make your best effort to build a runnable event. When a parameter is unspecified, choose a "
+        "reasonable value and record it in assumptions. Default to a 36-tick measurement window and "
+        "citywide scope when appropriate. Ask for clarification only when choosing would change the "
+        "meaning of the request. Describe any supported approximation explicitly.\n"
+        "- Short prompts are sufficient: 'illness' can use catalog_event recipe illness or an "
+        "environmental_condition with condition illness; 'dinosaurs' uses catalog_event recipe dinosaurs. "
+        "Use defaults for omitted duration, count and location, and describe those defaults consistently.\n"
+        "- A '10 pm curfew' can be represented as an official broadcast_information directive announcing "
+        "the 10 pm curfew. There is no numeric curfew policy target or hard clock-based enforcement; "
+        "explain that scope in assumptions and describe it as an announced directive. Do not invent a "
+        "policy target or discard the supported announcement.\n"
         "- Never substitute a different event. Do not add floods, fires, storms, festivals, aid or shortages "
         "unless the user asked for them.\n"
         "- If part of the request cannot be represented, explain it in `unsupported` and represent the rest. "
@@ -219,8 +229,14 @@ def build_prompt(state, prompt, mode):
         "- Timing is in ticks relative to the start of the scenario (one tick is 10 seconds of town time). "
         "duration permanent keeps changes after the measurement window; temporary reverts them.\n"
         "- Choose metrics that measure the consequences the user cares about.\n"
-        "- For each operation, set only the fields listed for its type in operation_fields; audience fields "
-        "are audience_kind, audience_share, audience_region and organization_id.\n"
+        "- Each operation has type, id, rationale and a parameters object. Put all action arguments in "
+        "parameters, using operation_fields, and include every required_parameters field. Omit irrelevant "
+        "fields. Use parameter_choices for enumerated arguments. Timing goes in parameters.timing; "
+        "audiences in parameters.audience.\n"
+        '- Example operation: {"type":"modify_policy","id":"fare","rationale":"Double fares",'
+        '"parameters":{"target":"transportation.transit_fare","operation":"multiply","value":2}}.\n'
+        "- modify_policy.operation must be set, increase, decrease, multiply or clear. "
+        "broadcast_information requires channel, topic and a nonempty message.\n"
         '- Use status "ready" when the plan has operations.\n\n'
         f"Mode: {MODE_GUIDANCE.get(mode, MODE_GUIDANCE['sandbox'])}\n\n"
         f"Current town:\n{json.dumps(summary(state), separators=(',', ':'))}\n\n"
@@ -241,6 +257,59 @@ def correction_prompt(base, previous, errors):
 
 async def interpret(gateway, state, sid, prompt, mode):
     """Returns dict(status, plan, errors, warnings, unsupported, clarification, attempts)."""
+    progress = []
+    try:
+        with gateway.event_budget():
+            async with asyncio.timeout(TOTAL_TIMEOUT_SECONDS):
+                return await _interpret(gateway, state, sid, prompt, mode, progress)
+    except TimeoutError:
+        gateway.set_error("timeout")
+        gateway.diagnostics["timeouts"] += 1
+        gateway.diagnostics["fallbacks"] += 1
+        return unavailable(gateway, progress[-1] if progress else 0)
+
+
+def unavailable(gateway, attempts, previous=None):
+    error = gateway.request_error or {}
+    category, status = error.get("category"), error.get("http_status")
+    messages = {
+        "not_configured": "Gemini is not configured. Check its mode, model and project or API key.",
+        "budget_exhausted": (
+            "This event reached its Gemini planning allowance. "
+            "Try a shorter description or increase LLM_EVENT_TOKEN_BUDGET in the backend environment "
+            "and restart AgentCity. Background citizen usage does not consume this allowance."
+        ),
+        "rate_limited": "Gemini's local request limit was reached. Wait a minute, then retry this event.",
+        "circuit_open": "Gemini is cooling down after repeated failures. Wait 30 seconds, then retry.",
+        "authentication": (
+            "Google Cloud authentication failed. Check that GOOGLE_APPLICATION_CREDENTIALS points "
+            "to an existing valid file, or configure Application Default Credentials."
+        ),
+        "connection": "AgentCity could not connect to Gemini. Check the network connection, then retry.",
+        "timeout": "Gemini took too long to plan this event. Retry the event or shorten its description.",
+        "invalid_response": "Gemini returned an incomplete or invalid plan after correction attempts. Retry the event.",
+    }
+    message = messages.get(category, "Gemini could not produce a plan. Retry the event.")
+    if category == "http":
+        message = {
+            400: "Gemini rejected the event-generation request (HTTP 400). Check model and structured-output support.",
+            401: "Gemini rejected authentication (HTTP 401). Check the configured credentials or API key.",
+            403: "Gemini denied access (HTTP 403). Check project permissions, API enablement and billing.",
+            404: "The configured Gemini model or endpoint was not found (HTTP 404). Check model and location.",
+            429: "Gemini's provider quota was reached (HTTP 429). Wait, check the project quota, then retry.",
+        }.get(status, "Gemini is temporarily unavailable. Retry this event shortly.")
+    return dict(
+        status="unavailable",
+        plan=previous,
+        errors=[message],
+        warnings=[],
+        unsupported=[],
+        clarification="",
+        attempts=attempts,
+    )
+
+
+async def _interpret(gateway, state, sid, prompt, mode, progress):
     if not gateway.config.gemini_enabled:
         return dict(
             status="unavailable",
@@ -254,21 +323,20 @@ async def interpret(gateway, state, sid, prompt, mode):
     base = build_prompt(state, prompt, mode)
     request = base
     errors, previous = [], None
-    for attempt in (1, 2):
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        progress.append(attempt)
         draft = await gateway.structured(
             sid, request, PlanDraft, max_output_tokens=OUTPUT_TOKENS, timeout=TIMEOUT_SECONDS
         )
         if draft is None:
-            return dict(
-                status="unavailable",
-                plan=previous,
-                errors=["The AI interpreter did not respond."],
-                warnings=[],
-                unsupported=[],
-                clarification="",
-                attempts=attempt,
-            )
-        if draft.status == "unsupported" or (not draft.operations and draft.unsupported):
+            if (gateway.request_error or {}).get("category") == "invalid_response" and attempt < MAX_ATTEMPTS:
+                request = (
+                    base + "\nThe previous response was incomplete or invalid JSON. Return all required "
+                    "PlanDraft fields and complete parameters for each operation. Keep the plan concise."
+                )
+                continue
+            return unavailable(gateway, attempt, previous)
+        if not draft.operations and (draft.status == "unsupported" or draft.unsupported):
             return dict(
                 status="unsupported",
                 plan=None,
@@ -309,5 +377,5 @@ async def interpret(gateway, state, sid, prompt, mode):
         warnings=[],
         unsupported=previous.get("unsupported", []),
         clarification="",
-        attempts=2,
+        attempts=MAX_ATTEMPTS,
     )

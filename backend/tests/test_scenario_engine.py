@@ -530,7 +530,104 @@ def test_interpreter_gets_one_correction_attempt(client, monkeypatch):
     result = engine(
         client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
     ).json()["data"]
-    assert result["status"] == "invalid" and result["errors"] and len(calls) == 2
+    assert result["status"] == "invalid" and result["errors"] and len(calls) == 3
+
+
+def test_interpreter_repairs_twice_and_keeps_supported_parts(client, monkeypatch):
+    invalid = draft([op("modify_policy", "fare", target="transportation.transit_fare", value=2)])
+    partial = transit_hospital_draft() | dict(
+        status="unsupported", unsupported=["Constructing a new hospital building is not simulated."]
+    )
+    calls = fake_gemini(client, monkeypatch, [invalid, invalid, partial])
+    sid = create_city(client)["id"]
+    intervention = hold(client, sid)
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
+    assert result["status"] == "ready" and result["attempts"] == 3
+    assert len(result["plan"]["operations"]) == 3 and result["unsupported"]
+    assert "Field required" in calls[2]
+
+
+def test_event_budget_failure_explains_the_event_limit_without_calling_gemini(client, monkeypatch):
+    service = client.app.state.service
+    config = replace(
+        service.config,
+        llm_mode="gemini",
+        gemini_api_key="secret-test-key",
+        gemini_model="test",
+        llm_event_token_budget=1,
+    )
+    service.config = service.gateway.config = config
+    service.gateway.last_error = dict(category="http", http_status=403)
+
+    async def unexpected(*args, **kwargs):
+        raise AssertionError("An exhausted local budget must not contact Gemini")
+
+    monkeypatch.setattr(service.gateway.client, "post", unexpected)
+    sid = create_city(client)["id"]
+    intervention = hold(client, sid)
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
+    assert result["status"] == "unavailable" and result["attempts"] == 1
+    assert "LLM_EVENT_TOKEN_BUDGET" in result["errors"][0]
+    assert "403" not in result["errors"][0] and "secret-test-key" not in str(result)
+
+
+def test_compact_gemini_parameters_roundtrip_to_a_real_committed_event(client):
+    import json
+
+    import httpx
+
+    service = client.app.state.service
+    config = replace(service.config, llm_mode="gemini", gemini_api_key="test-key", gemini_model="test")
+    service.config = service.gateway.config = config
+    seen = []
+    answer = PlanDraft.model_validate(transit_hospital_draft()).model_dump(mode="json")
+
+    async def handler(request):
+        body = json.loads(request.content)
+        seen.append(body)
+        assert set(
+            body["generationConfig"]["responseJsonSchema"]["$defs"]["OperationDraft"]["properties"]
+        ) == {"type", "id", "rationale", "parameters"}
+        assert "required_parameters" in body["contents"][0]["parts"][0]["text"]
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [{"content": {"parts": [{"text": json.dumps(answer)}]}}],
+                "usageMetadata": {"promptTokenCount": 100, "candidatesTokenCount": 200},
+            },
+        )
+
+    async def install():
+        await service.gateway.client.aclose()
+        service.gateway.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+    client.portal.call(install)
+    sid = create_city(client)["id"]
+    intervention = hold(client, sid)
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
+    assert result["status"] == "ready" and len(seen) == 1
+    committed = engine(
+        client,
+        f"/simulations/{sid}/commits",
+        dict(
+            intervention_id=intervention["id"],
+            expected_control_version=intervention["control_version"],
+            plan=result["plan"],
+        ),
+    )
+    assert committed.status_code == 201
+    service.gateway.config = replace(config, llm_mode="rules")
+    command(client, sid, "step", count=1)
+    state = service.heads[sid]
+    assert state.systems.policy.transportation.transit_fare == pytest.approx(0.6)
+    assert state.systems.policy.public_services.hospital_funding == 1.5
+    assert state.systems.plans and any(t.op_id == "announce" for t in state.systems.traces)
 
 
 def test_interpreter_unavailable_without_gemini_and_manual_plans_validate(client):

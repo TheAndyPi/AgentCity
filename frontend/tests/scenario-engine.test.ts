@@ -169,6 +169,13 @@ describe("plan preview and editor", () => {
       severity: 1,
     });
     expect(Object.keys(policy)).not.toContain("path");
+    const catalog = blankOperation("catalog_event", caps, 2);
+    expect(catalog.type).toBe("catalog_event");
+    const catalogSchema = caps.operations.find(
+      (o) => o.type === "catalog_event",
+    )!.parameters as { properties: { recipe: { enum: string[] } } };
+    expect(catalogSchema.properties.recipe.enum).toContain("dinosaurs");
+    expect(catalogSchema.properties.recipe.enum).toContain(catalog.recipe);
     const plan = manualPlan("Close the shops");
     expect(plan).toMatchObject({
       source: "manual",

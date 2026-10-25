@@ -876,6 +876,12 @@ export default function ScenarioDialog({
                 ) : planResult?.status === "unavailable" ? (
                   <>
                     <Button
+                      disabled={busy}
+                      onClick={() => void interpretPlan()}
+                    >
+                      {busy ? "Retrying…" : "Retry event"}
+                    </Button>
+                    <Button
                       kind="ghost"
                       disabled={busy}
                       onClick={() => void useCatalog()}

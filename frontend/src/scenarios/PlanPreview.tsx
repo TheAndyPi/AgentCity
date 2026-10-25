@@ -122,7 +122,11 @@ export function PlanPreview({
         <div className="warning">
           <ShieldAlert size={18} />
           <div>
-            <strong>This plan needs changes before it can run</strong>
+            <strong>
+              {result.status === "unavailable"
+                ? "Event generation is unavailable"
+                : "This plan needs changes before it can run"}
+            </strong>
             {result.errors.map((e, i) => (
               <p key={i}>{e}</p>
             ))}

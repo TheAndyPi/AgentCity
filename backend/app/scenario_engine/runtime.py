@@ -27,6 +27,7 @@ IRREVERSIBLE = {
     "remove_organization",
     "physical_hazard",
     "community_gathering",
+    "catalog_event",
 }
 
 

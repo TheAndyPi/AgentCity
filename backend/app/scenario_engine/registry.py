@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from app.contracts import ID, Model, Text
+from app.simulation.scenario_scene import CATALOG
 
 Region = Literal[
     "citywide", "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"
@@ -468,6 +469,18 @@ class EnvironmentalCondition(Base):
     intensity: Annotated[float, Field(ge=1, le=100)]
 
 
+CatalogRecipe = Literal[tuple(recipe["id"] for recipe in CATALOG)]
+
+
+class CatalogEvent(Base):
+    type: Literal["catalog_event"]
+    recipe: CatalogRecipe
+    region: Region = "citywide"
+    severity: Annotated[float, Field(ge=1, le=100)] = 50
+    count: Annotated[int, Field(ge=1, le=8)] | None = None
+    color: Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")] | None = None
+
+
 Operation = Annotated[
     ModifyPolicy
     | SetServiceAvailability
@@ -483,7 +496,8 @@ Operation = Annotated[
     | ModifySocialNetwork
     | PhysicalHazard
     | CommunityGathering
-    | EnvironmentalCondition,
+    | EnvironmentalCondition
+    | CatalogEvent,
     Field(discriminator="type"),
 ]
 
@@ -505,6 +519,7 @@ OPERATION_MODELS = {
         PhysicalHazard,
         CommunityGathering,
         EnvironmentalCondition,
+        CatalogEvent,
     )
 }
 OperationType = Literal[tuple(OPERATION_MODELS)]
@@ -592,6 +607,13 @@ OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
         "being indoors or in hospital mitigates it.",
         ("environment", "healthcare"),
         False,
+    ),
+    "catalog_event": (
+        "Introduce one registered scene-catalog recipe (including dinosaurs, aliens, robots and wildlife). "
+        "It renders bounded scenery and applies that recipe's listed simulation effects for the event "
+        "window. Props are illustrations, not autonomous entities; they cannot chase, eat or destroy.",
+        ("environment",),
+        True,
     ),
 }
 

@@ -112,6 +112,8 @@ def describe(op):
         return f"{op.hazard} of severity {op.severity:g} in {op.region}"
     if t == "community_gathering":
         return f"{op.activity} in {op.region}"
+    if t == "catalog_event":
+        return f"{op.recipe.replace('_', ' ')} scenery and catalog effects in {op.region}"
     return f"{op.condition} of intensity {op.intensity:g} in {op.region}"
 
 
@@ -546,6 +548,20 @@ def apply_community_gathering(state, op, event_id, permanent, repetition):
         op_id=op.id,
         motivation=op.rationale,
         observations=["Runs through the event's community mechanics"],
+        significance=3,
+    )
+    return {}
+
+
+def apply_catalog_event(state, op, event_id, permanent, repetition):
+    trace(
+        state,
+        "operation",
+        f"Catalog event: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        observations=["Scenery and the registered effects run through the event's existing mechanics"],
         significance=3,
     )
     return {}

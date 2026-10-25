@@ -5,6 +5,9 @@ import copy
 import hashlib
 import time
 from collections import deque
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
@@ -249,6 +252,13 @@ def relevance(state, citizen, context=None):
     return hashlib.sha256(encode(stable)).hexdigest()
 
 
+@dataclass
+class EventBudget:
+    limit: int
+    tokens: int = 0
+    reserved: int = 0
+
+
 class Gateway:
     def __init__(self, config, usage_callback, client=None):
         self.config = config
@@ -266,7 +276,35 @@ class Gateway:
         self.usage_tasks = set()
         # Only bounded categories/status codes; never credentials or provider response bodies.
         self.last_error = None
+        self._request_error = ContextVar("gemini_request_error", default=None)
+        self._event_budget = ContextVar("gemini_event_budget", default=None)
         self.diagnostics = {"timeouts": 0, "rate_limits": 0, "malformed": 0, "fallbacks": 0, "discarded": 0}
+
+    @property
+    def request_error(self):
+        """The current task's failure, isolated from concurrent citizen requests."""
+        return self._request_error.get()
+
+    @contextmanager
+    def event_budget(self):
+        """One explicit event gets a bounded allowance shared by all its corrections/retries."""
+        budget = EventBudget(self.config.llm_event_token_budget)
+        token = self._event_budget.set(budget)
+        try:
+            yield budget
+        finally:
+            self._event_budget.reset(token)
+
+    def budget_available(self, reservation=0):
+        budget = self._event_budget.get()
+        if budget is not None:
+            return budget.tokens + budget.reserved + reservation <= budget.limit
+        return self.tokens + self.reserved + reservation <= self.config.llm_token_budget
+
+    def set_error(self, category, http_status=None):
+        error = {"category": category, "http_status": http_status}
+        self._request_error.set(error)
+        self.last_error = error
 
     def endpoint(self):
         model = quote(self.config.gemini_model, safe="")
@@ -412,24 +450,33 @@ class Gateway:
         return min(LESSON_TIMEOUT_SECONDS, self.config.llm_timeout * 2 + 0.25)
 
     async def structured(self, sid, prompt, output_model, max_output_tokens=None, timeout=None):
+        self._request_error.set(None)
         if not self.config.gemini_enabled:
+            self.set_error("not_configured")
             return None
         output_tokens = max_output_tokens or self.config.llm_output_tokens
         reservation = len(prompt.encode()) + output_tokens
+        event_budget = self._event_budget.get()
         async with self.semaphore:
-            if (
-                time.monotonic() < self.open_until
-                or self.tokens + self.reserved + reservation > self.config.llm_token_budget
-            ):
+            if time.monotonic() < self.open_until:
+                self.set_error("circuit_open")
+                self.diagnostics["fallbacks"] += 1
+                return None
+            if not self.budget_available(reservation):
+                self.set_error("budget_exhausted")
                 self.diagnostics["fallbacks"] += 1
                 return None
             self.reserved += reservation
+            if event_budget is not None:
+                event_budget.reserved += reservation
             try:
                 for attempt in range(2):
                     current = time.monotonic()
                     while self.times and self.times[0] < current - 60:
                         self.times.popleft()
                     if len(self.times) >= self.config.llm_rpm:
+                        self.set_error("rate_limited")
+                        self.diagnostics["rate_limits"] += 1
                         self.diagnostics["fallbacks"] += 1
                         return None
                     self.times.append(current)
@@ -463,12 +510,17 @@ class Gateway:
                             cached_tokens=usage.get("cachedContentTokenCount", 0),
                         )
                         self.tokens += counts["input_tokens"] + counts["output_tokens"]
+                        if event_budget is not None:
+                            event_budget.tokens += counts["input_tokens"] + counts["output_tokens"]
                         text = "".join(
-                            part.get("text", "") for part in payload["candidates"][0]["content"]["parts"]
+                            part.get("text", "")
+                            for part in payload["candidates"][0]["content"]["parts"]
+                            if not part.get("thought")
                         )
                         intent = output_model.model_validate_json(text)
                         self.failures = 0
                         self.last_error = None
+                        self._request_error.set(None)
                         return intent
                     except asyncio.CancelledError:
                         counts["failed_calls"] = 1
@@ -481,22 +533,24 @@ class Gateway:
                         IndexError,
                         TypeError,
                     ) as error:
-                        self.last_error = {
-                            "category": "authentication"
+                        self.set_error(
+                            "authentication"
                             if isinstance(error, GoogleAuthError)
                             else "timeout"
                             if isinstance(error, httpx.TimeoutException)
+                            else "connection"
+                            if isinstance(error, httpx.TransportError)
                             else "http"
                             if isinstance(error, httpx.HTTPError)
                             else "invalid_response",
-                            "http_status": error.response.status_code
-                            if isinstance(error, httpx.HTTPStatusError)
-                            else None,
-                        }
+                            error.response.status_code if isinstance(error, httpx.HTTPStatusError) else None,
+                        )
                         counts["failed_calls"] = 1
                         self.failures += 1
                         if isinstance(error, httpx.TimeoutException):
                             self.diagnostics["timeouts"] += 1
+                            transient = True
+                        elif isinstance(error, httpx.TransportError):
                             transient = True
                         elif not isinstance(error, (httpx.HTTPError, GoogleAuthError)):
                             self.diagnostics["malformed"] += 1
@@ -507,14 +561,18 @@ class Gateway:
                             counts["usage_unavailable"] = 1
                             counts["budget_charge"] = reservation
                             self.tokens += reservation
+                            if event_budget is not None:
+                                event_budget.tokens += reservation
                         await self.record_counts(sid, counts)
-                    if attempt or not transient or self.tokens + self.reserved > self.config.llm_token_budget:
+                    if attempt or not transient or not self.budget_available():
                         break
                     await asyncio.sleep(0.25)
                 self.diagnostics["fallbacks"] += 1
                 return None
             finally:
                 self.reserved -= reservation
+                if event_budget is not None:
+                    event_budget.reserved -= reservation
 
     async def record_counts(self, sid, counts):
         # Cancellation must bound provider latency without cancelling durable usage

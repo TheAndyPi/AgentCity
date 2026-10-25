@@ -430,6 +430,21 @@ INTERPRETATION_FAILURE = (
 )
 
 
+def compose_recipe_effects(recipes, severity, population):
+    """The shared catalog's exact bounded effects, deduplicated across selected recipes."""
+    effects = []
+    for recipe in recipes:
+        for raw in recipe["effects"]:
+            effect = dict(raw)
+            if effect["type"] == "hazard":
+                effect["severity"] = severity
+            if effect["type"] == "community":
+                effect["capacity"] = population
+            if effect not in effects:
+                effects.append(effect)
+    return effects
+
+
 def compile_preview(
     state, source, prompt=None, source_event_id=None, policy=None, design=None, interpreted=None
 ):
@@ -477,17 +492,7 @@ def compile_preview(
         uninterpretable = not recipes
     if source not in {"repeat", "policy"}:
         # Compose recipes without multiplying duplicate effects from overlapping phrases.
-        effects = []
-        for recipe in recipes:
-            for raw in recipe["effects"]:
-                effect = dict(raw)
-                if effect["type"] == "hazard":
-                    effect["severity"] = spec.severity
-                if effect["type"] == "community":
-                    effect["capacity"] = state.simulation.agent_count
-                if effect not in effects:
-                    effects.append(effect)
-        effects = effects[:19]
+        effects = compose_recipe_effects(recipes, spec.severity, state.simulation.agent_count)[:19]
         effects.append(
             InformationEffect(
                 type="information",

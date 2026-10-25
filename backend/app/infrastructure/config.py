@@ -28,6 +28,7 @@ class AppConfig:
     llm_rpm: int = 30
     llm_output_tokens: int = 512
     llm_token_budget: int = 200000
+    llm_event_token_budget: int = 100000
     base_tps: float = 2
     max_agents: int = 100
     max_running: int = 1
@@ -71,6 +72,7 @@ class AppConfig:
             llm_rpm=int(os.getenv("LLM_REQUESTS_PER_MINUTE", "30")),
             llm_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "512")),
             llm_token_budget=int(os.getenv("LLM_SESSION_TOKEN_BUDGET", "200000")),
+            llm_event_token_budget=int(os.getenv("LLM_EVENT_TOKEN_BUDGET", "100000")),
             base_tps=float(os.getenv("SIM_BASE_TICKS_PER_SECOND", "2")),
             max_agents=int(os.getenv("SIM_MAX_AGENTS", "100")),
             max_running=int(os.getenv("SIM_MAX_RUNNING", "1")),
@@ -126,6 +128,7 @@ class AppConfig:
                 self.llm_rpm,
                 self.llm_output_tokens,
                 self.llm_token_budget,
+                self.llm_event_token_budget,
                 self.autosave_interval,
             )
             <= 0

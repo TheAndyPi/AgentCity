@@ -2373,6 +2373,187 @@
     "title": "EnvironmentalCondition",
     "type": "object"
    }
+  },
+  {
+   "type": "catalog_event",
+   "description": "Introduce one registered scene-catalog recipe (including dinosaurs, aliens, robots and wildlife). It renders bounded scenery and applies that recipe's listed simulation effects for the event window. Props are illustrations, not autonomous entities; they cannot chase, eat or destroy.",
+   "systems": [
+    "environment"
+   ],
+   "physical": true,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "catalog_event",
+      "title": "Type",
+      "type": "string"
+     },
+     "recipe": {
+      "enum": [
+       "flood",
+       "fire",
+       "storm",
+       "shortage",
+       "drought",
+       "outage",
+       "misinformation",
+       "festival",
+       "aid",
+       "policy",
+       "dinosaurs",
+       "aliens",
+       "robots",
+       "market",
+       "concert",
+       "garden",
+       "protest",
+       "construction",
+       "clinic",
+       "illness",
+       "snow",
+       "heatwave",
+       "meteor",
+       "discovery",
+       "portal",
+       "visitors",
+       "wildlife"
+      ],
+      "title": "Recipe",
+      "type": "string"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "severity": {
+      "default": 50,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Severity",
+      "type": "number"
+     },
+     "count": {
+      "anyOf": [
+       {
+        "maximum": 8,
+        "minimum": 1,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Count"
+     },
+     "color": {
+      "anyOf": [
+       {
+        "pattern": "^#[0-9a-fA-F]{6}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Color"
+     }
+    },
+    "required": [
+     "type",
+     "recipe"
+    ],
+    "title": "CatalogEvent",
+    "type": "object"
+   }
   }
  ],
  "policy_targets": [

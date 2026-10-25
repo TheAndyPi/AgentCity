@@ -7,16 +7,17 @@ must exist, and simultaneous operations may not contradict each other.
 
 from pydantic import TypeAdapter, ValidationError
 
-from app.contracts import CommunityEffect, EventSpec, HazardEffect, InformationEffect, ScenarioPreview, Vec2
+from app.contracts import EventSpec, InformationEffect, ScenarioPreview, Vec2
 from app.scenario_engine.registry import OPERATIONS, POLICY_TARGETS, REGIONS, ScenarioPlan
 from app.scenario_engine.systems import PolicyState
 from app.simulation.navigation import polygon_contains
-from app.simulation.scenario_scene import build_scene, matches
-from app.simulation.scenarios import rectangle, validate_spec
+from app.simulation.scenario_scene import CATALOG, build_scene, matches
+from app.simulation.scenarios import compose_recipe_effects, rectangle, validate_spec
 from app.simulation.state import expiry
 
 PLAN = TypeAdapter(ScenarioPlan)
 MAX_APPLICATIONS = 200
+CATALOG_BY_ID = {recipe["id"]: recipe for recipe in CATALOG}
 
 
 def format_errors(error):
@@ -47,6 +48,33 @@ def window(op, plan):
 
 def overlaps(a, b):
     return a[0] < (b[1] if b[1] is not None else 10**9) and b[0] < (a[1] if a[1] is not None else 10**9)
+
+
+def physical_components(state, plan):
+    """Compile exactly the selected operations; prompt matches only refine a selected recipe's styling."""
+    effects, recipes = [], []
+    styled = {recipe["id"]: recipe for recipe in matches(plan.prompt)}
+    for op in plan.operations:
+        if op.type == "physical_hazard":
+            additions = [dict(type="hazard", hazard=op.hazard, severity=op.severity)]
+            recipes.extend(matches(op.hazard))
+        elif op.type == "community_gathering":
+            additions = [dict(type="community", activity=op.activity, capacity=state.simulation.agent_count)]
+            recipes.extend(matches(op.activity))
+        elif op.type == "catalog_event":
+            recipe = dict(styled.get(op.recipe, CATALOG_BY_ID[op.recipe]))
+            if op.count is not None:
+                recipe["count"] = op.count
+            if op.color is not None:
+                recipe["color"] = op.color
+            recipes.append(recipe)
+            additions = compose_recipe_effects([recipe], op.severity, state.simulation.agent_count)
+        else:
+            continue
+        for effect in additions:
+            if effect not in effects:
+                effects.append(effect)
+    return effects, recipes
 
 
 def validate_plan(state, raw):
@@ -159,6 +187,14 @@ def validate_plan(state, raw):
                 errors.append(f"{where}: organization {op.organization_id} does not exist")
         elif OPERATIONS[op.type][2]:
             physical.append(op)
+            if op.type == "catalog_event":
+                effect_types = ", ".join(
+                    dict.fromkeys(e["type"] for e in CATALOG_BY_ID[op.recipe]["effects"])
+                )
+                warnings.append(
+                    f"{where}: {op.recipe.replace('_', ' ')} uses illustrated scenery and these catalog effects: "
+                    f"{effect_types}. Props are not autonomous entities and cannot chase, attack or destroy."
+                )
         elif op.type == "adjust_population_traits":
             warnings.append(
                 f"{where}: edits the {op.trait} trait directly. This changes who citizens are, "
@@ -166,6 +202,10 @@ def validate_plan(state, raw):
             )
     if applications > MAX_APPLICATIONS:
         errors.append(f"plan: {applications} scheduled applications exceed the limit of {MAX_APPLICATIONS}")
+    if len(physical_components(state, plan)[0]) > 19:
+        errors.append(
+            "plan: the selected operations exceed the 19-effect event limit; split the event into smaller plans"
+        )
     if len({op.region for op in physical}) > 1:
         errors.append("plan: physical hazards and gatherings in one scenario must share a single region")
     for op in physical:
@@ -197,28 +237,26 @@ def compile_preview(state, plan, warnings, source="custom"):
     physical = [op for op in plan.operations if OPERATIONS[op.type][2]]
     region = physical[0].region if physical else "citywide"
     polygon = region_polygon(region)
-    effects = []
-    for op in physical:
-        if op.type == "physical_hazard":
-            effects.append(HazardEffect(type="hazard", hazard=op.hazard, severity=op.severity))
-        else:
-            effects.append(
-                CommunityEffect(type="community", activity=op.activity, capacity=state.simulation.agent_count)
-            )
+    effects, recipes = physical_components(state, plan)
     effects.append(
         InformationEffect(
-            type="information", message=plan.public_description, reliability=100, delivery="local"
+            type="information",
+            message=plan.public_description,
+            reliability=25 if any(recipe["id"] == "misinformation" for recipe in recipes) else 100,
+            delivery="local",
         )
     )
-    hazards = [op for op in physical if op.type == "physical_hazard"]
     gatherings = [op for op in physical if op.type == "community_gathering"]
+    hazard_effects = [effect for effect in effects if isinstance(effect, dict) and effect["type"] == "hazard"]
     kind = (
-        hazards[0].hazard
-        if hazards
+        hazard_effects[0]["hazard"]
+        if hazard_effects
         else "festival"
         if any(op.activity == "festival" for op in gatherings)
         else "policy"
         if any(op.type == "modify_policy" for op in plan.operations)
+        else recipes[0]["kind"]
+        if recipes
         else "custom"
     )
     spec = EventSpec(
@@ -227,14 +265,13 @@ def compile_preview(state, plan, warnings, source="custom"):
         kind=kind,
         origin=Vec2(x=sum(p.x for p in polygon) / len(polygon), y=sum(p.y for p in polygon) / len(polygon)),
         affected_polygon=polygon,
-        severity=max([op.severity for op in hazards], default=50),
+        severity=max([effect["severity"] for effect in hazard_effects], default=50),
         duration_ticks=plan.measurement_ticks,
-        effects=effects[:20],
+        effects=effects,
         success_condition="duration_elapsed",
     )
-    terms = " ".join([*(op.hazard for op in hazards), *(op.activity for op in gatherings)])
-    if terms:
-        spec.scene = build_scene(state, spec, matches(terms))
+    if recipes:
+        spec.scene = build_scene(state, spec, recipes)
     validate_spec(state, spec)
     return ScenarioPreview(
         id=state.next_id("preview"),
