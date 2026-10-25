@@ -19,7 +19,7 @@ export interface Transport {
     path: string,
     body?: unknown,
     key?: string,
-    signal?: AbortSignal,
+    signalOrTimeout?: AbortSignal | number,
   ): Promise<unknown>;
   subscribe?(id: string, cb: (frame: T.WorldFrame) => void): () => void;
 }
@@ -440,8 +440,16 @@ export class LiveTransport implements Transport {
     path: string,
     body?: unknown,
     key?: string,
-    signal?: AbortSignal,
+    signalOrTimeout?: AbortSignal | number,
   ): Promise<unknown> {
+    const signal =
+      typeof signalOrTimeout === "number" ? undefined : signalOrTimeout;
+    const timeoutMs =
+      typeof signalOrTimeout === "number"
+        ? signalOrTimeout
+        : signal
+          ? 30000
+          : 15000;
     if (
       method !== "GET" &&
       !(method === "POST" && path === "/session") &&
@@ -478,8 +486,8 @@ export class LiveTransport implements Transport {
         body: body === undefined ? undefined : JSON.stringify(body),
         credentials: "include",
         signal: signal
-          ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
-          : AbortSignal.timeout(15000),
+          ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+          : AbortSignal.timeout(timeoutMs),
       });
     } catch {
       throw new ApiError(

@@ -3,6 +3,7 @@
 import math
 
 from app.contracts import Decision, EffectChange, Intent, Parameters, Vec2
+from app.scenario_engine import responses
 from app.simulation.agents import (
     clamp,
     evidence,
@@ -544,7 +545,10 @@ def advance_movement(state, citizen):
 def rule_intent(state, citizen, context):
     p = citizen.summary.position
     nearby = [state.citizens[aid] for aid in context["nearby_ids"]]
-    threatened = hazard_severity(state, p) > 0 or state.policies.evacuation_order
+    threatened = hazard_severity(state, p) > 0 or (
+        state.policies.evacuation_order
+        and (not state.systems.enabled or responses.complies_with_evacuation(state, citizen))
+    )
     # Self-safety has no helping exception, even if no safe route can be found.
     if threatened:
         safe = [
@@ -578,7 +582,7 @@ def rule_intent(state, citizen, context):
         visible_victims
         and citizen.inventory.supplies >= 1
         and citizen.needs.health > 60
-        and citizen.profile.traits.empathy >= 65
+        and citizen.profile.traits.empathy >= responses.help_threshold(state, citizen)
     ):
         victim = max(
             visible_victims,
@@ -683,7 +687,7 @@ def rule_intent(state, citizen, context):
     if citizen.summary.path:
         return None
     scarce = min(("food", "water", "supplies"), key=lambda kind: getattr(citizen.inventory, kind))
-    if getattr(citizen.inventory, scarce) < 2:
+    if getattr(citizen.inventory, scarce) < responses.inventory_floor(state, citizen):
         sources = [
             r
             for r in state.map.resources
@@ -759,6 +763,10 @@ def rule_intent(state, citizen, context):
             "rest" if building.kind == "home" else "idle",
             target=building.id,
             motivation=f"Spend a little time inside {building.name}",
+        )
+    if citizen.inside_building_id and responses.staying_for_care(state, citizen):
+        return make_intent(
+            "rest", target=citizen.inside_building_id, motivation="Stay for treatment until I recover"
         )
     destination = routine_destination(state, citizen)
     if destination:

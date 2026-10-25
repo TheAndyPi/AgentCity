@@ -17,6 +17,10 @@ from app.data.repository import Repository, encode
 from app.infrastructure.errors import DomainError, require
 from app.infrastructure.gemini import Gateway, context_for, relevance
 from app.integrations.tiger import TigerIngestor
+from app.scenario_engine import interpreter, validator
+from app.scenario_engine.registry import ScenarioPlan
+from app.scenario_engine.runtime import attach as attach_plan
+from app.scenario_engine.world import enable as enable_systems
 from app.simulation.agents import (
     connect,
     evidence,
@@ -430,7 +434,13 @@ class Service:
                         in {"queued", "map", "population", "relationships"}
                     ):
                         # Provider work and usage recording run outside the writer lock.
-                        provider = await self.interpret_premise(sid, premise)
+                        engine = await interpreter.interpret(
+                            self.gateway, head, sid, premise, head.simulation.config.mode
+                        )
+                        if engine["status"] in {"ready", "unsupported", "needs_clarification"}:
+                            provider = dict(engine=engine)
+                        else:
+                            provider = await self.interpret_premise(sid, premise) | dict(engine=engine)
                 async with self.writer:
                     head = self.heads.get(sid)
                     if not head or head.simulation.status != "initializing":
@@ -492,13 +502,7 @@ class Service:
                                 connect(state, citizen, people[(i + offset) % len(people)], kind, rng)
                     elif stage == "scenario":
                         if state.simulation.config.scenario_description.strip():
-                            state.simulation.initial_preview = compile_preview(
-                                state,
-                                "initial",
-                                state.simulation.config.scenario_description,
-                                design=provider.get("design"),
-                                interpreted=provider.get("interpreted"),
-                            )
+                            self.initial_scenario(state, provider)
                     elif stage == "ready":
                         for citizen in state.citizens.values():
                             require(
@@ -516,6 +520,8 @@ class Service:
                             )
                         state.simulation.status = "paused"
                         state.simulation.pause_reason = "manual"
+                        if state.simulation.config.mode in {"policy_lab", "behavior_lab"}:
+                            enable_systems(state)
                         update_metrics(state)
                         self.snapshot(state, "initial", "Initial city")
                         if state.simulation.initial_preview:
@@ -893,6 +899,36 @@ class Service:
             states=[state],
         )
 
+    def initial_scenario(self, state, provider):
+        """The setup premise: an engine plan when interpreted, the keyword catalog otherwise."""
+        premise = state.simulation.config.scenario_description
+        engine = provider.get("engine")
+        if engine and engine["status"] == "ready":
+            plan, _, warnings = validator.validate_plan(state, engine["plan"])
+            if plan:
+                preview = validator.compile_preview(state, plan, warnings, source="initial")
+                state.simulation.initial_preview = preview
+                state.systems.initial_plan = plan.model_dump(mode="json")
+                state.systems.initial_preview_id = preview.id
+                return
+        preview = compile_preview(
+            state, "initial", premise, design=provider.get("design"), interpreted=provider.get("interpreted")
+        )
+        if engine and engine["status"] in {"unsupported", "needs_clarification"}:
+            # Explain instead of substituting whatever the keyword catalog happens to match.
+            reasons = engine["unsupported"] or [engine["clarification"] or "This scenario cannot be simulated."]
+            preview.can_commit = False
+            preview.unsupported_requests = [r[:2000] for r in reasons]
+            preview.interpretation = (
+                engine["clarification"] or "The scenario engine cannot represent this request: " + "; ".join(reasons)
+            )[:2000]
+        elif engine:
+            preview.warnings.append(
+                "The AI scenario interpreter was unavailable, so this was interpreted with the built-in "
+                "keyword catalog."
+            )
+        state.simulation.initial_preview = preview
+
     def open_intervention(self, owner, sid, body):
         state = self.owned(owner, sid).model_copy(deep=True)
         self.version(state, body.expected_control_version)
@@ -1060,8 +1096,18 @@ class Service:
         self.bump(state, True)
         self.clear_editor(state)
         state.simulation.initial_preview = None
+        plan = (
+            ScenarioPlan.model_validate(state.systems.initial_plan)
+            if initial and state.systems.initial_plan and state.systems.initial_preview_id == preview.id
+            else None
+        )
+        if plan:
+            enable_systems(state)
         snapshot = self.snapshot(state, "pre_event", f"Before {preview.spec.title}", previous_ref)
         event = queue_event(state, preview, snapshot.id, resume)
+        if plan:
+            attach_plan(state, event.id, plan)
+            state.systems.initial_plan = None
         state.simulation.status = "running" if resume else "paused"
         state.simulation.pause_reason = None if resume else "manual"
         cls = c.InitialResult if initial else c.ScenarioResult
@@ -1101,6 +1147,9 @@ class Service:
         state.lineage_generation += 1
         self.clear_editor(state)
         self.revoke_resume(state)
+        if head.systems.enabled and not state.systems.enabled:
+            # A control branch from a pre-event snapshot runs the same world systems.
+            enable_systems(state)
         for citizen in state.citizens.values():
             citizen.task_generation += 1
             citizen.next_deliberation_tick = state.simulation.tick

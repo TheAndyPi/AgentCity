@@ -5998,3 +5998,73 @@ input[type="range"] {
     height: 190px;
   }
 }
+
+/* Scenario engine: plan preview, editor and analysis */
+.plan-preview section {
+  margin-top: 12px;
+}
+.plan-preview h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.plan-preview .event-effect p {
+  margin: 2px 0 0;
+}
+.plan-metrics {
+  margin: 0;
+  padding-left: 18px;
+}
+.plan-editor fieldset.plan-operation {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+}
+.plan-editor legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+.plan-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.plan-row > * {
+  flex: 1 1 140px;
+}
+.plan-metric-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 4px 10px;
+}
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 4px 0 8px;
+}
+.analysis-table th,
+.analysis-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.analysis-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.trace-card h5 {
+  margin: 8px 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.trace-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
