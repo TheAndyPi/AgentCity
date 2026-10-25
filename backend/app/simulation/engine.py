@@ -48,7 +48,11 @@ def tick(state, proposals=None):
     activate(state)
     restore_personal_space(state)
     index = SpatialIndex(state.citizens)
-    contexts = {aid: perception(state, c, index) for aid, c in state.citizens.items() if c.summary.active}
+    contexts = {
+        aid: perception(state, c, index)
+        for aid, c in state.citizens.items()
+        if c.summary.active and c.needs.health > 0
+    }
     rng = random.Random()
     rng.setstate(tuple_tree(state.rng_state))
     ordering = sorted(contexts)
@@ -83,6 +87,9 @@ def tick(state, proposals=None):
             metric_delta(citizen, "happiness", -0.4, evidence("Hunger exceeds 80 under need-decay rules"))
     for aid in ordering:
         advance_movement(state, state.citizens[aid])
+    from app.disasters.physics import advance
+
+    advance(state)
     apply_effects(state)
     expire_interactions(state)
     if state.simulation.tick % 20 == 0:

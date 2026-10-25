@@ -166,7 +166,37 @@ class ElevenLabsTransport:
 
     async def _attempt(self, text, remaining, voice_id):
         url = f"{self.config.base_url.rstrip('/')}/v1/text-to-speech/{quote(voice_id, safe='')}"
-        timeout = httpx.Timeout(max(0.1, min(self.config.attempt_timeout, remaining)))
+        return await self._binary(url, {"text": text, "model_id": self.config.model_id}, remaining)
+
+    async def generate_asset(self, category, payload, voice_id=None):
+        """One admitted, bounded attempt; uncertain billable work is never retried."""
+        if self.waiting >= self.config.queue_limit + self.config.concurrency:
+            raise ProviderFailure("busy")
+        self.waiting += 1
+        try:
+            async with asyncio.timeout(self.config.sound_deadline):
+                async with self.slots:
+                    self._admit_attempt()
+                    endpoint = (
+                        "sound-generation"
+                        if category == "effects"
+                        else "music"
+                        if category == "music"
+                        else f"text-to-speech/{quote(voice_id, safe='')}"
+                    )
+                    return await self._binary(
+                        f"{self.config.base_url.rstrip('/')}/v1/{endpoint}",
+                        payload,
+                        self.config.sound_deadline,
+                        self.config.sound_deadline,
+                    )
+        except TimeoutError:
+            raise ProviderFailure("timeout") from None
+        finally:
+            self.waiting -= 1
+
+    async def _binary(self, url, payload, remaining, attempt_timeout=None):
+        timeout = httpx.Timeout(max(0.1, min(attempt_timeout or self.config.attempt_timeout, remaining)))
         self.calls += 1
         try:
             async with self.client.stream(
@@ -178,7 +208,7 @@ class ElevenLabsTransport:
                     "Accept": "audio/mpeg",
                     "Content-Type": "application/json",
                 },
-                json={"text": text, "model_id": self.config.model_id},
+                json=payload,
                 timeout=timeout,
             ) as response:
                 status = response.status_code

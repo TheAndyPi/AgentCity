@@ -1,3 +1,4 @@
+import type { DisasterState } from "../disasters/client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
@@ -15,7 +16,9 @@ import { worldPalette, type WorldTheme } from "./palette";
 export function BuildingTag({
   building,
   theme = "dark",
+  condition,
 }: {
+  condition?: DisasterState["conditions"][string];
   building: Building;
   theme?: WorldTheme;
 }) {
@@ -31,6 +34,12 @@ export function BuildingTag({
       </span>
       <strong>{building.name}</strong>
       <span>{info.description}</span>
+      {condition && (
+        <span>
+          {condition.stage} · Integrity {condition.integrity.toFixed(1)} / 100 ·
+          Cause {condition.cause_ids.join(", ") || "none"}
+        </span>
+      )}
       <small>
         {building.functional ? "Open" : "Out of service"} · Capacity{" "}
         {building.capacity}
@@ -166,7 +175,9 @@ export default function Buildings({
   theme = "dark",
   reducedMotion = false,
   onClick,
+  conditions,
 }: {
+  conditions?: DisasterState["conditions"];
   buildings: Building[];
   cutaway?: string[];
   theme?: WorldTheme;
@@ -192,8 +203,18 @@ export default function Buildings({
   return (
     <>
       <Parts parts={visible(layout.boxes)} onHover={setHovered} onPick={pick} />
-      <Parts parts={visible(layout.roofs)} roof onHover={setHovered} onPick={pick} />
-      <Parts parts={visible(layout.glows)} glow onHover={setHovered} onPick={pick} />
+      <Parts
+        parts={visible(layout.roofs)}
+        roof
+        onHover={setHovered}
+        onPick={pick}
+      />
+      <Parts
+        parts={visible(layout.glows)}
+        glow
+        onHover={setHovered}
+        onPick={pick}
+      />
       <Parts
         parts={visible(layout.beacons)}
         glow
@@ -266,7 +287,11 @@ export default function Buildings({
           zIndexRange={[12, 0]}
           style={{ pointerEvents: "none" }}
         >
-          <BuildingTag building={building} theme={theme} />
+          <BuildingTag
+            building={building}
+            theme={theme}
+            condition={conditions?.[building.id]}
+          />
         </Html>
       )}
     </>

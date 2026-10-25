@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./narration-e2e",
-  testMatch: ["narration.spec.ts", "live-voices.spec.ts"],
+  testMatch: ["narration.spec.ts", "live-voices.spec.ts", "disasters.spec.ts"],
   workers: 1,
   timeout: 120_000,
   expect: { timeout: 15_000 },

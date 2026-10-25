@@ -538,6 +538,10 @@ def compile_preview(
     can_commit = bool(spec.effects) and not uninterpretable
     if can_commit:
         validate_spec(state, spec)
+        if any(e.type == "hazard" for e in spec.effects):
+            warnings.append(
+                "Physical hazards can leave persistent structural and road damage. Typed disaster controls expose precise units in the v2 editor."
+            )
     interpretation = (
         INTERPRETATION_FAILURE
         if uninterpretable
@@ -595,9 +599,29 @@ def queue_event(state, preview, snapshot_id, resume_allowed):
 
 
 def activate(state):
+    from app.disasters.physics import initialize
+
+    initialize(state)
     for runtime in state.events.values():
         if runtime.summary.status != "queued":
             continue
+        if runtime.physical is None:
+            hazards = [effect for effect in runtime.spec.effects if effect.type == "hazard"]
+            if hazards:
+                from app.disasters.models import LIMITS, Parameters
+
+                effect = max(hazards, key=lambda effect: effect.severity)
+                limits = LIMITS[effect.hazard]
+                intensity = round(effect.severity / 100 * limits["max"] / limits["step"]) * limits["step"]
+                runtime.physical_legacy = True
+                runtime.physical = Parameters(
+                    kind=effect.hazard,
+                    intensity=round(intensity, 6),
+                    extent_m=math.hypot(state.map.width_m, state.map.height_m),
+                    origin=runtime.spec.origin,
+                    duration_ticks=runtime.spec.duration_ticks,
+                    seed=state.simulation.config.seed,
+                )
         runtime.summary.status = "active"
         runtime.summary.start_tick = state.simulation.tick
         runtime.summary.summary = "Event active"
@@ -645,13 +669,9 @@ def activate(state):
                             )
                         )
             elif effect.type == "infrastructure":
-                for building in state.map.buildings:
-                    if polygon_contains(building.entrance, runtime.spec.affected_polygon):
-                        runtime.infrastructure_before[building.id] = dict(
-                            functional=building.functional, capacity=building.capacity
-                        )
-                        building.functional = effect.functional
-                        building.capacity = round(building.capacity * effect.capacity_multiplier)
+                from app.disasters.physics import effective_services
+
+                effective_services(state)
             elif effect.type == "policy":
                 from app.contracts import Policies
 
@@ -705,7 +725,7 @@ def apply_effects(state):
             ):
                 continue
             for effect in runtime.spec.effects:
-                if effect.type == "hazard":
+                if effect.type == "hazard" and not runtime.physical:
                     damage = effect.severity / 100 * ({"flood": 1, "fire": 2, "storm": 0.5}[effect.hazard])
                     citizen.needs.health = clamp(citizen.needs.health - damage)
                     metric_delta(citizen, "stress", effect.severity / 100 * 2, proof)
@@ -751,6 +771,7 @@ def finish_events(state):
         runtime.exposed_count = (
             sum(
                 state.citizens[aid].summary.active
+                and state.citizens[aid].needs.health > 0
                 and hazard_severity(state, state.citizens[aid].summary.position) > 0
                 for aid in runtime.cohort
             )
@@ -760,6 +781,7 @@ def finish_events(state):
         runtime.evacuated_count = (
             sum(
                 state.citizens[aid].summary.active
+                and state.citizens[aid].needs.health > 0
                 and hazard_severity(state, state.citizens[aid].summary.position) == 0
                 for aid in runtime.cohort
             )
@@ -784,11 +806,9 @@ def finish_events(state):
         runtime.consequences = [dict(text=runtime.summary.summary, evidence=proof.model_dump())]
         for aid in runtime.cohort:
             remember(state, state.citizens[aid], runtime.summary.summary, importance=75, proof=proof)
-        for building in state.map.buildings:
-            baseline = runtime.infrastructure_before.get(building.id)
-            if baseline:
-                building.functional = baseline["functional"]
-                building.capacity = baseline["capacity"]
+        from app.disasters.physics import effective_services
+
+        effective_services(state)
         state.policies = state.baseline_policies.model_copy()
         state.auto_resume = runtime.resume_allowed and state.simulation.status == "running"
         state.simulation.status = "paused"
@@ -835,9 +855,10 @@ def blocked_cells(state):
         r
         for r in state.events.values()
         if r.summary.status == "active"
+        and not r.physical
         and any(e.type == "hazard" and e.severity >= 80 for e in r.spec.effects)
     ]
-    return {
+    return {(t.col, t.row) for t in state.terrain_damage.values() if t.blocked} | {
         (cell.col, cell.row)
         for cell in state.map.cells
         if cell.terrain == "land"

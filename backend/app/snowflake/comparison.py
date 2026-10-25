@@ -54,6 +54,8 @@ def stage(export):
     events = sorted(export["events"], key=lambda r: (r["event"]["queued_tick"], r["event"]["id"]))[-16:]
     decisions = sorted(export["decisions"], key=lambda r: (r["tick"], r["id"]))[-32:]
     result = dict(simulation=sim, endpoint=endpoint, metrics=metrics, events=events, decisions=decisions)
+    if "disaster_projection" in export:
+        result["disaster_projection"] = export["disaster_projection"]
     require(
         len(canonical(result).encode()) <= 1_000_000, "INVALID_REQUEST", "Comparison export too large", 400
     )
@@ -140,7 +142,11 @@ def build(a, b, fingerprints, stamps, source):
         explanation=Explanation(
             source="deterministic", status="unavailable", reason="Cortex unavailable", observations=[]
         ),
-        limitations=LIMITATIONS,
+        limitations=LIMITATIONS
+        + [
+            "Disaster v2 canonical records are stored in the pinned projection when present; "
+            "core metric differences do not include damage totals. Missing projection is unavailable coverage, not zero damage."
+        ],
     )
 
 

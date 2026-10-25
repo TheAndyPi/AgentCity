@@ -5,6 +5,69 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v2/disaster-capabilities": {
+      "get": {
+        "summary": "Sound Capabilities",
+        "operationId": "sound_capabilities_v2_disaster_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/disaster-audio": {
+      "post": {
+        "summary": "Disaster Audio",
+        "operationId": "disaster_audio_v2_simulations__sid__disaster_audio_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/simulations/{sid}/dialogue": {
       "post": {
         "summary": "Live Dialogue",
@@ -382,6 +445,34 @@
   },
   "components": {
     "schemas": {
+      "AssetRequest": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Id"
+          },
+          "category": {
+            "type": "string",
+            "pattern": "^(effects|music|reactions)$",
+            "title": "Category"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "category",
+          "revision"
+        ],
+        "title": "AssetRequest"
+      },
       "Error": {
         "properties": {
           "code": {

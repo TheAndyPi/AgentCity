@@ -197,6 +197,9 @@ def clear_travel(origin, destination, occupied, clearance=PERSONAL_SPACE):
 
 def restore_personal_space(state):
     """Repair overlapping positions in existing saves on nearby walkable ground."""
+    from app.simulation.scenarios import blocked_cells
+
+    blocked = blocked_cells(state)
     citizens = sorted((c for c in state.citizens.values() if c.summary.active), key=lambda c: c.summary.id)
     for citizen in citizens:
         if citizen.inside_building_id or citizen.entering_building_id or citizen.leaving_building_id:
@@ -220,6 +223,7 @@ def restore_personal_space(state):
                     for p in candidates
                     if cell_at(state.map, p)
                     and cell_at(state.map, p).walkable
+                    and (cell_at(state.map, p).col, cell_at(state.map, p).row) not in blocked
                     and line_of_sight(state.map, origin, p)
                     and all(distance(p, other) >= PERSONAL_SPACE for other in occupied)
                 ),

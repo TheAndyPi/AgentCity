@@ -173,7 +173,7 @@ class NarrationService:
             encode([sid, voice_id, config.model_id, config.output_format, text, source])
         ).hexdigest()
 
-    async def _audio(self, owner, sid, text, voice_id, source=None):
+    async def _audio(self, owner, sid, text, voice_id, source=None, producer=None):
         content_key = self.content_key(sid, text, voice_id, source)
         entry = self.store.find(owner, content_key, self.clock())
         if entry:
@@ -183,7 +183,7 @@ class NarrationService:
         task = self.flights.get(flight)
         if task is None:
             task = self._track(
-                asyncio.create_task(self._synthesize(owner, sid, content_key, text, voice_id)),
+                asyncio.create_task(self._synthesize(owner, sid, content_key, text, voice_id, producer)),
                 self.flights,
                 flight,
             )
@@ -191,7 +191,7 @@ class NarrationService:
             self.store.count("joined_in_flight")
         return await asyncio.shield(task)
 
-    async def _synthesize(self, owner, sid, content_key, text, voice_id):
+    async def _synthesize(self, owner, sid, content_key, text, voice_id, producer=None):
         size = self.config.max_audio_bytes
         async with self.capacity:
             room = await asyncio.to_thread(
@@ -208,7 +208,9 @@ class NarrationService:
         try:
             self.store.count("syntheses_started")
             try:
-                audio = await self.transport.synthesize(text, voice_id=voice_id)
+                audio = (
+                    await producer() if producer else await self.transport.synthesize(text, voice_id=voice_id)
+                )
             except ProviderFailure as failure:
                 self.store.count("provider_failures")
                 local = failure.reason in {"busy", "rate_limited"}

@@ -788,7 +788,9 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
         try:
             payload = await asyncio.wait_for(websocket.receive_json(), timeout=5)
             c.Hello.model_validate(payload)
-        except (TimeoutError, ValidationError, ValueError, WebSocketDisconnect):
+        except WebSocketDisconnect:
+            return
+        except (TimeoutError, ValidationError, ValueError):
             await websocket.close(code=1008)
             return
 
@@ -927,6 +929,9 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
     app.mount(API + "/integrations", integrations)
     install_snowflake(app, snowflake_config)
     install_narration(app, narration_config, narration_transport)
+    from app.disasters.router import install_disasters
+
+    install_disasters(app)
     if runtime.frontend_dist:
         from app.infrastructure.frontend import mount_frontend
 

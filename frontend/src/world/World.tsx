@@ -32,6 +32,7 @@ import { acknowledgedRoute, pointAlongRoute } from "./motion";
 import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
 import ScenarioScene from "./ScenarioScene";
+import type { DisasterState } from "../disasters/client";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -44,6 +45,8 @@ export type CameraAction =
   | "pan_right"
   | "reset";
 type Props = {
+  disasters?: DisasterState | null;
+  onListenerMoved?: (point: Vec2) => void;
   frame: WorldFrame;
   mode: "2d" | "3d";
   selected: string | null;
@@ -154,7 +157,9 @@ function Camera({
   reducedMotion,
   onCameraReady,
   onUnfollow,
+  onListenerMoved,
 }: {
+  onListenerMoved?: (point: Vec2) => void;
   frame: WorldFrame;
   follow: string | null;
   focus?: string[];
@@ -344,6 +349,10 @@ function Camera({
       minPolarAngle={0.18}
       enableDamping={!reducedMotion}
       dampingFactor={0.12}
+      onChange={() => {
+        const target = controls.current?.target;
+        if (target) onListenerMoved?.({ x: target.x, y: target.z });
+      }}
       onStart={() => {
         transition.current = null;
         onUnfollow();
@@ -447,7 +456,12 @@ export default function World(props: Props) {
             onClick={props.onEmpty}
             theme={light ? "light" : "dark"}
             reducedMotion={props.reducedMotion}
-            buildings={props.frame.map.buildings}
+            conditions={props.disasters?.conditions}
+            buildings={props.frame.map.buildings.map((b) =>
+              props.disasters?.conditions[b.id]?.integrity === 0
+                ? { ...b, height_m: 0.5 }
+                : b,
+            )}
             cutaway={props.frame.map.buildings
               .filter((b) =>
                 props.frame.agents.some(
@@ -458,6 +472,82 @@ export default function World(props: Props) {
               )
               .map((b) => b.id)}
           />
+          {props.disasters && (
+            <group>
+              {props.disasters.terrain
+                .filter((t) => t.blocked || t.stage === "charred")
+                .map((t) => (
+                  <mesh
+                    key={`${t.col}:${t.row}`}
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    position={[
+                      (t.col + 0.5) * props.frame.map.cell_size_m,
+                      0.31,
+                      (t.row + 0.5) * props.frame.map.cell_size_m,
+                    ]}
+                  >
+                    <planeGeometry
+                      args={[
+                        props.frame.map.cell_size_m * 0.9,
+                        props.frame.map.cell_size_m * 0.9,
+                      ]}
+                    />
+                    <meshBasicMaterial
+                      color={t.blocked ? "#a26f52" : "#332c2b"}
+                    />
+                  </mesh>
+                ))}
+              {props.frame.map.buildings
+                .filter(
+                  (b) => props.disasters!.conditions[b.id]?.integrity < 100,
+                )
+                .map((b) => {
+                  const bounds = buildingBounds(b);
+                  const c = props.disasters!.conditions[b.id];
+                  return (
+                    <group key={b.id}>
+                      <Line
+                        points={[
+                          [bounds.x - 1, 0.5, bounds.y - 1],
+                          [bounds.x + 1, 0.5, bounds.y + 1],
+                          [bounds.x, 0.5, bounds.y],
+                          [bounds.x + 1, 0.5, bounds.y - 1],
+                          [bounds.x - 1, 0.5, bounds.y + 1],
+                        ]}
+                        color={c.integrity < 50 ? "#f58064" : "#eabb75"}
+                        lineWidth={2}
+                      />
+                      <Html
+                        position={[bounds.x, b.height_m + 1, bounds.y]}
+                        center
+                        distanceFactor={110}
+                      >
+                        <span className="damage-label">
+                          {c.stage} · {c.integrity.toFixed(0)}%
+                        </span>
+                      </Html>
+                    </group>
+                  );
+                })}
+              {props.disasters.events
+                .filter((e) => e.phase === "active")
+                .map((e) => (
+                  <group key={e.id}>
+                    <Polygon
+                      points={e.footprint}
+                      color="#eaa16d"
+                      opacity={0.07}
+                    />
+                    <Polygon
+                      points={e.current_footprint}
+                      color="#eaa16d"
+                      opacity={0.22}
+                      elevation={0.35}
+                    />
+                  </group>
+                ))}
+            </group>
+          )}
           {props.overlay &&
             props.frame.map.zones.map((z) => (
               <Polygon
@@ -478,35 +568,40 @@ export default function World(props: Props) {
               />
             ))}
           {props.hazards &&
-            props.frame.active_hazards.map((h) => (
-              <group key={h.event_id}>
-                <Polygon
-                  points={h.polygon}
-                  color={
-                    h.kind === "fire"
-                      ? "#eaa16d"
-                      : h.kind === "storm"
-                        ? "#a1adbf"
-                        : "#729be8"
-                  }
-                  opacity={0.45}
-                  elevation={0.5}
-                />
-                <Line
-                  points={[...h.polygon, h.polygon[0]].map(
-                    (p) => [p.x, 0.6, p.y] as [number, number, number],
-                  )}
-                  color={
-                    h.kind === "fire"
-                      ? "#ffc888"
-                      : h.kind === "storm"
-                        ? "#d4deeb"
-                        : "#a4cbff"
-                  }
-                  lineWidth={1.5}
-                />
-              </group>
-            ))}
+            props.frame.active_hazards
+              .filter(
+                (h) =>
+                  !props.disasters?.events.some((e) => e.id === h.event_id),
+              )
+              .map((h) => (
+                <group key={h.event_id}>
+                  <Polygon
+                    points={h.polygon}
+                    color={
+                      h.kind === "fire"
+                        ? "#eaa16d"
+                        : h.kind === "storm"
+                          ? "#a1adbf"
+                          : "#729be8"
+                    }
+                    opacity={0.45}
+                    elevation={0.5}
+                  />
+                  <Line
+                    points={[...h.polygon, h.polygon[0]].map(
+                      (p) => [p.x, 0.6, p.y] as [number, number, number],
+                    )}
+                    color={
+                      h.kind === "fire"
+                        ? "#ffc888"
+                        : h.kind === "storm"
+                          ? "#d4deeb"
+                          : "#a4cbff"
+                    }
+                    lineWidth={1.5}
+                  />
+                </group>
+              ))}
           <CharacterModels
             frame={props.frame}
             selected={props.selected}
@@ -533,6 +628,7 @@ export default function World(props: Props) {
             reducedMotion={props.reducedMotion}
             onCameraReady={props.onCameraReady}
             onUnfollow={props.onUnfollow}
+            onListenerMoved={props.onListenerMoved}
           />
         </Canvas>
       </Suspense>
@@ -620,6 +716,19 @@ function World2D(props: Props) {
     vy: number;
     moved: boolean;
   } | null>(null);
+  useEffect(() => {
+    props.onListenerMoved?.({
+      x: view.x + view.w / 2,
+      y: frame.map.height_m - (view.y + view.h / 2),
+    });
+  }, [
+    props.onListenerMoved,
+    view.x,
+    view.y,
+    view.w,
+    view.h,
+    frame.map.height_m,
+  ]);
   const viewNow = useRef(view);
   viewNow.current = view;
   const glide = useRef(0);
@@ -848,6 +957,46 @@ function World2D(props: Props) {
             </g>
           )),
         )}
+      {props.disasters?.terrain
+        .filter((t) => t.blocked || t.stage === "charred")
+        .map((t) => (
+          <g key={`damage-${t.col}:${t.row}`} pointerEvents="none">
+            <rect
+              x={t.col * frame.map.cell_size_m}
+              y={frame.map.height_m - (t.row + 1) * frame.map.cell_size_m}
+              width={frame.map.cell_size_m}
+              height={frame.map.cell_size_m}
+              fill={t.blocked ? "#a26f52" : "#332c2b"}
+            />
+            {t.blocked && (
+              <path
+                d={`M${t.col * 2} ${frame.map.height_m - t.row * 2}l2 -2`}
+                stroke="#f0cfb7"
+                strokeWidth={0.2}
+              />
+            )}
+          </g>
+        ))}
+      {props.disasters?.events
+        .filter((e) => e.phase === "active")
+        .map((e) => (
+          <g key={`physical-${e.id}`} pointerEvents="none">
+            <polygon
+              points={polygon(e.footprint)}
+              fill="none"
+              stroke="#eaa16d"
+              strokeWidth={0.4}
+              strokeDasharray="1 1"
+            />
+            <polygon
+              points={polygon(e.current_footprint)}
+              fill="#eaa16d"
+              fillOpacity={0.2}
+              stroke="#eaa16d"
+              strokeWidth={0.3}
+            />
+          </g>
+        ))}
       {frame.map.buildings.map((b) => {
         const info = buildingInfo(b, theme),
           bounds = buildingBounds(b);
@@ -894,6 +1043,24 @@ function World2D(props: Props) {
               opacity=".7"
               pointerEvents="none"
             />
+            {props.disasters &&
+              props.disasters.conditions[b.id]?.integrity < 100 && (
+                <text
+                  x={bounds.x}
+                  y={frame.map.height_m - bounds.y + 1}
+                  textAnchor="middle"
+                  fontSize={3}
+                  fill="#ffb58e"
+                  pointerEvents="none"
+                >
+                  <title>
+                    {props.disasters.conditions[b.id].stage} · Integrity{" "}
+                    {props.disasters.conditions[b.id].integrity.toFixed(1)} ·{" "}
+                    {props.disasters.conditions[b.id].cause_ids.join(", ")}
+                  </title>
+                  ×
+                </text>
+              )}
             {b.kind === "hospital" && (
               <path
                 d={`M${bounds.x - 0.7} ${frame.map.height_m - bounds.y}h1.4 M${bounds.x} ${frame.map.height_m - bounds.y - 0.7}v1.4`}
@@ -920,17 +1087,21 @@ function World2D(props: Props) {
           />
         ))}
       {hazards &&
-        frame.active_hazards.map((h) => (
-          <polygon
-            key={h.event_id}
-            points={polygon(h.polygon)}
-            fill="#81a6ff"
-            fillOpacity=".35"
-            stroke="#aecaff"
-            strokeWidth=".6"
-            pointerEvents="none"
-          />
-        ))}
+        frame.active_hazards
+          .filter(
+            (h) => !props.disasters?.events.some((e) => e.id === h.event_id),
+          )
+          .map((h) => (
+            <polygon
+              key={h.event_id}
+              points={polygon(h.polygon)}
+              fill="#81a6ff"
+              fillOpacity=".35"
+              stroke="#aecaff"
+              strokeWidth=".6"
+              pointerEvents="none"
+            />
+          ))}
       {frame.agents.map((a) => (
         <g
           key={a.id}
@@ -1025,7 +1196,11 @@ function World2D(props: Props) {
           pointerEvents="none"
         >
           <div className="building-tag-2d">
-            <BuildingTag building={currentBuilding} theme={theme} />
+            <BuildingTag
+              building={currentBuilding}
+              theme={theme}
+              condition={props.disasters?.conditions[currentBuilding.id]}
+            />
           </div>
         </foreignObject>
       )}

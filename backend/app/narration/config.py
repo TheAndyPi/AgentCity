@@ -12,6 +12,13 @@ def _number(name, default, kind=float):
 
 @dataclass(frozen=True)
 class NarrationConfig:
+    disaster_effects: bool = False
+    disaster_music: bool = False
+    disaster_reactions: bool = False
+    effects_model: str = "eleven_text_to_sound_v2"
+    music_model: str = "music_v1"
+    reactions_model: str = "eleven_v3"
+    sound_deadline: float = 60
     enabled: bool = False
     api_key: str = field(default="", repr=False)
     voice_id: str = ""
@@ -37,6 +44,13 @@ class NarrationConfig:
     @classmethod
     def from_env(cls):
         return cls(
+            disaster_effects=os.getenv("ENABLE_DISASTER_EFFECTS", "false").lower() == "true",
+            disaster_music=os.getenv("ENABLE_DISASTER_MUSIC", "false").lower() == "true",
+            disaster_reactions=os.getenv("ENABLE_DISASTER_REACTIONS", "false").lower() == "true",
+            effects_model=os.getenv("ELEVENLABS_EFFECTS_MODEL", "eleven_text_to_sound_v2"),
+            music_model=os.getenv("ELEVENLABS_MUSIC_MODEL", "music_v1"),
+            reactions_model=os.getenv("ELEVENLABS_REACTIONS_MODEL", "eleven_v3"),
+            sound_deadline=_number("DISASTER_AUDIO_DEADLINE_SECONDS", 60),
             enabled=os.getenv("ENABLE_NARRATION", "false").lower() == "true",
             api_key=os.getenv("ELEVENLABS_API_KEY", ""),
             voice_id=os.getenv("ELEVENLABS_VOICE_ID", ""),

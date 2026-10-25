@@ -105,6 +105,11 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
         change(actor.summary.id, "inventory." + kind, before, getattr(actor.inventory, kind))
 
     try:
+        check(
+            citizen.summary.active and citizen.needs.health > 0,
+            "ACTOR_UNAVAILABLE",
+            "Citizen cannot act with zero health or while inactive",
+        )
         registry = ACTION_REGISTRY[intent.action]
         if registry.get("amount"):
             check(
@@ -433,6 +438,8 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
 
 
 def advance_movement(state, citizen):
+    if citizen.trapped_building_id or not citizen.summary.active or citizen.needs.health <= 0:
+        return
     # Pause at a greeting long enough to answer it. Urgent evacuation/help still
     # takes precedence; an invitation never teleports or accepts for its recipient.
     if (
@@ -542,6 +549,8 @@ def advance_movement(state, citizen):
 
 
 def rule_intent(state, citizen, context):
+    if citizen.trapped_building_id or not citizen.summary.active or citizen.needs.health <= 0:
+        return None
     p = citizen.summary.position
     nearby = [state.citizens[aid] for aid in context["nearby_ids"]]
     threatened = hazard_severity(state, p) > 0 or state.policies.evacuation_order

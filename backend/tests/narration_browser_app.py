@@ -16,7 +16,9 @@ from app.main import create_app as create_core_app
 
 def create_app():
     fake = ElevenLabsFake()
-    narration_config = config(deadline=10, attempt_timeout=10)
+    narration_config = config(
+        deadline=10, attempt_timeout=10, disaster_effects=True, disaster_music=True, disaster_reactions=True
+    )
     app = create_core_app(AppConfig.from_env(), narration_config, fake.transport(narration_config))
     control = FastAPI()
 
@@ -47,7 +49,7 @@ def create_app():
     async def requests():
         return [
             dict(
-                text=r["body"]["text"],
+                text=r["body"].get("text", r["body"].get("prompt", "")),
                 model_id=r["body"]["model_id"],
                 path=r["path"],
                 output_format=r["query"].get("output_format"),

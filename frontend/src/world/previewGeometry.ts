@@ -1,6 +1,7 @@
 import type { MapData, Vec2 } from "../api/types";
 
-export type MapBounds = Pick<MapData, "width_m" | "height_m">;
+export type MapBounds = Pick<MapData, "width_m" | "height_m"> &
+  Partial<Pick<MapData, "cell_size_m">>;
 
 export function previewLayout(map: MapBounds) {
   const scale = Math.min(268 / map.width_m, 73 / map.height_m);

@@ -79,6 +79,33 @@ def project(state, lineage, sample_ticks):
         for runtime in state.events.values():
             report = event_report(state, runtime)
             add("event", f"{sim.revision}:{report.event.id}", sim.tick, report.model_dump(mode="json"))
+        if state.conditions:
+            from app.disasters.physics import event_view
+
+            for runtime in state.events.values():
+                if runtime.physical:
+                    add("disaster_event", runtime.summary.id, sim.tick, event_view(state, runtime))
+            for bid, condition in state.conditions.items():
+                add("condition", bid, sim.tick, dict(**condition.model_dump(), stage=condition.stage))
+            for change in state.service_changes:
+                if change["tick"] == sim.tick:
+                    add("service", change["id"], sim.tick, change)
+            for damage in state.damage_records:
+                if damage.tick == sim.tick:
+                    add("damage", damage.id, damage.tick, damage.model_dump())
+            for reaction in state.reactions:
+                if reaction.tick == sim.tick:
+                    add("reaction", reaction.id, reaction.tick, reaction.model_dump())
+            # Group bounded map cells into one canonical terrain revision, avoiding
+            # per-cell row-budget gaps on a citywide hazard.
+            add(
+                "terrain",
+                f"{sim.revision}:terrain",
+                sim.tick,
+                dict(schema_version="2.0.0", cells=[t.model_dump() for t in state.terrain_damage.values()]),
+            )
+            for repair in state.repairs:
+                add("repair", repair.id, sim.tick, repair.model_dump())
         if sim.tick % sample_ticks == 0:
             for agent in frame(state).agents:
                 add("movement", f"{sim.revision}:{agent.id}", sim.tick, agent.model_dump(mode="json"))

@@ -30,6 +30,7 @@ from app.contracts import (
     Snapshot,
     Vec2,
 )
+from app.disasters.models import Condition, DamageRecord, Parameters, Reaction, Repair, TerrainDamage
 
 
 def now():
@@ -66,6 +67,7 @@ class Citizen(Model):
     task_generation: int = 0
     next_deliberation_tick: int = 0
     plan: dict[str, Any] | None = None
+    trapped_building_id: str | None = None
     inside_building_id: str | None = None
     entering_building_id: str | None = None
     leaving_building_id: str | None = None
@@ -78,6 +80,10 @@ class Citizen(Model):
 
 
 class EventRuntime(Model):
+    physical_legacy: bool = False
+    cancelled: bool = False
+    physical: Parameters | None = None
+    last_physical_tick: int = -1
     summary: EventSummary
     spec: EventSpec
     before: Metrics
@@ -111,6 +117,13 @@ class Interaction(Model):
 
 
 class State(Model):
+    service_changes: list[dict[str, Any]] = Field(default_factory=list)
+    conditions: dict[str, Condition] = Field(default_factory=dict)
+    damage_records: list[DamageRecord] = Field(default_factory=list)
+    terrain_damage: dict[str, TerrainDamage] = Field(default_factory=dict)
+    reactions: list[Reaction] = Field(default_factory=list)
+    reaction_cooldowns: dict[str, float] = Field(default_factory=dict)
+    repairs: list[Repair] = Field(default_factory=list)
     schema_version: str = "1.0.0"
     rule_version: str = "1.0.0"
     owner_id: str

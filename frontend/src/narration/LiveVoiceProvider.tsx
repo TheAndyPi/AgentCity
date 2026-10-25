@@ -2,6 +2,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -10,6 +11,8 @@ import type { WorldStore } from "../state/world";
 import { useApp } from "../state/app";
 import { LiveVoices, type ListeningScope } from "./live";
 import "./narration.css";
+import { Soundscape } from "./soundscape";
+import type { DisasterState } from "../disasters/client";
 
 function preferences() {
   try {
@@ -31,19 +34,55 @@ export default function LiveVoiceProvider({
   scope,
   frame,
   store,
+  disasters,
+  listeningPoint,
 }: {
   children: ReactNode;
   scope: ListeningScope;
   frame: WorldFrame;
   store: WorldStore;
+  disasters?: DisasterState | null;
+  listeningPoint?: { x: number; y: number };
 }) {
   const { client, capabilities } = useApp();
   const voices = useMemo(
     () => new LiveVoices(client, new Audio(), preferences()),
     [client, store],
   );
+  const sounds = useMemo(
+    () => new Soundscape(client, voices),
+    [client, voices],
+  );
+  const sound = useSyncExternalStore(sounds.subscribe, sounds.getSnapshot);
   const view = useSyncExternalStore(voices.subscribe, voices.getSnapshot);
+  const dock = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const node = dock.current;
+    const stage = node?.previousElementSibling;
+    if (!node || !(stage instanceof HTMLElement)) return;
+    const sync = () =>
+      stage.style.setProperty(
+        "--audio-dock-height",
+        `${node.getBoundingClientRect().height + 12}px`,
+      );
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      stage.style.removeProperty("--audio-dock-height");
+    };
+  }, [capabilities?.narration, sounds]);
+  const currentAudio = useRef({ view, sound });
+  currentAudio.current = { view, sound };
   const scopeKey = JSON.stringify(scope);
+  useEffect(() => {
+    void sounds.capabilities();
+    return () => sounds.dispose();
+  }, [sounds]);
+  useLayoutEffect(() => {
+    sounds.update(disasters ?? null, frame, scope, view, listeningPoint);
+  }, [sounds, disasters, frame, scopeKey, view, listeningPoint]);
   useLayoutEffect(() => {
     // Source changes stop manual narration as well as the automatic channel.
     document.querySelectorAll("audio").forEach((audio) => audio.pause());
@@ -65,19 +104,26 @@ export default function LiveVoiceProvider({
   }, [store, voices]);
   useEffect(() => {
     const visibility = () => {
+      sounds.stop();
       voices.visibility(document.hidden);
       if (document.hidden)
         document.querySelectorAll("audio").forEach((audio) => audio.pause());
     };
     const revoked = () => {
+      sounds.stop();
       voices.revoke();
       document.querySelectorAll("audio").forEach((audio) => audio.pause());
     };
     const exclusive = (event: Event) => {
       const target = event.target;
       if (!(target instanceof HTMLAudioElement)) return;
+      if (target.dataset.audioBus) return;
+      target.volume = currentAudio.current.view.volume;
+      target.muted =
+        currentAudio.current.view.muted || !currentAudio.current.sound.voices;
+      if (target.muted) target.pause();
       document.querySelectorAll("audio").forEach((audio) => {
-        if (audio !== target) audio.pause();
+        if (audio !== target && !audio.dataset.audioBus) audio.pause();
       });
       if (target !== voices.player) voices.pause();
     };
@@ -107,30 +153,96 @@ export default function LiveVoiceProvider({
   return (
     <>
       {children}
-      {capabilities?.narration && (
-        <section className="live-voices glass" aria-label="Live voices">
+      {(capabilities?.narration ||
+        Object.values(sound.categories).some((v) => v !== "unconfigured")) && (
+        <section
+          ref={dock}
+          className="live-voices glass"
+          aria-label="Live voices"
+          data-sound-enabled={sound.enabled}
+          data-sound-events={
+            disasters?.events.filter((e) => e.phase === "active").length ?? 0
+          }
+        >
           <div className="live-voice-controls">
+            <button
+              onClick={() => {
+                sounds.enable();
+                voices.enable();
+              }}
+            >
+              Enable sound
+            </button>
+            <details className="sound-mix">
+              <summary>Sound mix</summary>
+              <div className="sound-mix-options">
+                {(["effects", "music", "voices"] as const).map((category) => (
+                  <label key={category}>
+                    <input
+                      type="checkbox"
+                      checked={sound[category]}
+                      onChange={() => {
+                        sounds.toggle(category);
+                        if (category === "voices")
+                          document.querySelectorAll("audio").forEach((a) => {
+                            a.pause();
+                            a.muted = sound.voices;
+                          });
+                      }}
+                    />
+                    {category}
+                  </label>
+                ))}
+                <small>
+                  Effects: {sound.categories.effects} · Music:{" "}
+                  {sound.categories.music} · Reactions:{" "}
+                  {sound.categories.reactions}
+                </small>
+                {sound.error && <span role="status">{sound.error}</span>}
+              </div>
+            </details>
             {!view.enabled ? (
-              <button onClick={() => voices.enable()}>
+              <button
+                onClick={() => {
+                  sounds.enable();
+                  voices.enable();
+                }}
+              >
                 Enable live voices
               </button>
             ) : (
               <>
-                <button onClick={() => voices.mute(!view.muted)}>
-                  {view.muted ? "Unmute voices" : "Mute voices"}
+                <button
+                  aria-label={view.muted ? "Unmute voices" : "Mute voices"}
+                  onClick={() => {
+                    sounds.stop();
+                    document.querySelectorAll("audio").forEach((a) => {
+                      a.pause();
+                      a.muted = !view.muted;
+                    });
+                    voices.mute(!view.muted);
+                  }}
+                >
+                  {view.muted ? "Master unmute" : "Master mute"}
                 </button>
                 <button
                   disabled={view.hidden}
-                  onClick={() =>
-                    view.paused ? voices.enable() : voices.pause()
-                  }
+                  onClick={() => {
+                    if (view.paused) {
+                      sounds.enable();
+                      voices.enable();
+                    } else {
+                      sounds.stop();
+                      voices.pause();
+                    }
+                  }}
                 >
                   {view.paused ? "Resume listening" : "Pause audio"}
                 </button>
               </>
             )}
             <label>
-              Volume{" "}
+              Master volume{" "}
               <input
                 aria-label="Voice volume"
                 type="range"
@@ -138,7 +250,13 @@ export default function LiveVoiceProvider({
                 max="1"
                 step="0.05"
                 value={view.volume}
-                onChange={(e) => voices.setVolume(Number(e.target.value))}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  document.querySelectorAll("audio").forEach((a) => {
+                    a.volume = value;
+                  });
+                  voices.setVolume(value);
+                }}
               />
             </label>
             {scope.subject?.kind === "interaction" && (
