@@ -444,6 +444,7 @@ export default function World(props: Props) {
           )}
           <Ground map={props.frame.map} theme={light ? "light" : "dark"} />
           <Buildings
+            onClick={props.onEmpty}
             theme={light ? "light" : "dark"}
             reducedMotion={props.reducedMotion}
             buildings={props.frame.map.buildings}
@@ -619,10 +620,37 @@ function World2D(props: Props) {
     vy: number;
     moved: boolean;
   } | null>(null);
+  const viewNow = useRef(view);
+  viewNow.current = view;
+  const glide = useRef(0);
+  const stopGlide = () => cancelAnimationFrame(glide.current);
+  useEffect(() => stopGlide, []);
+  const glideTo = (target: typeof view, duration: number) => {
+    stopGlide();
+    if (props.reducedMotion) {
+      setView(target);
+      return;
+    }
+    const from = viewNow.current,
+      start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      setView({
+        x: from.x + (target.x - from.x) * e,
+        y: from.y + (target.y - from.y) * e,
+        w: from.w + (target.w - from.w) * e,
+        h: from.h + (target.h - from.h) * e,
+      });
+      if (t < 1) glide.current = requestAnimationFrame(step);
+    };
+    glide.current = requestAnimationFrame(step);
+  };
   useEffect(
     () =>
       onCameraReady((a) => {
         onUnfollow();
+        stopGlide();
         setView((v) => {
           if (a === "reset")
             return {
@@ -680,20 +708,16 @@ function World2D(props: Props) {
       Math.max(...xs) - Math.min(...xs),
       Math.max(...ys) - Math.min(...ys),
     );
-    setView((v) => {
-      const w = props.focus?.length
-        ? Math.max(12, span + 12)
-        : props.follow
-          ? v.w
-          : Math.max(45, span + 20);
-      return {
-        ...v,
-        x: centerX - w / 2,
-        y: frame.map.height_m - centerY - w / 2,
-        w,
-        h: w,
-      };
-    });
+    const v = viewNow.current;
+    const w = changed
+      ? props.focus?.length
+        ? Math.max(48, span + 24)
+        : Math.max(45, span + 20)
+      : v.w;
+    glideTo(
+      { x: centerX - w / 2, y: frame.map.height_m - centerY - w / 2, w, h: w },
+      changed ? 900 : 450,
+    );
   }, [frame.agents, props.focus, props.follow, frame.map.height_m]);
   const polygon = (p: Vec2[]) =>
     p.map((p) => `${p.x},${frame.map.height_m - p.y}`).join(" ");
@@ -722,6 +746,7 @@ function World2D(props: Props) {
       aria-label="Interactive top-down city map. Hover or focus a building for its purpose. Select a citizen or use Search agent."
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
       onPointerDown={(e) => {
+        stopGlide();
         drag.current = {
           x: e.clientX,
           y: e.clientY,
@@ -745,7 +770,11 @@ function World2D(props: Props) {
         }
       }}
       onClick={(e) => {
-        if (!drag.current?.moved && e.target === e.currentTarget) onEmpty();
+        if (
+          !drag.current?.moved &&
+          !(e.target as Element).closest('[role="button"]')
+        )
+          onEmpty();
       }}
     >
       <defs>
@@ -836,7 +865,9 @@ function World2D(props: Props) {
             onBlur={() => setHovered(null)}
             onClick={(event) => {
               event.stopPropagation();
-              if (!drag.current?.moved) setHovered(b);
+              if (drag.current?.moved) return;
+              setHovered(b);
+              onEmpty();
             }}
             onKeyDown={(event) => {
               if (event.key === "Escape") setHovered(null);
@@ -923,7 +954,13 @@ function World2D(props: Props) {
             reducedMotion={props.reducedMotion}
           >
             {(a.id === selected || props.focus?.includes(a.id)) && (
-              <circle r="1.8" fill="none" stroke={neon.cyan} strokeWidth=".2" />
+              <circle
+                r="1.6"
+                fill="none"
+                stroke={neon.cyan}
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
+              />
             )}
             <circle r="2.6" fill="transparent" />
             <ellipse

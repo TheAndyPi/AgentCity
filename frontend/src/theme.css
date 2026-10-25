@@ -732,6 +732,10 @@ kbd {
   display: block;
   width: 100%;
   height: 100%;
+  transition: transform 0.12s ease-out;
+}
+:root[data-motion="reduced"] .gear-range-knob > img {
+  transition: none;
 }
 .gear-range:hover .gear-range-knob {
   scale: 1.15;
@@ -1407,55 +1411,6 @@ body:has(.home) .mock-badge {
 }
 .city-brand-wrap {
   z-index: 30;
-}
-.cast-dock[hidden] {
-  display: none;
-}
-.cast-dock-close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 20px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--cyan);
-}
-.cast-dock:has(.cast-dock-close) {
-  padding-right: 42px;
-}
-.cast-dock-reopen {
-  position: absolute;
-  left: 50%;
-  bottom: 35px;
-  translate: -50% 0;
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  border-radius: 19px;
-  background: var(--panel);
-  backdrop-filter: blur(14px);
-  color: var(--text);
-  font: 600 12px var(--font-tech);
-  letter-spacing: 0.04em;
-  box-shadow: var(--shadow);
-}
-.cast-dock-reopen > svg {
-  color: var(--cyan);
-}
-.cast-dock-reopen > span {
-  padding: 1px 7px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pink) 22%, transparent);
-  color: var(--pink);
 }
 .cast-faces > button {
   color: var(--text);

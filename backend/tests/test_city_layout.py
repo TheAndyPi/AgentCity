@@ -86,6 +86,13 @@ def test_addresses_capacity_skyline_and_river_vary_by_seed():
     assert all("Avenue" in name or "Street" in name for name in names)
     assert len({b.capacity for b in town.buildings if b.kind == "home"}) > 5
     assert max(b.height_m for b in town.buildings) >= 60
+    for seed in range(6):
+        refuges = city_map(seed=seed).buildings[:3]
+        assert refuges[0].kind == "shelter" and refuges[2].kind == "community"
+        assert refuges[0].entrance.x < 64 and refuges[0].entrance.y < 64
+        assert refuges[2].entrance.x >= 64 and refuges[2].entrance.y >= 64
+    towers = [b for b in town.buildings if b.height_m >= 25]
+    assert 0 < len(towers) <= 0.15 * len(town.buildings)
     assert max(b.height_m for b in city_map(settlement="suburb").buildings) < 20
     rivers = set()
     for seed in range(12):

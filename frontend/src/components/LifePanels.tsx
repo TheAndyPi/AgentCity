@@ -48,14 +48,7 @@ export function CitizenPortrait({
     >
       <svg viewBox="0 0 64 64" width="100%" height="100%">
         <path d="M8 68 Q8 43 32 43 Q56 43 56 68" fill={look.shirt} />
-        <path
-          d="M14 66 Q15 49 25 45 M50 66 Q49 49 39 45"
-          fill="none"
-          stroke={look.accent}
-          strokeWidth="1.6"
-          opacity=".85"
-        />
-        <path d="M25 45 L32 53 L39 45" fill={look.accent} />
+        <path d="M25 45 L32 52 L39 45" fill="#00000026" />
         {(look.hairStyle === 1 || look.hairStyle === 3) && (
           <rect
             x="14"

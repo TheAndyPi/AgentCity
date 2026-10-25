@@ -4972,7 +4972,7 @@ input[type="range"] {
 }
 .life-mode .city-bottom-left {
   left: 28px;
-  bottom: 178px;
+  bottom: 44px;
   gap: 7px;
   flex-wrap: wrap;
   max-width: 360px;
@@ -4997,7 +4997,7 @@ input[type="range"] {
   bottom: 12px;
 }
 .life-mode .camera-tools {
-  bottom: 174px;
+  bottom: 44px;
 }
 .life-mode .world-vignette {
   background: linear-gradient(
@@ -5120,7 +5120,7 @@ input[type="range"] {
 .life-hint {
   position: absolute;
   left: 50%;
-  bottom: 181px;
+  bottom: 48px;
   transform: translateX(-50%);
   display: flex;
   gap: 12px;
@@ -5663,7 +5663,7 @@ input[type="range"] {
     display: none;
   }
   .life-mode .camera-tools {
-    bottom: 128px;
+    bottom: 40px;
     right: 12px;
   }
   .life-mode .camera-tools > .icon-button {
@@ -5673,7 +5673,7 @@ input[type="range"] {
   }
   .life-mode .city-bottom-left {
     left: 12px;
-    bottom: 129px;
+    bottom: 40px;
     max-width: 270px;
   }
   .life-mode .city-bottom-left .quiet-button {
@@ -5795,7 +5795,7 @@ input[type="range"] {
   }
   .closeup-chat {
     top: auto;
-    bottom: 126px;
+    bottom: 40px;
     left: 12px;
     right: 12px;
     width: auto;

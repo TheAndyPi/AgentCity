@@ -2,6 +2,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -121,28 +122,49 @@ function WireRows() {
     </div>
   );
 }
-export function Ambient({ variant = "default" }: { variant?: "default" | "settings" }) {
-  const count = variant === "settings" ? 16 : 9;
-  const [minSize, maxSize] = variant === "settings" ? [140, 460] : [70, 240];
-  const gears = Array.from({ length: count }, (_, i) => {
-    const size = minSize + random(i + 1) * (maxSize - minSize);
-    return (
-      <img
-        key={i}
-        src={gearImage}
-        alt=""
-        className={`ambient-gear tint-${i % 4}`}
-        style={{
-          width: size,
-          height: size,
-          left: `${random(i + 11) * 100}%`,
-          top: `${random(i + 23) * 100}%`,
-          animationDuration: `${22 + random(i + 37) * 38}s`,
-          animationDirection: i % 2 ? "reverse" : "normal",
-        }}
-      />
+// Two large gears, the rest small; placed on a 1440×900 reference screen so no gear overlaps more than one other.
+function gearLayout(count: number) {
+  const placed: { x: number; y: number; size: number }[] = [];
+  for (let attempt = 0; placed.length < count && attempt < 4000; attempt++) {
+    const big = placed.length < 2;
+    const size = big ? 300 + random(attempt + 1) * 110 : 56 + random(attempt + 1) * 74;
+    const x = random(attempt + 11) * 1440,
+      y = random(attempt + 23) * 900;
+    const overlaps = placed.filter(
+      (g) => Math.hypot(g.x - x, g.y - y) < (g.size + size) * 0.46,
     );
-  });
+    const crowded =
+      overlaps.length > 1 ||
+      overlaps.some((g) =>
+        placed.some(
+          (o) => o !== g && Math.hypot(o.x - g.x, o.y - g.y) < (o.size + g.size) * 0.46,
+        ),
+      );
+    const bigApart =
+      !big || placed.every((g) => Math.hypot(g.x - x, g.y - y) > 700);
+    if (crowded || !bigApart) continue;
+    placed.push({ x, y, size });
+  }
+  return placed;
+}
+const gearSets = { default: gearLayout(9), settings: gearLayout(12) };
+export function Ambient({ variant = "default" }: { variant?: "default" | "settings" }) {
+  const gears = gearSets[variant].map((g, i) => (
+    <img
+      key={i}
+      src={gearImage}
+      alt=""
+      className={`ambient-gear tint-${i % 4}`}
+      style={{
+        width: g.size,
+        height: g.size,
+        left: `${(g.x / 1440) * 100}%`,
+        top: `${(g.y / 900) * 100}%`,
+        animationDuration: `${22 + random(i + 37) * 38}s`,
+        animationDirection: i % 2 ? "reverse" : "normal",
+      }}
+    />
+  ));
   return (
     <div className={`ambient ambient-${variant}`} aria-hidden="true">
       <WireRows />
@@ -405,6 +427,19 @@ export function Slider({
 }) {
   const inputId = useId();
   const share = max > min ? (value - min) / (max - min) : 0;
+  const range = useRef<HTMLSpanElement>(null);
+  const [travel, setTravel] = useState(300);
+  useEffect(() => {
+    const el = range.current;
+    if (!el) return;
+    const measure = () => setTravel(Math.max(0, el.clientWidth - 26));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  // The knob rolls without slipping: distance travelled divided by its radius.
+  const roll = (share * travel) / 13;
   return (
     <label className="slider-field" htmlFor={inputId}>
       <span>
@@ -416,6 +451,7 @@ export function Slider({
       </span>
       <span
         className="gear-range"
+        ref={range}
         style={{ "--share": share } as CSSProperties}
       >
         <span className="gear-range-track">
@@ -434,7 +470,7 @@ export function Slider({
           <img
             src={gearImage}
             alt=""
-            style={{ transform: `rotate(${share * 360}deg)` }}
+            style={{ transform: `rotate(${roll}rad)` }}
           />
         </span>
       </span>

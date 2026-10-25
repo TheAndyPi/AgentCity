@@ -470,9 +470,13 @@ export default function Simulation() {
             setFollow(agentId);
           }}
           onEmpty={() => {
-            if (!dragged.current) {
-              setMenu(false);
-              setStack([]);
+            if (dragged.current) return;
+            setMenu(false);
+            setStack([]);
+            if (focused.length) {
+              setFocused([]);
+              setFollow(null);
+              camera.current("reset");
             }
           }}
           overlay={overlay}

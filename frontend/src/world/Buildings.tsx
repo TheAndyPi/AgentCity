@@ -45,12 +45,14 @@ function Parts({
   glow = false,
   blink = false,
   onHover,
+  onPick = onHover,
 }: {
   parts: BuildingPart[];
   roof?: boolean;
   glow?: boolean;
   blink?: boolean;
   onHover: (id: string | null) => void;
+  onPick?: (id: string | null) => void;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const beacon = useRef<THREE.MeshBasicMaterial>(null);
@@ -93,7 +95,7 @@ function Parts({
       onPointerOut={() => onHover(null)}
       onClick={(event) => {
         event.stopPropagation();
-        onHover(parts[event.instanceId ?? -1]?.buildingId ?? null);
+        onPick(parts[event.instanceId ?? -1]?.buildingId ?? null);
       }}
     >
       {roof ? <coneGeometry args={[1, 1, 4]} /> : <boxGeometry />}
@@ -115,10 +117,12 @@ function PolygonBuilding({
   building,
   theme,
   onHover,
+  onPick = onHover,
 }: {
   building: Building;
   theme: WorldTheme;
   onHover: (id: string | null) => void;
+  onPick?: (id: string | null) => void;
 }) {
   const shape = useMemo(
     () =>
@@ -137,7 +141,7 @@ function PolygonBuilding({
       onPointerOut={() => onHover(null)}
       onClick={(e) => {
         e.stopPropagation();
-        onHover(building.id);
+        onPick(building.id);
       }}
     >
       <extrudeGeometry
@@ -161,11 +165,14 @@ export default function Buildings({
   cutaway = [],
   theme = "dark",
   reducedMotion = false,
+  onClick,
 }: {
   buildings: Building[];
   cutaway?: string[];
   theme?: WorldTheme;
   reducedMotion?: boolean;
+  /** A building was clicked, which also counts as clicking away from a citizen. */
+  onClick?: () => void;
 }) {
   const signature = buildingSignature(buildings);
   // Reuse thousands of facade instances while citizens and occupancy update.
@@ -178,16 +185,21 @@ export default function Buildings({
   const [hovered, setHovered] = useState<string | null>(null);
   const building = buildings.find((b) => b.id === hovered);
   const bounds = building ? buildingBounds(building) : null;
+  const pick = (id: string | null) => {
+    setHovered(id);
+    onClick?.();
+  };
   return (
     <>
-      <Parts parts={visible(layout.boxes)} onHover={setHovered} />
-      <Parts parts={visible(layout.roofs)} roof onHover={setHovered} />
-      <Parts parts={visible(layout.glows)} glow onHover={setHovered} />
+      <Parts parts={visible(layout.boxes)} onHover={setHovered} onPick={pick} />
+      <Parts parts={visible(layout.roofs)} roof onHover={setHovered} onPick={pick} />
+      <Parts parts={visible(layout.glows)} glow onHover={setHovered} onPick={pick} />
       <Parts
         parts={visible(layout.beacons)}
         glow
         blink={!reducedMotion}
         onHover={setHovered}
+        onPick={pick}
       />
       {layout.polygons
         .filter((b) => !cutaway.includes(b.id))
@@ -197,6 +209,7 @@ export default function Buildings({
             building={b}
             theme={theme}
             onHover={setHovered}
+            onPick={pick}
           />
         ))}
       {buildings
@@ -209,6 +222,7 @@ export default function Buildings({
                 building={{ ...b, height_m: 0.04 }}
                 theme={theme}
                 onHover={setHovered}
+                onPick={pick}
               />
               {b.footprint.map((a, i) => {
                 const next = b.footprint[(i + 1) % b.footprint.length];

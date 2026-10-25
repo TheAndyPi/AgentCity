@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
-  ChevronDown,
-  ChevronUp,
   Coffee,
   Heart,
   MessageCircle,
@@ -230,71 +228,8 @@ export default function LifeHUD({
     }
   };
   const disabled = working || locked || readOnly;
-  const [dockOpen, setDockOpen] = useState(
-    () => localStorage.getItem("agentcity.castDock") !== "hidden",
-  );
-  const toggleDock = (open: boolean) => {
-    setDockOpen(open);
-    localStorage.setItem("agentcity.castDock", open ? "shown" : "hidden");
-  };
   return (
     <>
-      {!dockOpen && (
-        <button
-          className="cast-dock-reopen"
-          aria-label="Show citizens bar"
-          onClick={() => toggleDock(true)}
-        >
-          <ChevronUp size={15} />
-          Citizens <span>{frame.agents.length}</span>
-        </button>
-      )}
-      <section
-        className="cast-dock"
-        aria-label="Your neighbors"
-        hidden={!dockOpen}
-      >
-        <button
-          className="cast-dock-close"
-          aria-label="Hide citizens bar"
-          title="Hide citizens bar"
-          onClick={() => toggleDock(false)}
-        >
-          <ChevronDown size={15} />
-        </button>
-        <div className="cast-dock-heading">
-          <span>Citizens</span>
-          <strong>{frame.agents.length} agents</strong>
-        </div>
-        <div className="cast-faces">
-          {frame.agents.map((agent) => (
-            <button
-              key={agent.id}
-              className={focused.includes(agent.id) ? "chosen" : ""}
-              aria-label={`Focus on ${agent.name}`}
-              aria-pressed={focused.includes(agent.id)}
-              onClick={() => onFocus([agent.id])}
-            >
-              <span className="cast-face">
-                <CitizenPortrait name={agent.name} />
-                <i className={`mood-dot ${agent.emotion}`} />
-              </span>
-              <strong>{agent.name.split(" ")[0]}</strong>
-              <small>
-                {agent.action === "talk"
-                  ? "Chatting"
-                  : agent.action === "move" && agent.path.length > 0
-                    ? "On the way"
-                    : frame.map.buildings.some((b) =>
-                          insideBuilding(agent.position, b),
-                        )
-                      ? "Indoors"
-                      : pretty(agent.emotion)}
-              </small>
-            </button>
-          ))}
-        </div>
-      </section>
       {!selected && (
         <div className="life-hint">
           <p>

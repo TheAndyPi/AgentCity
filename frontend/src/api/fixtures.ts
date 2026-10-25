@@ -251,7 +251,9 @@ export function fixtureMapFor(config: T.Config): T.MapData {
       ...b,
       height_m:
         b.kind === "work" || b.kind === "home"
-          ? 28 + ((i * 17) % 55)
+          ? i % 8 === 3
+            ? 40 + ((i * 17) % 45)
+            : 12 + ((i * 7) % 12)
           : b.height_m,
     })),
   };

@@ -26,9 +26,7 @@ const parts = [
   "eyes",
   "nose",
   "glasses",
-  "collar",
   "visor",
-  "belt",
   "soles",
 ] as const;
 type Part = (typeof parts)[number];
@@ -42,7 +40,7 @@ const double = new Set<Part>([
   "glasses",
   "soles",
 ]);
-const glowing = new Set<Part>(["collar", "visor", "belt", "soles"]);
+const glowing = new Set<Part>(["visor", "soles"]);
 const object = new THREE.Object3D(),
   color = new THREE.Color();
 const material = new THREE.MeshStandardMaterial({
@@ -63,9 +61,7 @@ const shape = {
   eyes: new THREE.SphereGeometry(0.043, 5, 4),
   nose: new THREE.SphereGeometry(0.075, 5, 4),
   glasses: new THREE.TorusGeometry(0.11, 0.018, 3, 8),
-  collar: new THREE.BoxGeometry(0.55, 0.1, 0.12),
   visor: new THREE.BoxGeometry(0.7, 0.13, 0.1),
-  belt: new THREE.BoxGeometry(0.8, 0.07, 0.62),
   soles: new THREE.BoxGeometry(0.28, 0.04, 0.42),
 };
 /** Speech bubbles appear once the camera is close enough to read them. */
@@ -226,17 +222,6 @@ export default function CharacterModels({
       );
       put("nose", i, 0, 1.98, 0.4, 1, 0.9, 1.3, look.skin);
       put(
-        "collar",
-        i,
-        0,
-        1.47,
-        0.28,
-        1,
-        look.pattern === 0 ? 1 : 2,
-        1,
-        look.accent,
-      );
-      put(
         "visor",
         i,
         0,
@@ -247,7 +232,6 @@ export default function CharacterModels({
         look.visor ? 1 : 0,
         look.accent,
       );
-      put("belt", i, 0, 0.86, 0, 1, 1, 1, look.accent);
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? -1 : 1,
           slot = i * 2 + side;

@@ -97,6 +97,15 @@ def generate_map(state, rng):
                     entrance = Vec2(x=(col + 8) * 2 + 1, y=(row + dy) * 2 + 1)
                 sites.append((col + dx, row + dy, entrance))
     sites.sort(key=lambda p: (abs(p[0] - 32) + abs(p[1] - 32), p[0], p[1]))
+
+    # The shelter opens onto the north-west quarter and the community center onto
+    # the south-east, so a hazard over any half of the map leaves one reachable.
+    def take(inside):
+        return sites.pop(next((i for i, s in enumerate(sites) if inside(s[2])), 0))
+
+    shelter = take(lambda e: e.x < 64 and e.y < 64)
+    community = take(lambda e: e.x >= 64 and e.y >= 64)
+    sites[:0] = [shelter, sites.pop(0), community]
     intimate = config.population <= 10
     if intimate:
         # Ten households and the shared amenities fit into a few central blocks.
@@ -105,9 +114,19 @@ def generate_map(state, rng):
     avenues = ["Neon", "Circuit", "Cobalt", "Vector", "Quartz", "Helix", "Argon", "Ion"]
     streets = ["Aurora", "Byte", "Chrome", "Datum", "Echo", "Flux", "Glow", "Halo"]
     mixed_use = ["home", "work", "home", "shop", "home", "work", "home", "community"]
+    kinds = [
+        ["shelter", "hospital", "community"][i] if i < 3 else mixed_use[(i - 3) % len(mixed_use)]
+        for i in range(len(sites))
+    ]
+    # Urban skylines stay mostly mid-rise: about one building in eight is a tower.
+    towers = (
+        set(rng.sample([i for i, k in enumerate(kinds) if k in {"home", "work"}], len(sites) // 8))
+        if urban
+        else set()
+    )
     buildings, addresses = [], []
     for i, (col, row, entrance) in enumerate(sites):
-        kind = ["shelter", "hospital", "community"][i] if i < 3 else mixed_use[(i - 3) % len(mixed_use)]
+        kind = kinds[i]
         avenue = (
             f"{avenues[int(entrance.x // 2) // 8]} Avenue"
             if int(entrance.x // 2) % 8 == 0
@@ -124,8 +143,8 @@ def generate_map(state, rng):
             "community": "Community Center",
         }[kind]
         heights = {
-            "home": (18, 48) if urban else (5, 11),
-            "work": (32, 92) if urban else (8, 15),
+            "home": ((30, 60) if i in towers else (12, 23)) if urban else (5, 11),
+            "work": ((40, 92) if i in towers else (14, 24)) if urban else (8, 15),
             "shop": (4, 7) if urban else (3.5, 5),
             "shelter": (4, 6),
             "hospital": (14, 22) if urban else (8, 11),
