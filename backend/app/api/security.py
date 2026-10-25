@@ -106,3 +106,8 @@ class Security:
         csrf = secrets.token_urlsafe(32)
         record = dict(owner_id="demo_owner", csrf_token=csrf, expires_at=time.time() + 86400)
         return raw, self.session_key(raw), record
+
+    def authorize_stream(self, connection, owner):
+        """A successful handshake is not a permanent grant after logout/expiry."""
+        current, _ = self.identity(connection)
+        require(current == owner, "UNAUTHENTICATED", "Stream session is no longer valid", 401)

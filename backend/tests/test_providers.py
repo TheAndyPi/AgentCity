@@ -8,6 +8,7 @@ from conftest import command, create_city
 
 from app.infrastructure.config import AppConfig
 from app.infrastructure.gemini import Gateway, relevance
+from app.service import ProviderResult
 from app.simulation.game_master import make_intent
 
 
@@ -239,11 +240,15 @@ def test_stale_and_other_lineage_results_are_discarded(client):
     state = service.heads[sid].model_copy(deep=True)
     citizen = next(iter(state.citizens.values()))
     tag = relevance(state, citizen)
-    service.provider_results[(sid, citizen.summary.id)] = (tag, state.simulation.tick, make_intent("rest"))
+    service.provider_results[(sid, citizen.summary.id)] = ProviderResult(
+        tag, state.simulation.tick, make_intent("rest"), time.monotonic() + 2
+    )
     citizen.task_generation += 1
     assert service.take_proposals(state) == {}
     assert service.gateway.diagnostics["discarded"] == 1
-    service.provider_results[(sid, citizen.summary.id)] = (tag, state.simulation.tick, make_intent("rest"))
+    service.provider_results[(sid, citizen.summary.id)] = ProviderResult(
+        tag, state.simulation.tick, make_intent("rest"), time.monotonic() + 2
+    )
     state.simulation.id = "different_branch"
     assert service.take_proposals(state) == {}
 
@@ -358,9 +363,9 @@ def test_scene_deadline_falls_back_and_releases_budget_reservation(monkeypatch):
         )
         assert await gateway.scene("city", "A whale arrives", []) is None
         assert gateway.reserved == 0
-        assert usage[0]["failed_calls"] == 1
         assert gateway.diagnostics["timeouts"] == 1
         await gateway.close()
+        assert usage[0]["failed_calls"] == 1
 
     asyncio.run(run())
 

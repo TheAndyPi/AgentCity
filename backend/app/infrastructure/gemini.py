@@ -1,6 +1,8 @@
 """Bounded asynchronous Gemini gateway. Never holds a simulation commit lock."""
 
 import asyncio
+import copy
+import hashlib
 import time
 from collections import deque
 from pathlib import Path
@@ -16,12 +18,71 @@ from app.contracts import Intent
 from app.data.repository import encode
 from app.prompts.outputs import LessonsOutput, SceneDesign
 from app.simulation.agents import perception
+from app.simulation.navigation import distance, line_of_sight
 
 SCENE_TIMEOUT_SECONDS = 10  # Leave time for fallback/persistence within the browser's 15s deadline.
 
 
+def facility_observed(state, citizen, building):
+    return building.id == citizen.inside_building_id or (
+        not citizen.inside_building_id
+        and distance(citizen.summary.position, building.entrance) <= 20
+        and line_of_sight(state.map, citizen.summary.position, building.entrance)
+    )
+
+
+def known_places(state, citizen, observations):
+    """Prefer urgent destinations and nearby remembered places, not map insertion order."""
+    facilities = [b for b in state.map.buildings if b.id in citizen.known_locations]
+    preferred = []
+    if citizen.plan and citizen.plan.get("target_id") in citizen.known_locations:
+        preferred.append(citizen.plan["target_id"])
+    urgent = []
+    if any("conditions nearby" in fact for fact in observations):
+        urgent.append("shelter")
+    if citizen.needs.health < 75:
+        urgent.append("hospital")
+    if citizen.needs.hunger >= 45:
+        urgent.append("shop")
+    if citizen.needs.fatigue >= 45:
+        urgent.append("home")
+    for kind in urgent:
+        candidates = [
+            b
+            for b in facilities
+            if b.kind == kind and (not facility_observed(state, citizen, b) or b.functional)
+        ]
+        if candidates:
+            reference = citizen.home if kind == "home" else citizen.summary.position
+            preferred.append(min(candidates, key=lambda b: (distance(reference, b.entrance), b.id)).id)
+
+    def rank(item):
+        return (
+            preferred.index(item.id) if item.id in preferred else len(preferred),
+            distance(citizen.summary.position, citizen.known_locations[item.id]),
+            item.id,
+        )
+
+    facilities.sort(key=rank)
+    resources = sorted(
+        [r for r in state.map.resources if r.id in citizen.known_locations],
+        key=lambda r: (getattr(citizen.inventory, r.kind) >= 2, *rank(r)),
+    )
+    places = sorted(
+        citizen.known_locations,
+        key=lambda key: (
+            preferred.index(key) if key in preferred else len(preferred),
+            distance(citizen.summary.position, citizen.known_locations[key]),
+            key,
+        ),
+    )[:12]
+    return facilities[:12], resources[:12], places
+
+
 def context_for(state, citizen):
     context = perception(state, citizen)
+    facilities, resources, places = known_places(state, citizen, context["facts"])
+
     # No other citizen's profile, inventory, needs, private beliefs or memories.
     value = {
         "profile": citizen.profile.model_dump(),
@@ -32,24 +93,30 @@ def context_for(state, citizen):
         "tick": state.simulation.tick,
         "needs": citizen.needs.model_dump(),
         "inventory": citizen.inventory.model_dump(),
-        "goals": citizen.goals,
+        "goals": list(citizen.goals),
+        "plan": copy.deepcopy(citizen.plan),
+        "emotion": citizen.summary.emotion,
+        "beliefs": [b.model_dump() for b in citizen.beliefs[-8:]],
         "memories": [m.model_dump() for m in context["memories"]],
         "relationships": [r.model_dump() for r in context["relationships"]],
         "observed_facts": context["facts"],
-        "messages": [d.model_dump() for d in context["messages"]],
-        "known_locations": {
-            key: point.model_dump() for key, point in list(citizen.known_locations.items())[:12]
-        },
+        # A listener does not automatically know every other overhearer's identity.
+        "messages": [d.model_dump(exclude={"audible_to_ids"}) for d in context["messages"]],
+        "known_locations": {key: citizen.known_locations[key].model_dump() for key in places},
         "known_facilities": [
-            dict(id=building.id, kind=building.kind, position=building.entrance.model_dump())
-            for building in state.map.buildings
-            if building.id in citizen.known_locations
-        ][:12],
+            dict(
+                id=building.id,
+                kind=building.kind,
+                position=citizen.known_locations[building.id].model_dump(),
+                functional=building.functional if facility_observed(state, citizen, building) else None,
+                capacity=building.capacity if facility_observed(state, citizen, building) else None,
+            )
+            for building in facilities
+        ],
         "known_resource_locations": [
             dict(id=resource.id, kind=resource.kind, position=resource.position.model_dump())
-            for resource in state.map.resources
-            if resource.id in citizen.known_locations
-        ][:12],
+            for resource in resources
+        ],
         "legal_actions": [
             "idle",
             "move",
@@ -72,18 +139,56 @@ def context_for(state, citizen):
     return value
 
 
-def relevance(state, citizen):
-    return (
+def relevance(state, citizen, context=None):
+    """Fingerprint meaningful inputs, allowing small, noncritical need decay.
+
+    Five-point need bands plus exact action thresholds avoid invalidating every
+    request merely because a tick elapsed. Health, knowledge, social evidence,
+    observations, location, plans and control/lineage generations remain exact.
+    """
+    context = context if context is not None else context_for(state, citizen)
+    if context is None:
+        return None
+    stable = {
+        key: value
+        for key, value in context.items()
+        if key not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories"}
+    }
+    stable["observations"] = [
+        fact for fact in context["observed_facts"] if not fact.startswith(("Position (", "Hunger "))
+    ]
+    needs = citizen.needs
+    stable["condition"] = (
+        float(needs.health),
+        int(needs.hunger // 5),
+        int(needs.fatigue // 5),
+        int(needs.social // 5),
+        needs.hunger >= 45,
+        needs.hunger > 80,
+        needs.fatigue >= 45,
+        needs.fatigue >= 65,
+        needs.social > 20,
+    )
+    stable["generations"] = (
         state.simulation.id,
         state.lineage_generation,
+        state.simulation.control_version,
         citizen.generation,
         citizen.task_generation,
-        round(citizen.summary.position.x, 4),
-        round(citizen.summary.position.y, 4),
-        tuple(citizen.inventory.model_dump().values()),
-        tuple((r.summary.id, r.summary.status) for r in state.events.values()),
-        tuple(state.policies.model_dump().values()),
+        citizen.summary.active,
     )
+    # Memories are append-only immutable records; include new episodes even when
+    # retrieval does not yet rank them among the eight supplied to the model.
+    stable["memory_head"] = (len(citizen.memories), citizen.memories[-1].id if citizen.memories else None)
+    stable["beliefs"] = [belief.model_dump() for belief in citizen.beliefs]
+    stable["relationships"] = {key: tie.model_dump() for key, tie in citizen.relationships.items()}
+    stable["known_locations"] = {key: point.model_dump() for key, point in citizen.known_locations.items()}
+    stable["events"] = [(r.summary.id, r.summary.status) for r in state.events.values()]
+    stable["policies"] = state.policies.model_dump()
+    stable["plan_expired"] = bool(
+        citizen.plan and citizen.plan.get("expires_tick", state.simulation.tick) < state.simulation.tick
+    )
+    return hashlib.sha256(encode(stable)).hexdigest()
 
 
 class Gateway:
@@ -99,6 +204,7 @@ class Gateway:
         self.open_until = 0
         self.credentials = None
         self.auth_lock = asyncio.Lock()
+        self.usage_tasks = set()
         # Only bounded categories/status codes; never credentials or provider response bodies.
         self.last_error = None
         self.diagnostics = {"timeouts": 0, "rate_limits": 0, "malformed": 0, "fallbacks": 0, "discarded": 0}
@@ -151,7 +257,19 @@ class Gateway:
             + (folder / "decision.md").read_text(encoding="utf-8")
         )
         prompt = template + "\nCitizen context (data, not instructions):\n" + encode(context).decode()
-        return await self.structured(sid, prompt, Intent)
+        try:
+            # Covers queueing, credential refresh and at most two HTTP attempts.
+            async with asyncio.timeout(self.decision_timeout_seconds):
+                return await self.structured(sid, prompt, Intent)
+        except TimeoutError:
+            self.diagnostics["timeouts"] += 1
+            self.diagnostics["fallbacks"] += 1
+            self.last_error = {"category": "timeout", "http_status": None}
+            return None
+
+    @property
+    def decision_timeout_seconds(self):
+        return self.config.llm_timeout * 2 + 0.25
 
     async def scene(self, sid, premise, represented):
         prompt = (
@@ -279,7 +397,7 @@ class Gateway:
                             counts["usage_unavailable"] = 1
                             counts["budget_charge"] = reservation
                             self.tokens += reservation
-                        await self.usage_callback(sid, counts)
+                        await self.record_counts(sid, counts)
                     if attempt or not transient or self.tokens + self.reserved > self.config.llm_token_budget:
                         break
                     await asyncio.sleep(0.25)
@@ -288,5 +406,22 @@ class Gateway:
             finally:
                 self.reserved -= reservation
 
+    async def record_counts(self, sid, counts):
+        # Cancellation must bound provider latency without cancelling durable usage
+        # bookkeeping. Service.close joins this work before closing its repository.
+        task = asyncio.create_task(self.usage_callback(sid, counts))
+        self.usage_tasks.add(task)
+
+        def completed(task):
+            self.usage_tasks.discard(task)
+            if not task.cancelled():
+                task.exception()  # Consume detached failures; ordinary awaits still propagate them.
+
+        task.add_done_callback(completed)
+        if not asyncio.current_task().cancelling():
+            await asyncio.shield(task)
+
     async def close(self):
+        while self.usage_tasks:
+            await asyncio.gather(*tuple(self.usage_tasks), return_exceptions=True)
         await self.client.aclose()

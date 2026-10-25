@@ -789,6 +789,13 @@ def create_app(config: AppConfig | None = None):
         async def receiver():
             while True:
                 c.Ping.model_validate(await websocket.receive_json())
+                websocket.app.state.security.authorize_stream(websocket, owner)
+
+        async def authorization():
+            # Also revoke idle streams and cancel an in-flight, backpressured send.
+            while True:
+                websocket.app.state.security.authorize_stream(websocket, owner)
+                await asyncio.sleep(0.1)
 
         async def sender():
             revision = -1
@@ -796,6 +803,7 @@ def create_app(config: AppConfig | None = None):
             last_send = 0
             loop = asyncio.get_running_loop()
             while True:
+                websocket.app.state.security.authorize_stream(websocket, owner)
                 state = service.owned(owner, sid)
                 message = None
                 if service.repo.degraded:
@@ -824,6 +832,7 @@ def create_app(config: AppConfig | None = None):
                 if message:
                     value = dict(schema_version="1.0.0", simulation_id=sid, sent_at=now(), **message)
                     encoded = json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+                    websocket.app.state.security.authorize_stream(websocket, owner)
                     await asyncio.wait_for(websocket.send_text(encoded), timeout=2)
                     service.stats["socket_bytes"] += len(encoded.encode())
                     last_send = loop.time()
@@ -831,17 +840,23 @@ def create_app(config: AppConfig | None = None):
                         return
                 await asyncio.sleep(0.1)
 
-        tasks = [asyncio.create_task(receiver()), asyncio.create_task(sender())]
+        tasks = [
+            asyncio.create_task(receiver()),
+            asyncio.create_task(sender()),
+            asyncio.create_task(authorization()),
+        ]
+        close_code = 1000
         try:
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 task.result()
+        except DomainError:
+            close_code = 1008
         except (
             TimeoutError,
             WebSocketDisconnect,
             ValidationError,
             ValueError,
-            DomainError,
             asyncio.CancelledError,
         ):
             pass
@@ -851,7 +866,7 @@ def create_app(config: AppConfig | None = None):
                     task.cancel()
                 await asyncio.gather(*tasks, return_exceptions=True)
                 try:
-                    await websocket.close()
+                    await websocket.close(code=close_code)
                 except (RuntimeError, WebSocketDisconnect):
                     pass
 
