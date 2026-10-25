@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import type { Simulation, WorldFrame } from "../src/api/types";
+import type { Settings, Simulation, WorldFrame } from "../src/api/types";
 
 async function api<T>(
   page: Page,
@@ -27,6 +27,11 @@ async function api<T>(
 test("paused steps visibly walk into a building and leave through its entrance", async ({
   page,
 }, info) => {
+  const { version, ...settings } = await api<Settings>(page, "/settings");
+  await api(page, "/settings", "PUT", {
+    expected_version: version,
+    settings: { ...settings, view_mode: "3d", reduce_motion: false },
+  });
   const city = await api<Simulation>(page, "/simulations", "POST", {
     config: {
       name: "Walking neighbors",
@@ -88,7 +93,7 @@ test("paused steps visibly walk into a building and leave through its entrance",
   await move(building.id);
   const observations = page.evaluate(async (id) => {
     const samples: string[] = [];
-    const until = performance.now() + 1200;
+    const until = performance.now() + 5000;
     while (performance.now() < until) {
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => resolve()),
@@ -104,7 +109,14 @@ test("paused steps visibly walk into a building and leave through its entrance",
     return samples;
   }, agent.id);
   await command({ type: "step", count: 1 });
-  expect(new Set(await observations).size).toBeGreaterThan(4);
+  // Software-rendered WebGL can paint only a few frames per second, so the
+  // window spans the whole walk and checks for in-between positions.
+  const samples = await observations;
+  const [start, end] = [samples[0], samples.at(-1)];
+  expect(start).not.toBe(end);
+  expect(
+    new Set(samples.filter((s) => s !== start && s !== end)).size,
+  ).toBeGreaterThan(1);
   for (let i = 0; i < 12; i++) {
     frame = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
     if (!frame.agents.find((a) => a.id === agent.id)!.path.length) break;

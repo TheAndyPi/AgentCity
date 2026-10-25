@@ -207,7 +207,7 @@ test("new neighborhoods keep a fixed cast of ten even when an older draft asked 
   );
   await expect(
     page.getByRole("heading", {
-      name: "Ten people. A world of little moments.",
+      name: "Build your custom simulation",
     }),
   ).toBeVisible();
 });

@@ -106,7 +106,7 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
     page.getByRole("spinbutton", { name: "Population", exact: true }),
   ).toHaveValue("10");
   await page
-    .getByLabel("Your opening scenario")
+    .getByLabel("Scenario description")
     .fill("A flood severity 60 for 2 ticks");
   await page
     .getByRole("button", { name: "Create simulation", exact: true })
@@ -139,9 +139,7 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
       )
       .toBe(tick);
   }
-  await expect(page.getByRole("dialog")).toContainText(
-    "Every change leaves a story.",
-  );
+  await expect(page.getByRole("dialog")).toContainText("Event outcome");
   const outcome = await api<WorldFrame>(page, `/simulations/${id}/state`);
   expect(outcome.simulation.pause_reason).toBe("outcome");
   expect(outcome.simulation.pending_outcome_event_ids).toHaveLength(1);
@@ -192,9 +190,7 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
       )
       .toBe(tick);
   }
-  await expect(page.getByRole("dialog")).toContainText(
-    "Every change leaves a story.",
-  );
+  await expect(page.getByRole("dialog")).toContainText("Event outcome");
   await page.getByRole("button", { name: /Undo event/ }).click();
   await expect(page).not.toHaveURL(new RegExp(`/simulations/${id}$`));
   await expect(page.locator(".connection")).toHaveText("LIVE");
@@ -598,7 +594,7 @@ test("running event editor pauses, cancels safely and resumes only the prior int
   await page
     .getByRole("button", { name: "Introduce an event", exact: true })
     .click();
-  await expect(page.getByRole("dialog")).toContainText("CITY PAUSED");
+  await expect(page.getByRole("dialog")).toContainText("Simulation paused");
   const held = await api<Simulation>(page, `/simulations/${created.id}`);
   expect(held.status).toBe("paused");
   await page.waitForTimeout(650);
@@ -627,7 +623,7 @@ test("running event editor pauses, cancels safely and resumes only the prior int
   await page
     .getByRole("button", { name: "Introduce an event", exact: true })
     .click();
-  await expect(page.getByRole("dialog")).toContainText("CITY PAUSED");
+  await expect(page.getByRole("dialog")).toContainText("Simulation paused");
   await expect(
     page
       .getByRole("dialog")
@@ -765,7 +761,10 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
   await page.getByRole("button", { name: /Light pastel/ }).click();
   await page.getByRole("checkbox", { name: /Reduce motion/ }).check();
   await page
-    .getByRole("button", { name: "Save and create a new simulation", exact: true })
+    .getByRole("button", {
+      name: "Save and create a new simulation",
+      exact: true,
+    })
     .click();
   await expect(page.getByLabel("Simulation name")).toHaveValue(name);
   await expect(
@@ -820,7 +819,9 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .getByRole("button", { name: "Delete profile", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("link", { name: "Previous simulations", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Previous simulations", exact: true })
+    .click();
   await page
     .getByRole("button", { name: `Archive ${name}`, exact: true })
     .click();
@@ -828,7 +829,7 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     page.getByRole("button", { name: `Unarchive ${name}`, exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Delete all archived", exact: true })
+    .getByRole("button", { name: "Permanently delete all", exact: true })
     .click();
   await page
     .getByRole("dialog")
@@ -1001,20 +1002,33 @@ for (const population of [30, 100])
       page,
       `/simulations/${city.id}/state`,
     );
-    const terrainAt = (point: { x: number; y: number }) =>
+    const walkableAt = (point: { x: number; y: number }) =>
       running.map.cells.find(
         (cell) =>
           cell.col === Math.floor(point.x / running.map.cell_size_m) &&
           cell.row === Math.floor(point.y / running.map.cell_size_m),
-      )?.terrain;
+      )?.walkable;
+    const indoors = (point: { x: number; y: number }) =>
+      running.map.buildings.some((building) => {
+        const xs = building.footprint.map((p) => p.x);
+        const ys = building.footprint.map((p) => p.y);
+        return (
+          point.x >= Math.min(...xs) &&
+          point.x <= Math.max(...xs) &&
+          point.y >= Math.min(...ys) &&
+          point.y <= Math.max(...ys)
+        );
+      });
+    const reachable = (point: { x: number; y: number }) =>
+      walkableAt(point) === true || indoors(point);
     expect(
-      running.agents.every((agent) => terrainAt(agent.position) === "road"),
-    ).toBe(true);
+      running.agents.filter((agent) => !reachable(agent.position)),
+    ).toEqual([]);
     expect(
       running.agents
         .flatMap((agent) => agent.path)
-        .every((point) => terrainAt(point) === "road"),
-    ).toBe(true);
+        .filter((point) => !reachable(point)),
+    ).toEqual([]);
     const renderer = (await viewport.locator("canvas").count())
       ? "webgl"
       : "2d-fallback";

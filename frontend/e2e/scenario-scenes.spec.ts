@@ -1,16 +1,33 @@
 import { test, expect } from "@playwright/test";
-import type { WorldFrame } from "../src/api/types";
+import { randomUUID } from "node:crypto";
+import type { Settings, WorldFrame } from "../src/api/types";
 
 // Exercise actual R3F geometry, event lifecycle, and persisted scene payloads.
 test("composed scenario has an orbitable preview and active 3D props", async ({
   page,
 }, info) => {
+  const session = (await (await page.request.get("/api/v1/session")).json())
+    .data;
+  const { version, ...settings }: Settings = (
+    await (await page.request.get("/api/v1/settings")).json()
+  ).data;
+  const saved = await page.request.put("/api/v1/settings", {
+    data: {
+      expected_version: version,
+      settings: { ...settings, view_mode: "3d" },
+    },
+    headers: {
+      "X-CSRF-Token": session.csrf_token,
+      "Idempotency-Key": randomUUID(),
+    },
+  });
+  expect(saved.ok(), await saved.text()).toBeTruthy();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/simulations/new");
   await page.getByLabel("Simulation name").fill(`Scenario scene ${Date.now()}`);
   await page
-    .getByLabel("Your opening scenario")
+    .getByLabel("Scenario description")
     .fill(
       "Dinosaurs and an alien spacecraft arrive during a festival for 2 ticks",
     );
