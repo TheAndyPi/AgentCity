@@ -342,6 +342,47 @@ cover combined triggers, exit hysteresis and persisted stress/Mental interaction
 This update changes task specifications only; concurrent implementation edits
 are outside this documentation commit.
 
+## 2026-10-25 - Recover citizen activity after scenarios
+
+Reproduced a physical movement deadlock in saved worlds: simulation ticks and
+stream updates continued while citizens held unchanged paths at shared doorways.
+The indoor collision bypass rejected room floors as walls, and a nonempty path
+suppressed new autonomous choices indefinitely. Routine destinations also checked
+declared building capacity instead of the remaining physical room slots.
+
+Movement now plans around current crowds, supports collision-free indoor detours
+within authorized rooms, and preserves explicit doorway crossings. Tangential
+escape tolerates floating-point rounding. Six consecutive nonmoving attempts
+release the stale route and room reservation, invalidate pending deliberation,
+and allow a new choice. Routine visits select facilities with physical space.
+`Citizen.blocked_movement_ticks` defaults to zero for existing checkpoints; public
+v1 contracts and frontend design are unchanged. Scenario outcome pauses remain
+intentional: Continue restores prior play intent, while manual stepping stays
+paused.
+
+Regression coverage includes sustained post-event activity in 10-person suburbs,
+10-person urban worlds and 80-person cities, tangential crowd escape, bounded
+stalled-route recovery, wall constraints and physically full facilities. The
+liveness checks require continued travel across the population and useful
+completed actions for citizens staying put to eat, rest or work. A new real
+browser test verifies Play, outcome, Continue, later autonomous movement and
+rendered map coordinates received through the live stream. Conversation UI tests
+now bring their participants together through normal movement before inviting
+them, independently of their autonomous errands.
+
+Restarted the local dev application with the fix. In a disposable branch of the
+user's existing 80-agent city, **all 80 citizens moved** while advancing from tick
+27 to 67, with a LIVE connection and no browser errors. Removed the temporary
+branch; the original city remains saved and paused at tick 27. No vendor calls
+or history rewrites were needed.
+
+Final validation: `npm test` passed **153 frontend tests**, **401 backend tests**
+with **2 opt-in Tiger SQL skips**, all **43 frozen contract hashes/DTO/OpenAPI/
+stream checks**, Ruff lint and formatting. The full core browser suite passed
+**27/27**. Local evidence is retained under `backend/.tmp/movement-validation/`
+and `backend/.tmp/movement-recovery-live/`; generated baseline reports and
+screenshots are not part of this source change.
+
 ### Intuitive metric-to-need coupling specified
 
 The user requested Happiness, Safety, Trust, Resources and Stress to affect

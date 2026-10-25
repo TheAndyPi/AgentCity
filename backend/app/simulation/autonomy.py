@@ -3,6 +3,7 @@
 import hashlib
 
 from app.scenario_engine import responses
+from app.simulation.building_visits import interior_slot
 from app.simulation.navigation import distance
 
 
@@ -58,7 +59,12 @@ def routine_destination(state, citizen):
         return preferred
     homes = [b for b in state.map.buildings if b.kind == "home" and b.functional]
     home = min(homes, key=lambda b: distance(citizen.home, b.entrance), default=None)
-    if citizen.needs.fatigue >= 45 and home and citizen.inside_building_id != home.id:
+    if (
+        citizen.needs.fatigue >= 45
+        and home
+        and citizen.inside_building_id != home.id
+        and interior_slot(state, citizen, home) is not None
+    ):
         return home, "Go home to rest and regain my energy"
     phase = (
         state.simulation.tick // 16 + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
@@ -67,7 +73,10 @@ def routine_destination(state, citizen):
     facilities = [
         b
         for b in state.map.buildings
-        if b.kind == kind and b.functional and b.id != citizen.last_building_id and b.occupancy < b.capacity
+        if b.kind == kind
+        and b.functional
+        and b.id != citizen.last_building_id
+        and interior_slot(state, citizen, b) is not None
     ]
     building = min(facilities, key=lambda b: distance(citizen.summary.position, b.entrance), default=None)
     if building:
@@ -77,6 +86,6 @@ def routine_destination(state, citizen):
             "shop": "Visit the local shop for household errands",
         }[kind]
         return building, reason
-    if home and citizen.inside_building_id != home.id:
+    if home and citizen.inside_building_id != home.id and interior_slot(state, citizen, home) is not None:
         return home, "Head home for a quiet moment"
     return None

@@ -8,6 +8,7 @@ from app.simulation.game_master import advance_movement
 from app.simulation.navigation import (
     PERSONAL_SPACE,
     clear_travel,
+    crowd_detour,
     distance,
     meeting_point,
     restore_personal_space,
@@ -57,3 +58,34 @@ def test_meetings_leave_room_and_old_overlaps_recover(client):
     assert distance(a.summary.position, b.summary.position) >= PERSONAL_SPACE
     point = meeting_point(state.map, Vec2(x=30, y=33), Vec2(x=35, y=33))
     assert math.isclose(distance(point, Vec2(x=35, y=33)), 2.4)
+
+
+def test_walker_can_escape_tangentially_between_two_touching_neighbors():
+    origin, destination = Vec2(x=0, y=0), Vec2(x=6, y=0)
+    neighbors = [Vec2(x=-PERSONAL_SPACE, y=0), Vec2(x=PERSONAL_SPACE, y=0)]
+    route = crowd_detour(origin, destination, neighbors, lambda a, b: True)
+    assert route and route[-1] == destination
+    assert any(abs(p.y) >= PERSONAL_SPACE for p in route)
+    assert all(clear_travel(a, b, neighbors) == 1 for a, b in zip([origin, *route], route))
+
+
+def test_a_permanently_blocked_route_releases_autonomy_and_its_room_reservation(client):
+    state = city(client)
+    actor, *neighbors = list(state.citizens.values())
+    for i, citizen in enumerate(neighbors):
+        citizen.summary.active = i < 6
+        angle = i * math.pi / 3
+        citizen.summary.position = Vec2(
+            x=33 + PERSONAL_SPACE * math.cos(angle), y=33 + PERSONAL_SPACE * math.sin(angle)
+        )
+    actor.summary.position = Vec2(x=33, y=33)
+    actor.summary.path = [Vec2(x=41, y=33)]
+    actor.plan = dict(action="move")
+    actor.entering_building_id = state.map.buildings[0].id
+    generation = actor.task_generation
+    for _ in range(6):
+        advance_movement(state, actor)
+    assert distance(actor.summary.position, Vec2(x=33, y=33)) < 0.01
+    assert actor.summary.path == [] and actor.plan is None
+    assert actor.entering_building_id is None
+    assert actor.task_generation == generation + 1

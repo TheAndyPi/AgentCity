@@ -14,12 +14,18 @@ from app.simulation.agents import (
     social_delta,
 )
 from app.simulation.autonomy import routine_destination, social_choice
-from app.simulation.building_visits import interior_slot, same_room, sync_building_location, trip_route
+from app.simulation.building_visits import (
+    interior_slot,
+    same_room,
+    sync_building_location,
+    trip_route,
+    walkable_segment,
+)
 from app.simulation.interactions import accept_invitation, coordinate_aid, speak
 from app.simulation.navigation import (
-    PERSONAL_SPACE,
     cell_at,
     clear_travel,
+    crowd_detour,
     distance,
     line_of_sight,
     meeting_point,
@@ -499,6 +505,7 @@ def advance_movement(state, citizen):
     evaluate(state, citizen, "Before movement")
     if not conscious(citizen) or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}:
         return
+    origin_at_tick = citizen.summary.position.model_copy()
     # Pause at a greeting long enough to answer it. Urgent evacuation/help still
     # takes precedence; an invitation never teleports or accepts for its recipient.
     if (
@@ -518,6 +525,7 @@ def advance_movement(state, citizen):
                     None,
                 )
                 if other and distance(citizen.summary.position, other.summary.position) <= 3:
+                    citizen.blocked_movement_ticks = 0
                     return
     speed = citizen.summary.movement_speed_mps
     patient = state.citizens.get(citizen.condition.patient_id)
@@ -568,9 +576,9 @@ def advance_movement(state, citizen):
             # final approach. Skip it when the next segment is already clear.
             if len(citizen.summary.path) > 1:
                 onward = citizen.summary.path[1]
-                if line_of_sight(state.map, p, onward) and (
-                    clear_travel(p, onward, occupied) == 1
-                    or any(distance(destination, other) < PERSONAL_SPACE for other in occupied)
+                if (
+                    walkable_segment(state, citizen, p, onward, blocked)
+                    and clear_travel(p, onward, occupied) == 1
                 ):
                     citizen.summary.path.pop(0)
                     continue
@@ -578,37 +586,31 @@ def advance_movement(state, citizen):
             if len(citizen.summary.path) == 1 and distance(p, destination) <= 2.4:
                 citizen.summary.path = []
             else:
-                # A two-corner bypass keeps the route around the obstruction,
-                # avoiding repeated left/right sidesteps at the same waypoint.
-                ux, uy = (
-                    (destination.x - p.x) / distance(p, destination),
-                    (destination.y - p.y) / distance(p, destination),
-                )
-                obstacle = min(occupied, key=lambda other: distance(p, other))
-                margin = PERSONAL_SPACE + 0.25
-                for side in (1, -1):
-                    corners = [
-                        Vec2(
-                            x=obstacle.x + along * ux - side * margin * uy,
-                            y=obstacle.y + along * uy + side * margin * ux,
-                        )
-                        for along in (-margin, margin)
-                    ]
-                    route = [p, *corners, destination]
-                    if all(
-                        cell_at(state.map, point)
-                        and cell_at(state.map, point).walkable
-                        and (cell_at(state.map, point).col, cell_at(state.map, point).row) not in blocked
-                        for point in corners
-                    ) and all(
-                        line_of_sight(state.map, a, b) and clear_travel(a, b, occupied) == 1
-                        for a, b in zip(route, route[1:])
-                    ):
-                        citizen.summary.path[:0] = corners
+                for i, onward in enumerate(citizen.summary.path[:6]):
+                    route = crowd_detour(
+                        p,
+                        onward,
+                        occupied,
+                        lambda a, b: walkable_segment(state, citizen, a, b, blocked),
+                    )
+                    if route:
+                        citizen.summary.path[: i + 1] = route
                         break
             break
         if step >= length - 1e-8:
             citizen.summary.path.pop(0)
+    if citizen.summary.path and distance(origin_at_tick, citizen.summary.position) < 0.01:
+        citizen.blocked_movement_ticks += 1
+        if citizen.blocked_movement_ticks >= 6:
+            # A stale route must not suppress autonomy forever. Release its room
+            # reservation and let the next tick choose again from current facts.
+            citizen.summary.path = []
+            citizen.plan = None
+            citizen.task_generation += 1
+            citizen.next_deliberation_tick = state.simulation.tick + 1
+            citizen.blocked_movement_ticks = 0
+    else:
+        citizen.blocked_movement_ticks = 0
     sync_building_location(state, citizen)
     if not citizen.summary.path and not (citizen.plan and citizen.plan.get("kind") == "social_visit"):
         citizen.plan = None

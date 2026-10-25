@@ -17,7 +17,9 @@ async function api<T>(
     data: body,
     headers: {
       "X-CSRF-Token": session.csrf_token,
-      "Idempotency-Key": randomUUID(),
+      "Idempotency-Key":
+        (body as { request_id?: string } | undefined)?.request_id ??
+        randomUUID(),
     },
   });
   expect(response.ok(), await response.text()).toBeTruthy();
@@ -48,7 +50,7 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
         (await api<Simulation>(page, `/simulations/${city.id}`)).status,
     )
     .toBe("paused");
-  const world = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
+  let world = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
   expect(world.map.buildings).toHaveLength(24);
   let pair = [world.agents[0], world.agents[1]];
   for (const a of world.agents)
@@ -62,7 +64,53 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
           )
       )
         pair = [a, b];
-  const [a, b] = pair;
+  // Bring the neighbors together using real, speed-limited movement. Their
+  // autonomous errands may now use different routes around occupied buildings;
+  // this conversation UI test should start with a reachable nearby invitation.
+  const middle = {
+    x: (pair[0].position.x + pair[1].position.x) / 2,
+    y: (pair[0].position.y + pair[1].position.y) / 2,
+  };
+  const length = Math.hypot(
+    pair[0].position.x - pair[1].position.x,
+    pair[0].position.y - pair[1].position.y,
+  );
+  const command = async (command: unknown) =>
+    api(page, `/simulations/${city.id}/commands`, "POST", {
+      request_id: randomUUID(),
+      expected_control_version: (
+        await api<Simulation>(page, `/simulations/${city.id}`)
+      ).control_version,
+      command,
+    });
+  for (const citizen of pair) {
+    await command({
+      type: "override_agent",
+      agent_id: citizen.id,
+      metrics: {},
+      goal: null,
+      memory_text: null,
+      intent: {
+        action: "move",
+        target_id: null,
+        destination: {
+          x: middle.x + ((citizen.position.x - middle.x) / length) * 2.4,
+          y: middle.y + ((citizen.position.y - middle.y) / length) * 2.4,
+        },
+        parameters: { resource_kind: null, amount: null, message: null },
+        motivation: "Meet my neighbor outside",
+        emotion: "calm",
+      },
+    });
+  }
+  await command({ type: "step", count: 1 });
+  world = await api<WorldFrame>(page, `/simulations/${city.id}/state`);
+  const [a, b] = pair.map(
+    (citizen) => world.agents.find((agent) => agent.id === citizen.id)!,
+  );
+  expect(
+    Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y),
+  ).toBeLessThanOrEqual(3);
   await page.goto(`/simulations/${city.id}?qa=1`);
   const map = page.locator(".world-wrap canvas");
   await expect(map).toBeVisible();

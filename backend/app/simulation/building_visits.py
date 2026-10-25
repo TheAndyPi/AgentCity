@@ -3,7 +3,14 @@
 import math
 
 from app.contracts import Vec2
-from app.simulation.navigation import PERSONAL_SPACE, distance, pathfind, polygon_contains
+from app.simulation.navigation import (
+    PERSONAL_SPACE,
+    cell_at,
+    crowded_cells,
+    distance,
+    pathfind,
+    polygon_contains,
+)
 
 
 def doorway(building):
@@ -68,7 +75,21 @@ def interior_slot(state, citizen, building):
 def trip_route(state, citizen, destination, building=None, blocked=frozenset()):
     current = next((b for b in state.map.buildings if b.id == citizen.inside_building_id), None)
     start = current.entrance if current else citizen.summary.position
-    route = pathfind(state.map, start, destination, blocked)
+    crowd = crowded_cells(
+        state.map,
+        [c.summary.position for c in state.citizens.values() if c is not citizen and c.summary.active],
+    )
+    # A shared doorway/resource is approached from personal space. Its endpoint
+    # cell must remain reachable, as must the cell the walker is already in.
+    for point in (start, destination):
+        cell = cell_at(state.map, point)
+        if cell:
+            crowd.discard((cell.col, cell.row))
+    route = pathfind(state.map, start, destination, blocked | crowd)
+    if route is None:
+        # A crowded start/end can fill all four grid neighbors even when a
+        # continuous sidestep exists. The local swept detour handles that case.
+        route = pathfind(state.map, start, destination, blocked)
     if route is None:
         return None
     if current:
@@ -79,6 +100,36 @@ def trip_route(state, citizen, destination, building=None, blocked=frozenset()):
             return None
         route.extend([doorway(building), slot])
     return route
+
+
+def walkable_segment(state, citizen, origin, destination, blocked=frozenset()):
+    """Detours stay in a room or on outdoor ground; door legs remain explicit."""
+    allowed = {citizen.inside_building_id, citizen.entering_building_id, citizen.leaving_building_id}
+    room = next(
+        (
+            b
+            for b in state.map.buildings
+            if b.id in allowed
+            and polygon_contains(origin, b.footprint)
+            and polygon_contains(destination, b.footprint)
+        ),
+        None,
+    )
+    steps = max(1, math.ceil(distance(origin, destination) / (state.map.cell_size_m / 3)))
+    for step in range(1, steps + 1):
+        t = step / steps
+        point = Vec2(
+            x=origin.x + (destination.x - origin.x) * t,
+            y=origin.y + (destination.y - origin.y) * t,
+        )
+        cell = cell_at(state.map, point)
+        if (
+            cell is None
+            or (cell.col, cell.row) in blocked
+            or not (polygon_contains(point, room.footprint) if room else cell.walkable)
+        ):
+            return False
+    return True
 
 
 def sync_building_location(state, citizen):

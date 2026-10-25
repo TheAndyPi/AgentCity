@@ -167,6 +167,19 @@ def meeting_point(map_data, origin, target, occupied=()):
 PERSONAL_SPACE = 1.6
 
 
+def crowded_cells(map_data, positions):
+    """Grid routes avoid current crowds before the swept local collision check."""
+    blocked = set()
+    size = map_data.cell_size_m
+    for point in positions:
+        col, row = int(point.x // size), int(point.y // size)
+        for x in range(max(0, col - 1), min(map_data.columns, col + 2)):
+            for y in range(max(0, row - 1), min(map_data.rows, row + 2)):
+                if math.hypot((x + 0.5) * size - point.x, (y + 0.5) * size - point.y) < PERSONAL_SPACE:
+                    blocked.add((x, y))
+    return blocked
+
+
 def clear_travel(origin, destination, occupied, clearance=PERSONAL_SPACE):
     """Fraction of a segment reachable before touching another citizen's radius.
 
@@ -183,16 +196,73 @@ def clear_travel(origin, destination, occupied, clearance=PERSONAL_SPACE):
         along = ox * dx + oy * dy
         gap = ox * ox + oy * oy - clearance * clearance
         if gap < -1e-8:
-            if along < 0:
+            if along < -1e-10:
                 return 0.0
             continue
         discriminant = along * along - length_squared * gap
-        if along >= 0 or discriminant <= 0:
+        if along >= -1e-10 or discriminant <= 0:
             continue
         contact = (-along - math.sqrt(discriminant)) / length_squared
         if 0 <= contact < fraction:
             fraction = max(0.0, contact - 1e-6)
     return fraction
+
+
+def crowd_detour(origin, destination, occupied, can_walk):
+    """Find a short collision-free route around nearby people, including indoors.
+
+    A persistent route avoids left/right steering oscillation. The caller supplies
+    room/door geometry so a detour cannot take a shortcut through a wall.
+    """
+    if any(distance(destination, other) < PERSONAL_SPACE for other in occupied):
+        return None
+    obstacles = sorted(occupied, key=lambda p: distance(origin, p))[:4]
+    points = [origin, destination]
+    # At touching distance between two people, the only initial escape may be
+    # exactly tangential. Circles centered on the blockers alone miss that step.
+    for i in range(16):
+        angle = i * math.pi / 8
+        point = Vec2(
+            x=origin.x + (PERSONAL_SPACE + 0.25) * math.cos(angle),
+            y=origin.y + (PERSONAL_SPACE + 0.25) * math.sin(angle),
+        )
+        if can_walk(point, point) and all(distance(point, p) >= PERSONAL_SPACE for p in occupied):
+            points.append(point)
+    for other in obstacles:
+        if distance(origin, other) > 8:
+            continue
+        for i in range(16):
+            angle = i * math.pi / 8
+            point = Vec2(
+                x=other.x + (PERSONAL_SPACE + 0.25) * math.cos(angle),
+                y=other.y + (PERSONAL_SPACE + 0.25) * math.sin(angle),
+            )
+            if can_walk(point, point) and all(distance(point, p) >= PERSONAL_SPACE for p in occupied):
+                points.append(point)
+    queue, costs, parents = [(0, 0)], {0: 0}, {}
+    visited = set()
+    while queue:
+        _, current = heapq.heappop(queue)
+        if current in visited:
+            continue
+        if current == 1:
+            route = [1]
+            while route[-1] != 0:
+                route.append(parents[route[-1]])
+            return [points[i] for i in reversed(route[:-1])]
+        visited.add(current)
+        for nxt, point in enumerate(points):
+            if nxt in visited:
+                continue
+            cost = costs[current] + distance(points[current], point)
+            if (
+                cost < costs.get(nxt, math.inf)
+                and clear_travel(points[current], point, occupied) == 1
+                and can_walk(points[current], point)
+            ):
+                costs[nxt], parents[nxt] = cost, current
+                heapq.heappush(queue, (cost + distance(point, destination), nxt))
+    return None
 
 
 def restore_personal_space(state):

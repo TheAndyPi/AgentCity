@@ -76,6 +76,7 @@ class Citizen(Model):
     leaving_building_id: str | None = None
     last_building_id: str | None = None
     visit_until_tick: int = 0
+    blocked_movement_ticks: int = 0
     next_social_tick: int = 0
     profile_template_id: str | None = None
     profile_template_version: int | None = None
