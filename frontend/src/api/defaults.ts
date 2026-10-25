@@ -24,8 +24,8 @@ export const defaultConfig: Config = {
   },
   scenario_description: "",
   custom_agent_ids: [],
-  tick_seconds: 10,
-  max_ticks: 10000,
+  tick_seconds: 1,
+  max_ticks: 100000,
 };
 export const defaultProfile: Profile = {
   name: "",

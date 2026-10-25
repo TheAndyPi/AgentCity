@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app import contracts as c
 from app.behavior.vitals import conscious
@@ -41,6 +41,77 @@ from app.simulation.navigation import cell_at, distance, meeting_point, pathfind
 from app.simulation.scenario_scene import CATALOG, matches
 from app.simulation.scenarios import compile_preview, generate_map, queue_event, validate_spec
 from app.simulation.state import State, expired, expiry, now, uid
+from app.simulation.timing import legacy_ticks, ticks_for
+
+# Historical records are appended/replaced, never edited after publication.
+_APPEND_ONLY = {
+    "decisions",
+    "dialogue",
+    "metric_points",
+    "pending_decisions",
+    "pending_metric_points",
+    "memories",
+    "metric_reasons",
+    "provider_references",
+    "external_resource_changes",
+    "applied_social_evidence",
+    "damage_records",
+    "reactions",
+    "service_changes",
+    "cells",
+    "impacts",
+    "events",
+    "snapshots",
+}
+# These fields are immutable during tick execution. HTTP mutators still deep-copy
+# their input before editing any configuration, profile or map geometry.
+_STATIC_FIELDS = {
+    "profile",
+    "config",
+    "home",
+    "known_locations",
+    "footprint",
+    "entrance",
+    "polygon",
+    "evidence",
+}
+_SCALARS = (str, int, float, bool, type(None))
+
+
+def staging_copy(value):
+    """Fork mutable world data while sharing immutable geometry and history."""
+    kind = type(value)
+    if kind in _SCALARS:
+        return value
+    if isinstance(value, BaseModel):
+        # Construct a trusted fork directly: validation and generic deepcopy are
+        # unnecessary for data already validated at the command boundary.
+        cloned = object.__new__(kind)
+        fields = value.__dict__.copy()
+        for key, item in fields.items():
+            if key in _STATIC_FIELDS or type(item) in _SCALARS:
+                continue
+            fields[key] = list(item) if key in _APPEND_ONLY and isinstance(item, list) else staging_copy(item)
+        object.__setattr__(cloned, "__dict__", fields)
+        object.__setattr__(cloned, "__pydantic_fields_set__", value.__pydantic_fields_set__.copy())
+        object.__setattr__(cloned, "__pydantic_extra__", value.__pydantic_extra__)
+        private = getattr(value, "__pydantic_private__", None)
+        if private:
+            private = {
+                key: copy.deepcopy(private.get(key))
+                if key in {"_dialogue_index", "_social_index"}
+                else attr.get_default()
+                for key, attr in kind.__private_attributes__.items()
+            }
+        object.__setattr__(cloned, "__pydantic_private__", private)
+        return cloned
+    if kind is dict:
+        return {key: staging_copy(item) for key, item in value.items()}
+    if kind is list:
+        return [staging_copy(item) for item in value]
+    if kind is tuple:
+        return tuple(staging_copy(item) for item in value)
+    return value
 
 
 @dataclass
@@ -101,6 +172,12 @@ class Service:
             sid: self.repo.read(sid) for sid, entries in self.repo.meta["simulations"].items() if entries
         }
         self.writer = asyncio.Lock()
+        self.transactions = asyncio.Lock()
+        self.commit_lock = asyncio.Lock()
+        self.pending_commits = {}
+        self.commit_task = None
+        self.head_events = {}
+        self.staging = {}
         self.locks = {sid: asyncio.Lock() for sid in self.heads}
         self.runners = {}
         self.initializers = {}
@@ -114,7 +191,15 @@ class Service:
         self.gateway.tokens = (
             billed.get("input_tokens", 0) + billed.get("output_tokens", 0) + billed.get("budget_charge", 0)
         )
-        self.stats = {"ticks": 0, "tick_seconds": [], "commit_seconds": [], "fallbacks": 0, "socket_bytes": 0}
+        self.stats = {
+            "ticks": 0,
+            "tick_seconds": [],
+            "commit_seconds": [],
+            "fallbacks": 0,
+            "socket_bytes": 0,
+            "publish_seconds": [],
+            "commits": 0,
+        }
         self.tiger = TigerIngestor(self)
 
     async def start(self):
@@ -154,6 +239,11 @@ class Service:
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        # Cancellation stops producers first, then the latest valid heads become durable.
+        if self.commit_task:
+            await asyncio.gather(self.commit_task, return_exceptions=True)
+        if not self.repo.degraded:
+            await self.persist(list(self.heads.values()), publish=False)
         await self.gateway.close()
         await self.tiger.close()
         self.repo.close()
@@ -163,6 +253,11 @@ class Service:
         require(head is not None and head.owner_id == owner, "NOT_FOUND", "Simulation not found", 404)
         if revision is None:
             return head
+        if revision == head.simulation.revision:
+            return head
+        require(0 <= revision <= head.simulation.revision, "NOT_FOUND", "Revision not found", 404)
+        entries = self.repo.meta["simulations"].get(sid, ())
+        revision = min(revision, entries[-1]["revision"]) if entries else revision
         try:
             state = self.repo.read(sid, revision)
         except KeyError:
@@ -248,22 +343,87 @@ class Service:
         state.simulation.saved_at = snapshot.created_at
         return snapshot
 
-    async def persist(self, states, **kwargs):
-        start = time.perf_counter()
+    def head_event(self, sid):
+        return self.head_events.setdefault(sid, asyncio.Event())
+
+    def publish_head(self, sid, state):
+        self.heads[sid] = state
+        event = self.head_events.pop(sid, None)
+        if event:
+            event.set()
+
+    def history(self, state, kind):
+        records = self.repo.history(state.simulation.id, kind, state.simulation.revision)
+        records.extend(getattr(state, "pending_" + kind, ()))
+        records.extend(getattr(state, kind))
+        # A committed segment may overlap a still-published pending buffer.
+        return list({self.repo.history_key(kind, item): item for item in records}.values())
+
+    def prune_pending(self, state):
+        watermarks = self.repo.meta.get("history_watermarks", {}).get(state.simulation.id, {})
+        for kind in ("decisions", "metric_points"):
+            through = watermarks.get(kind, -1)
+            pending = getattr(state, "pending_" + kind, ())
+            if pending:
+                setattr(
+                    state,
+                    "pending_" + kind,
+                    [item for item in pending if self.repo.history_key(kind, item) > through],
+                )
+
+    async def persist(self, states, *, publish=True, **kwargs):
+        # Only this lock orders fsyncs; the world writer is never needed by storage.
+        async with self.commit_lock:
+            states = [
+                state
+                for state in states
+                if state.simulation.revision
+                > (self.repo.meta["simulations"].get(state.simulation.id) or [{"revision": -1}])[-1][
+                    "revision"
+                ]
+            ]
+            if not states and not any(value is not None for value in kwargs.values()):
+                return
+            start = time.perf_counter()
+            task = asyncio.create_task(asyncio.to_thread(self.repo.commit, states, **kwargs))
+            try:
+                # Cancelling a producer must never release ordering before fsync finishes.
+                try:
+                    await asyncio.shield(task)
+                except asyncio.CancelledError:
+                    await task
+                    raise
+            except (OSError, ValueError) as error:
+                if not self.repo.degraded:
+                    self.repo.degraded.append("Persistence commit failed; mutations halted")
+                for event in self.head_events.values():
+                    event.set()
+                raise DomainError(
+                    "PERSISTENCE_UNAVAILABLE", "Commit failed; last durable state remains available", 503
+                ) from error
+            self.stats["commit_seconds"].append(time.perf_counter() - start)
+            self.stats["commit_seconds"] = self.stats["commit_seconds"][-1000:]
+            self.stats["commits"] += 1
+            if publish:
+                for state in states:
+                    self.publish_head(state.simulation.id, state)
+                    self.schedule_lessons(state)
+            self.tiger.notify()
+
+    def queue_commit(self, state):
+        self.pending_commits[state.simulation.id] = state
+        if self.commit_task is None or self.commit_task.done():
+            self.commit_task = asyncio.create_task(self.drain_commits())
+
+    async def drain_commits(self):
         try:
-            await asyncio.to_thread(self.repo.commit, states, **kwargs)
-        except (OSError, ValueError) as error:
-            if not self.repo.degraded:
-                self.repo.degraded.append("Persistence commit failed; mutations halted")
-            raise DomainError(
-                "PERSISTENCE_UNAVAILABLE", "Commit failed; last durable state remains available", 503
-            ) from error
-        self.stats["commit_seconds"].append(time.perf_counter() - start)
-        self.stats["commit_seconds"] = self.stats["commit_seconds"][-1000:]
-        for state in states:
-            self.heads[state.simulation.id] = state
-            self.schedule_lessons(state)
-        self.tiger.notify()
+            while self.pending_commits:
+                states = list(self.pending_commits.values())
+                self.pending_commits.clear()
+                await self.persist(states, publish=False)
+        except DomainError:
+            # The runner sees degraded persistence and stops; durable reads remain usable.
+            self.pending_commits.clear()
 
     def schedule_lessons(self, state):
         if not self.config.gemini_enabled or self.closed:
@@ -289,19 +449,20 @@ class Service:
             return
         if not drafts:
             return
-        async with self.writer:
-            head = self.heads.get(sid)
-            runtime = head.events.get(eid) if head else None
-            if self.closed or self.repo.degraded or not runtime or runtime.lessons_source != "rules":
-                return
-            lessons = adopt_drafts(runtime, drafts)
-            if not lessons:
-                self.gateway.diagnostics["discarded"] += 1
-                return
-            state = head.model_copy(deep=True)
-            self.bump(state)
-            state.events[eid].lessons = lessons
-            state.events[eid].lessons_source = "gemini"
+        async with self.locks.setdefault(sid, asyncio.Lock()):
+            async with self.writer:
+                head = self.heads.get(sid)
+                runtime = head.events.get(eid) if head else None
+                if self.closed or self.repo.degraded or not runtime or runtime.lessons_source != "rules":
+                    return
+                lessons = adopt_drafts(runtime, drafts)
+                if not lessons:
+                    self.gateway.diagnostics["discarded"] += 1
+                    return
+                state = head.model_copy(deep=True)
+                self.bump(state)
+                state.events[eid].lessons = lessons
+                state.events[eid].lessons_source = "gemini"
             try:
                 await self.persist([state])
             except DomainError:
@@ -310,7 +471,7 @@ class Service:
     async def mutate(self, owner, key, route, body, operation, sid=None):
         fingerprint = hashlib.sha256(encode({"route": route, "body": body})).hexdigest()
         identity = f"{owner}:{key}"
-        async with self.writer:
+        async with self.transactions:
             previous = self.repo.meta["idempotency"].get(identity)
             if previous:
                 require(
@@ -329,14 +490,23 @@ class Service:
             else:
                 lock = asyncio.Lock()
             async with lock:
-                result = operation()
+                async with self.writer:
+                    result = operation()
                 data = (
                     result.data.model_dump(mode="json") if isinstance(result.data, c.Model) else result.data
                 )
                 response = {"schema_version": "1.0.0", "request_id": key, "data": data}
                 saved = {"fingerprint": fingerprint, "response": response, "status": result.status}
+                durable_states = list(result.states)
+                if sid and sid in self.heads:
+                    previous_head = self.heads[sid]
+                    journal = self.repo.meta["simulations"].get(sid, ())
+                    if not journal or previous_head.simulation.revision > journal[-1]["revision"]:
+                        # Pre-event snapshots and whole-world branches must retain the
+                        # exact prior head even when it falls between periodic commits.
+                        durable_states.insert(0, previous_head)
                 await self.persist(
-                    result.states,
+                    durable_states,
                     idempotency=(identity, saved),
                     metadata=result.metadata or None,
                     branches=result.branches or None,
@@ -494,7 +664,7 @@ class Service:
                                         break
                             citizen = spawn(state, profile, position, template)
                             citizen.home = home.model_copy()
-                            citizen.next_deliberation_tick = i % 8
+                            citizen.next_deliberation_tick = legacy_ticks(state, i % 8) if i % 8 else 0
                         from app.behavior.classes import initialize_distribution
 
                         initialize_distribution(state)
@@ -535,7 +705,7 @@ class Service:
                     state.simulation.initialization = c.Job(
                         stage=stage, progress=progress, message=f"{stage.title()} complete", error=None
                     )
-                    await self.persist([state])
+                await self.persist([state])
                 await asyncio.sleep(0)
         except asyncio.CancelledError:
             raise
@@ -557,7 +727,7 @@ class Service:
                         code="INVALID_REQUEST", message=str(error)[:1000], retryable=False, details=[]
                     ),
                 )
-                await self.persist([state])
+            await self.persist([state])
 
     def ensure_runner(self, state):
         sid = state.simulation.id
@@ -566,48 +736,78 @@ class Service:
 
     async def run(self, sid):
         last = time.perf_counter()
+        staging = None
+        published = None
         try:
             while not self.closed:
                 head = self.heads.get(sid)
                 if not head or head.simulation.status != "running" or self.repo.degraded:
                     return
-                interval = 1 / (self.config.base_tps * head.simulation.speed_multiplier)
+                durable = (self.repo.meta["simulations"].get(sid) or [{"tick": 0}])[-1]["tick"]
+                budget = ticks_for(head, self.config.persist_interval_seconds)
+                if head.simulation.tick - durable >= budget:
+                    self.queue_commit(head)
+                    await self.commit_task
+                    if self.repo.degraded:
+                        return
+                interval = head.simulation.config.tick_seconds / (
+                    self.config.base_tps * head.simulation.speed_multiplier
+                )
                 await asyncio.sleep(max(0, interval - (time.perf_counter() - last)))
-                async with self.writer:
-                    async with self.locks.setdefault(sid, asyncio.Lock()):
+                # A command locks its simulation before the writer too, so other worlds
+                # and provider results remain available during tick computation.
+                async with self.locks.setdefault(sid, asyncio.Lock()):
+                    async with self.writer:
                         head = self.heads.get(sid)
                         if not head or head.simulation.status != "running":
                             return
+                        if staging is None or head is not published:
+                            staging = staging_copy(head)
+                        self.staging[sid] = staging
+                        self.prune_pending(staging)
                         started = time.perf_counter()
-                        state = head.model_copy(deep=True)
-                        self.bump(state)
+                        self.bump(staging)
                         elapsed = started - last
-                        state.simulation.achieved_ticks_per_second = 1 / elapsed if elapsed > 0 else 0
-                        proposals = self.take_proposals(state)
-                        start = time.perf_counter()
-                        await asyncio.to_thread(tick, state, proposals)
-                        self.stats["tick_seconds"].append(time.perf_counter() - start)
-                        self.stats["tick_seconds"] = self.stats["tick_seconds"][-1000:]
-                        self.stats["ticks"] += 1
-                        if (
-                            self.repo.settings(state.owner_id).autosave
-                            and state.simulation.tick % self.config.autosave_interval == 0
-                        ):
-                            self.snapshot(state, "autosave", "Periodic autosave")
-                        jobs = self.prepare_deliberation(state)
-                        await self.persist([state])
-                        # Cadence includes compute/commit time; overloaded runs report
-                        # their actual start interval instead of a nominal speed.
-                        last = started
+                        staging.simulation.achieved_ticks_per_second = 1 / elapsed if elapsed > 0 else 0
+                        proposals = self.take_proposals(staging)
+                    start = time.perf_counter()
+                    await asyncio.to_thread(tick, staging, proposals)
+                    self.stats["tick_seconds"].append(time.perf_counter() - start)
+                    self.stats["tick_seconds"] = self.stats["tick_seconds"][-1000:]
+                    self.stats["ticks"] += 1
+                    autosave = (
+                        self.repo.settings(staging.owner_id).autosave
+                        and staging.simulation.tick % ticks_for(staging, self.config.autosave_interval) == 0
+                    )
+                    if autosave:
+                        self.snapshot(staging, "autosave", "Periodic autosave")
+                    start = time.perf_counter()
+                    async with self.writer:
+                        jobs = self.prepare_deliberation(staging)
+                    published = staging_copy(staging)
+                    async with self.writer:
+                        self.publish_head(sid, published)
+                    self.schedule_lessons(published)
+                    self.stats["publish_seconds"].append(time.perf_counter() - start)
+                    self.stats["publish_seconds"] = self.stats["publish_seconds"][-1000:]
+                    durable = (self.repo.meta["simulations"].get(sid) or [{"tick": 0}])[-1]["tick"]
+                    if (
+                        autosave
+                        or staging.simulation.status != "running"
+                        or staging.simulation.tick - durable
+                        >= max(1, ticks_for(staging, self.config.persist_interval_seconds) - 1)
+                    ):
+                        self.queue_commit(published)
+                    last = started
                 self.schedule_deliberation(jobs)
         except (asyncio.CancelledError, DomainError):
             return
         except Exception as error:
-            # A domain bug must stop this runner without publishing its staged tick.
             async with self.writer:
                 head = self.heads.get(sid)
+                state = None
                 if head and not self.repo.degraded and not self.closed:
-                    state = head.model_copy(deep=True)
+                    state = staging_copy(head)
                     self.bump(state, True)
                     state.simulation.status = "failed"
                     state.simulation.pause_reason = "error"
@@ -618,7 +818,10 @@ class Service:
                         retryable=False,
                         details=[],
                     )
-                    await self.persist([state])
+            if state:
+                await self.persist([state])
+        finally:
+            self.staging.pop(sid, None)
 
     def command(self, owner, sid, request):
         state = self.owned(owner, sid).model_copy(deep=True)
@@ -654,7 +857,7 @@ class Service:
                 tick(state, self.take_proposals(state))
                 if (
                     self.repo.settings(owner).autosave
-                    and state.simulation.tick % self.config.autosave_interval == 0
+                    and state.simulation.tick % ticks_for(state, self.config.autosave_interval) == 0
                 ):
                     snapshot = self.snapshot(state, "autosave", "Periodic autosave")
                 states.append(state.model_copy(deep=True))
@@ -860,7 +1063,7 @@ class Service:
                     citizen.plan = dict(
                         kind="social_visit",
                         target_id=target.summary.id,
-                        expires_tick=state.simulation.tick + 30,
+                        expires_tick=state.simulation.tick + legacy_ticks(state, 30),
                     )
                 else:
                     decision = apply_intent(state, citizen, intent, "rules")
@@ -1206,6 +1409,7 @@ class Service:
     async def expire_holds(self):
         while not self.closed:
             await asyncio.sleep(1)
+            states = []
             async with self.writer:
                 for head in list(self.heads.values()):
                     if head.intervention and expired(head.intervention.expires_at) and not self.repo.degraded:
@@ -1215,7 +1419,9 @@ class Service:
                         state.auto_resume = False
                         state.simulation.status = "paused"
                         state.simulation.pause_reason = "manual"
-                        await self.persist([state])
+                        states.append(state)
+            if states:
+                await self.persist(states)
 
     def take_proposals(self, state):
         results = ProviderProposals(self, state)
@@ -1262,7 +1468,13 @@ class Service:
             ),
             key=lambda citizen: (
                 citizen.summary.metrics.safety
-                - min(200, max(0, state.simulation.tick - citizen.next_deliberation_tick) * 3)
+                - min(
+                    200,
+                    max(0, state.simulation.tick - citizen.next_deliberation_tick)
+                    * 3
+                    * state.simulation.config.tick_seconds
+                    / 10,
+                )
                 - citizen.needs.hunger / 4,
                 citizen.summary.id,
             ),
@@ -1281,7 +1493,7 @@ class Service:
             if context:
                 tag = relevance(state, citizen, context)
                 created = state.simulation.tick
-                citizen.next_deliberation_tick = state.simulation.tick + 30
+                citizen.next_deliberation_tick = state.simulation.tick + legacy_ticks(state, 30)
                 jobs.append((key, tag, created, context))
         state.schedules = [entry for entry in state.schedules if entry.get("type") != "deliberation"] + [
             dict(type="deliberation", agent_id=citizen.summary.id, next_tick=citizen.next_deliberation_tick)
@@ -1303,12 +1515,14 @@ class Service:
             # Request duration is bounded by Gateway.decide's wall-clock deadline.
             # Delivery gets two physical scheduling intervals (2..10 real seconds),
             # rather than four simulated ticks whose lifetime shrinks at high speed.
-            interval = 1 / (self.config.base_tps * head.simulation.speed_multiplier)
+            interval = head.simulation.config.tick_seconds / (
+                self.config.base_tps * head.simulation.speed_multiplier
+            )
             window = min(10, max(2, interval * 2))
             self.provider_results[key] = ProviderResult(tag, created, intent, time.monotonic() + window)
 
     async def record_usage(self, sid, counts):
-        async with self.writer:
+        async with self.transactions:
             usage = copy.deepcopy(self.repo.meta["usage"])
             for key in ("global", sid):
                 record = usage.setdefault(

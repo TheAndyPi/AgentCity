@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from app.behavior.learning import RestLesson
 from app.behavior.models import BehaviorState, Condition
@@ -80,6 +80,7 @@ class Citizen(Model):
     last_building_id: str | None = None
     visit_until_tick: int = 0
     blocked_movement_ticks: int = 0
+    next_detour_tick: int = 0
     next_social_tick: int = 0
     profile_template_id: str | None = None
     profile_template_version: int | None = None
@@ -107,6 +108,7 @@ class EventRuntime(Model):
     consequences: list[dict[str, Any]] = Field(default_factory=list)
     lessons: list[dict[str, Any]] = Field(default_factory=list)
     lesson_facts: list[dict[str, Any]] = Field(default_factory=list)
+    retired_action_summary: dict[str, Any] = Field(default_factory=dict)
     lessons_source: Literal["rules", "gemini"] = "rules"
     resume_allowed: bool = False
 
@@ -124,6 +126,24 @@ class Interaction(Model):
 
 
 class State(Model):
+    _dialogue_index: Any = PrivateAttr(default=None)
+    _social_index: Any = PrivateAttr(default=None)
+    _tick_context: Any = PrivateAttr(default=None)
+
+    def dialogue_index(self):
+        from app.simulation.indexes import DialogueIndex
+
+        if self._dialogue_index is None:
+            self._dialogue_index = DialogueIndex()
+        return self._dialogue_index.update(self.dialogue)
+
+    def social_evidence_index(self):
+        from app.simulation.indexes import EvidenceIndex
+
+        if self._social_index is None:
+            self._social_index = EvidenceIndex()
+        return self._social_index.update(self.applied_social_evidence)
+
     behavior: BehaviorState = Field(default_factory=BehaviorState)
     service_changes: list[dict[str, Any]] = Field(default_factory=list)
     conditions: dict[str, BuildingCondition] = Field(default_factory=dict)
@@ -140,6 +160,8 @@ class State(Model):
     citizens: dict[str, Citizen] = Field(default_factory=dict)
     events: dict[str, EventRuntime] = Field(default_factory=dict)
     decisions: list[Decision] = Field(default_factory=list)
+    pending_decisions: list[Decision] = Field(default_factory=list, exclude=True)
+    pending_metric_points: list[MetricPoint] = Field(default_factory=list, exclude=True)
     dialogue: list[Dialogue] = Field(default_factory=list)
     metric_points: list[MetricPoint] = Field(default_factory=list)
     initial_metrics: Metrics | None = None

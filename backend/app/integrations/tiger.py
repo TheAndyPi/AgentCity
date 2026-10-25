@@ -313,8 +313,9 @@ class TigerIngestor:
     def _revision(self, sid):
         saved = self.progress.get(sid)
         entries = self.service.repo.meta["simulations"].get(sid, ())
-        if saved and 0 <= saved["revision"] < len(entries):
-            if entries[saved["revision"]]["sha256"] == saved["sha256"]:
+        if saved:
+            entry = next((entry for entry in entries if entry["revision"] == saved["revision"]), None)
+            if entry and entry["sha256"] == saved["sha256"]:
                 return saved["revision"]
         return -1
 
@@ -331,17 +332,20 @@ class TigerIngestor:
             advanced = False
             for _ in range(self.config.tiger_revision_batch):
                 head = self.service.heads.get(sid)
-                revision = self._revision(sid) + 1
-                if head is None or revision > head.simulation.revision:
+                previous = self._revision(sid)
+                if head is None:
                     break
                 entries = self.service.repo.meta["simulations"].get(sid, ())
-                if revision >= len(entries):
+                entry = next((item for item in entries if item["revision"] > previous), None)
+                if entry is None:
                     break
-                digest = entries[revision]["sha256"]
+                revision, digest = entry["revision"], entry["sha256"]
                 try:
                     state = await asyncio.to_thread(self.service.repo.read, sid, revision)
                 except KeyError:
                     break  # A concurrent committed deletion is not a vendor failure.
+                state.decisions = self.service.history(state, "decisions")
+                state.metric_points = self.service.history(state, "metric_points")
                 batch = await asyncio.to_thread(
                     project, state, head.simulation, self.config.tiger_sample_ticks
                 )

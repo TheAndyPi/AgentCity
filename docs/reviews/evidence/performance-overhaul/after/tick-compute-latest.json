@@ -1,0 +1,10 @@
+{
+  "population": 100,
+  "ticks": 500,
+  "tick_seconds": 1,
+  "p95_tick_ms": 54.938000001129694,
+  "target_tick_p95_ms": 25,
+  "target_met": false,
+  "status": "Unprofiled timing completed; subsequent cProfile run interrupted at user request. No further tests or benchmarks run after user stop instruction.",
+  "implementation_stage": "Includes spatial, blocked-cell, geometry, float LOS, bounded retrieval/token cache and legacy-cadence detour optimization; final integration not verified."
+}

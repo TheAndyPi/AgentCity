@@ -10,6 +10,7 @@ from app.data.repository import encode
 from app.infrastructure.errors import DomainError, require
 from app.simulation.agents import evidence
 from app.simulation.scenarios import blocked_cells, event_report
+from app.simulation.state import now
 
 
 class Cursors:
@@ -70,20 +71,63 @@ class Cursors:
         return dict(items=result, next_cursor=next_cursor)
 
 
-def frame(state):
+def map_version(state):
+    # Map geometry is fixed for a world; only scenario blocked cells change.
+    return int(hashlib.sha256(encode(sorted(blocked_cells(state)))).hexdigest()[:13], 16)
+
+
+def frame(state, include_map=True):
     require(
         state.map is not None and state.simulation.initialization.stage == "ready",
         "INVALID_STATE",
         "World is not ready",
     )
-    map_data = state.map.model_copy(deep=True)
+    map_data = state.map if include_map else None
     blocked = blocked_cells(state)
-    for col, row in blocked:
-        map_data.cells[row * map_data.columns + col].walkable = False
-    return c.WorldFrame(
+    if include_map and blocked:
+        # Copy changed cells only; map geometry and unaffected cells stay immutable.
+        cells = list(state.map.cells)
+        for col, row in blocked:
+            index = row * state.map.columns + col
+            cells[index] = cells[index].model_copy(update={"walkable": False})
+        map_data = state.map.model_copy(update={"cells": cells})
+    model = c.WorldFrame if include_map else c.FrameDelta
+    changes = (
+        {}
+        if include_map
+        else dict(
+            map_updates=c.MapUpdates(
+                zones=[
+                    c.ZoneUpdate(
+                        id=zone.id,
+                        metrics=zone.metrics,
+                        population=zone.population,
+                        population_density_per_km2=zone.population_density_per_km2,
+                    )
+                    for zone in state.map.zones
+                ],
+                buildings=[
+                    c.BuildingUpdate(
+                        id=building.id,
+                        capacity=building.capacity,
+                        occupancy=building.occupancy,
+                        functional=building.functional,
+                    )
+                    for building in state.map.buildings
+                ],
+                resources=[
+                    c.ResourceUpdate(id=resource.id, available_units=resource.available_units)
+                    for resource in state.map.resources
+                ],
+            )
+        )
+    )
+    return model(
+        **changes,
         ref=state.ref(),
         simulation=state.simulation,
         map=map_data,
+        map_version=map_version(state),
         agents=sorted([citizen.summary for citizen in state.citizens.values()], key=lambda a: (a.name, a.id)),
         events=sorted(
             [runtime.summary for runtime in state.events.values()],
@@ -109,7 +153,7 @@ def frame(state):
     )
 
 
-def agent_records(state, aid, collection):
+def agent_records(state, aid, collection, decisions=None):
     citizen = state.citizens.get(aid)
     require(citizen is not None, "NOT_FOUND", "Citizen not found at this revision", 404)
     if collection == "memories":
@@ -117,16 +161,18 @@ def agent_records(state, aid, collection):
     if collection == "relationships":
         return sorted(citizen.relationships.values(), key=lambda r: r.to_agent_id)
     return sorted(
-        [d for d in state.decisions if d.agent_id == aid], key=lambda d: (d.tick, d.id), reverse=True
+        [d for d in (state.decisions if decisions is None else decisions) if d.agent_id == aid],
+        key=lambda d: (d.tick, d.id),
+        reverse=True,
     )
 
 
-def agent_detail(state, aid, cursors=None, all_records=False):
+def agent_detail(state, aid, cursors=None, all_records=False, decisions=None):
     citizen = state.citizens.get(aid)
     require(citizen is not None, "NOT_FOUND", "Citizen not found at this revision", 404)
     pages = {}
     for collection in ("memories", "relationships", "decisions"):
-        records = agent_records(state, aid, collection)
+        records = agent_records(state, aid, collection, decisions=decisions)
         if all_records:
             pages[collection] = dict(items=records, next_cursor=None)
         else:
@@ -241,3 +287,28 @@ def behavior_hazards(state):
         for f in state.behavior.fires.values()
         if not f.extinguished and f.end_tick > state.simulation.tick
     ]
+
+
+class StreamFrames:
+    """One bounded, shared encoded snapshot and delta per live world revision."""
+
+    def __init__(self):
+        self.cache = {}
+
+    def encoded(self, state, snapshot=False):
+        sid = state.simulation.id
+        revision = state.simulation.revision
+        cached = self.cache.get(sid)
+        if cached is None or cached[0] != revision:
+            cached = (revision, {})
+            self.cache[sid] = cached
+        kind = "snapshot" if snapshot else "frame"
+        if kind not in cached[1]:
+            data = frame(state, include_map=snapshot).model_dump(exclude={} if snapshot else {"map"})
+            cached[1][kind] = json.dumps(
+                dict(schema_version="1.0.0", simulation_id=sid, sent_at=now(), type=kind, data=data),
+                allow_nan=False,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        return cached[1][kind]

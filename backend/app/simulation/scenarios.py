@@ -28,6 +28,7 @@ from app.simulation.lessons import compose_lessons, gather_facts
 from app.simulation.navigation import polygon_contains, simple_polygon
 from app.simulation.scenario_scene import CATALOG, affirmed_mentions, build_scene, matches, negated
 from app.simulation.state import EventRuntime, expiry
+from app.simulation.timing import legacy_ticks
 
 
 def rectangle(x0, y0, x1, y1):
@@ -294,7 +295,7 @@ def preset(state, kind, policy=None, prompt=""):
     elif re.search(r"\b(?:mild|minor|small)\b", text):
         severity = 25
     match = re.search(r"(?:for\s+)?(\d+)\s*ticks?", text)
-    duration = int(match[1]) if match else 12
+    duration = int(match[1]) if match else legacy_ticks(state, 12)
     effects = {
         "flood": [dict(type="hazard", hazard="flood", severity=severity)],
         "fire": [dict(type="hazard", hazard="fire", severity=severity)],
@@ -856,6 +857,9 @@ def event_report(state, runtime):
 
 
 def blocked_cells(state):
+    context = state._tick_context
+    if context is not None and context.blocked is not None:
+        return context.blocked
     # Deliberately coarse mechanics; roads remain traversable for evacuation.
     hazards = [
         r
@@ -864,7 +868,12 @@ def blocked_cells(state):
         and not r.physical
         and any(e.type == "hazard" and e.severity >= 80 for e in r.spec.effects)
     ]
-    return {(t.col, t.row) for t in state.terrain_damage.values() if t.blocked} | {
+    blocked = {(t.col, t.row) for t in state.terrain_damage.values() if t.blocked}
+    if not hazards:
+        if context is not None:
+            context.blocked = blocked
+        return blocked
+    blocked |= {
         (cell.col, cell.row)
         for cell in state.map.cells
         if cell.terrain == "land"
@@ -874,3 +883,6 @@ def blocked_cells(state):
             for r in hazards
         )
     }
+    if context is not None:
+        context.blocked = blocked
+    return blocked

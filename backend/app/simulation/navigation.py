@@ -10,16 +10,16 @@ def distance(a, b):
 
 
 def polygon_contains(point, polygon):
+    return polygon_contains_xy(point.x, point.y, polygon)
+
+
+def polygon_contains_xy(x, y, polygon):
     inside = False
     for a, b in zip(polygon, polygon[1:] + polygon[:1]):
-        cross = (point.x - a.x) * (b.y - a.y) - (point.y - a.y) * (b.x - a.x)
-        if (
-            abs(cross) < 1e-8
-            and min(a.x, b.x) <= point.x <= max(a.x, b.x)
-            and min(a.y, b.y) <= point.y <= max(a.y, b.y)
-        ):
+        cross = (x - a.x) * (b.y - a.y) - (y - a.y) * (b.x - a.x)
+        if abs(cross) < 1e-8 and min(a.x, b.x) <= x <= max(a.x, b.x) and min(a.y, b.y) <= y <= max(a.y, b.y):
             return True
-        if (a.y > point.y) != (b.y > point.y) and point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x:
+        if (a.y > y) != (b.y > y) and x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x:
             inside = not inside
     return inside
 
@@ -55,11 +55,13 @@ def simple_polygon(polygon):
 
 
 def cell_at(map_data, p):
-    if not 0 <= p.x < map_data.width_m or not 0 <= p.y < map_data.height_m:
+    return cell_at_xy(map_data, p.x, p.y)
+
+
+def cell_at_xy(map_data, x, y):
+    if not 0 <= x < map_data.width_m or not 0 <= y < map_data.height_m:
         return None
-    return map_data.cells[
-        int(p.y // map_data.cell_size_m) * map_data.columns + int(p.x // map_data.cell_size_m)
-    ]
+    return map_data.cells[int(y // map_data.cell_size_m) * map_data.columns + int(x // map_data.cell_size_m)]
 
 
 def pathfind(map_data, origin, destination, blocked=frozenset()):
@@ -105,7 +107,7 @@ def line_of_sight(map_data, a, b):
     steps = max(1, math.ceil(distance(a, b) / (map_data.cell_size_m / 3)))
     for step in range(1, steps):
         t = step / steps
-        cell = cell_at(map_data, Vec2(x=a.x + (b.x - a.x) * t, y=a.y + (b.y - a.y) * t))
+        cell = cell_at_xy(map_data, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)
         if cell is None or (not cell.walkable and cell.terrain != "water"):
             return False
     return True
@@ -115,10 +117,27 @@ class SpatialIndex:
     def __init__(self, citizens, size=8):
         self.size = size
         self.buckets = defaultdict(list)
+        self.locations = {}
         for citizen in citizens.values():
             if citizen.summary.active:
                 p = citizen.summary.position
-                self.buckets[(int(p.x // size), int(p.y // size))].append(citizen)
+                key = (int(p.x // size), int(p.y // size))
+                self.buckets[key].append(citizen)
+                self.locations[citizen.summary.id] = key
+
+    def update(self, citizen):
+        aid = citizen.summary.id
+        previous = self.locations.get(aid)
+        point = citizen.summary.position
+        current = (int(point.x // self.size), int(point.y // self.size)) if citizen.summary.active else None
+        if current == previous:
+            return
+        if previous is not None:
+            self.buckets[previous].remove(citizen)
+            del self.locations[aid]
+        if current is not None:
+            self.buckets[current].append(citizen)
+            self.locations[aid] = current
 
     def nearby(self, position, radius):
         n = math.ceil(radius / self.size)
@@ -128,7 +147,7 @@ class SpatialIndex:
             for i in range(x - n, x + n + 1)
             for j in range(y - n, y + n + 1)
             for c in self.buckets.get((i, j), [])
-            if distance(position, c.summary.position) <= radius
+            if c.summary.active and distance(position, c.summary.position) <= radius
         ]
 
 
@@ -267,9 +286,11 @@ def crowd_detour(origin, destination, occupied, can_walk):
 
 def restore_personal_space(state):
     """Repair overlapping positions in existing saves on nearby walkable ground."""
+    from app.simulation.indexes import spatial_index
     from app.simulation.scenarios import blocked_cells
 
     blocked = blocked_cells(state)
+    index = spatial_index(state)
     citizens = sorted((c for c in state.citizens.values() if c.summary.active), key=lambda c: c.summary.id)
     for citizen in citizens:
         if citizen.condition.life != "alive" or citizen.condition.helper_id:
@@ -279,7 +300,7 @@ def restore_personal_space(state):
         origin = citizen.summary.position
         occupied = [
             c.summary.position
-            for c in citizens
+            for c in index.nearby(origin, 2.4 + PERSONAL_SPACE)
             if c is not citizen and c.summary.id != citizen.condition.patient_id
         ]
         if all(distance(origin, p) >= PERSONAL_SPACE - 1e-6 for p in occupied):
@@ -307,4 +328,5 @@ def restore_personal_space(state):
             )
             if point:
                 citizen.summary.position = point
+                index.update(citizen)
                 break

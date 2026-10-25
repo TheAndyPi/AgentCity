@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Heart,
@@ -318,7 +318,8 @@ export function Conversations({
   const [filter, setFilter] = useState("");
   const name = (id: string) =>
     frame.agents.find((agent) => agent.id === id)?.name ?? id;
-  const all = groupConversations(dialogue);
+  const all = useMemo(() => groupConversations(dialogue), [dialogue]);
+  const [visibleCount, setVisibleCount] = useState(30);
   const groups = all.filter((group) =>
     group.participants.some((id) =>
       name(id).toLowerCase().includes(filter.toLowerCase()),
@@ -327,6 +328,8 @@ export function Conversations({
   const conversation =
     groups.find((group) => group.id === selected) ?? groups[0];
   const last = conversation?.messages.at(-1);
+  const [visibleMessages, setVisibleMessages] = useState(100);
+  useEffect(() => setVisibleMessages(100), [conversation?.id]);
   return (
     <>
       <div className="life-panel-heading">
@@ -358,7 +361,7 @@ export function Conversations({
       ) : (
         <>
           <div className="conversation-picker" aria-label="Conversations">
-            {groups.map((group) => (
+            {groups.slice(0, visibleCount).map((group) => (
               <button
                 key={group.id}
                 aria-pressed={conversation.id === group.id}
@@ -380,6 +383,11 @@ export function Conversations({
               </button>
             ))}
           </div>
+          {groups.length > visibleCount && (
+            <button onClick={() => setVisibleCount((count) => count + 30)}>
+              Show more conversations
+            </button>
+          )}
           <section
             className="conversation-thread"
             aria-label="Conversation transcript"
@@ -421,7 +429,14 @@ export function Conversations({
               ))}
             </div>
             <div className="conversation-messages">
-              {conversation.messages.map((message) => (
+              {conversation.messages.length > visibleMessages && (
+                <button
+                  onClick={() => setVisibleMessages((count) => count + 100)}
+                >
+                  Show earlier messages
+                </button>
+              )}
+              {conversation.messages.slice(-visibleMessages).map((message) => (
                 <article
                   className={`speech-message ${message.speaker_id !== conversation.participants[0] ? "reply" : ""}`}
                   key={message.id}

@@ -160,10 +160,7 @@ export class AgentCityClient {
       S.overview,
     );
   dialogue = (id: string, revision?: number) =>
-    this.all(
-      `/simulations/${encodeURIComponent(id)}/dialogue${query({ revision })}`,
-      S.dialogue,
-    );
+    this.dialoguePage(id, { revision }).then((page) => page.items);
   metrics = (id: string, revision?: number) =>
     this.call(
       "GET",
@@ -382,18 +379,31 @@ export class AgentCityClient {
     );
   dialoguePage = (
     id: string,
-    revision: number,
-    cursor?: string | null,
+    options:
+      | number
+      | {
+          revision?: number;
+          cursor?: string | null;
+          agentId?: string;
+          interactionId?: string;
+          limit?: number;
+        } = {},
+    legacyCursor?: string | null,
     signal?: AbortSignal,
-  ) =>
-    this.call(
+  ) => {
+    const page =
+      typeof options === "number"
+        ? { revision: options, cursor: legacyCursor, limit: 100 }
+        : options;
+    return this.call(
       "GET",
-      `/simulations/${encodeURIComponent(id)}/dialogue${query({ revision, limit: 100, cursor: cursor ?? undefined })}`,
+      `/simulations/${encodeURIComponent(id)}/dialogue${query({ revision: page.revision, limit: page.limit ?? 50, cursor: page.cursor ?? undefined, agent_id: "agentId" in page ? page.agentId : undefined, interaction_id: "interactionId" in page ? page.interactionId : undefined })}`,
       S.page(S.dialogue),
       undefined,
       undefined,
       signal,
     );
+  };
   exportUrl = (id: string, revision: number) =>
     `${apiBase}/simulations/${encodeURIComponent(id)}/export?format=csv&through_revision=${revision}`;
   async all<Item>(path: string, schema: z.ZodType<Item>): Promise<Item[]> {

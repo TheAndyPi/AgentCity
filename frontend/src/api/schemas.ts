@@ -88,8 +88,8 @@ const configObject = obj({
   }).strict(),
   scenario_description: z.string().max(4000),
   custom_agent_ids: ids,
-  tick_seconds: z.literal(10),
-  max_ticks: count.min(1).max(10000),
+  tick_seconds: z.union([z.literal(1), z.literal(10)]),
+  max_ticks: count.min(1).max(100000),
 }).strict();
 export const config: z.ZodType<T.Config, T.Config> = configObject.refine(
   (c) => c.custom_agent_ids.length <= c.population,
@@ -540,10 +540,11 @@ export const metricPoint = obj({
   evacuated_count: count,
   exposed_count: count,
 }).strict();
-export const world: z.ZodType<T.WorldFrame> = obj({
+const worldFields = {
   ref,
   simulation,
   map,
+  map_version: count.optional(),
   agents: z.array(agent),
   events: z.array(event),
   policies,
@@ -557,6 +558,36 @@ export const world: z.ZodType<T.WorldFrame> = obj({
       severity: pct,
     }).strict(),
   ),
+};
+export const world: z.ZodType<T.WorldFrame> = obj(worldFields).strict();
+// Delta validation skips the large, unchanged map on the hot stream path.
+export const streamFrame: z.ZodType<T.FrameDelta> = obj({
+  ...worldFields,
+  map: map.nullable().optional(),
+  map_updates: obj({
+    zones: z.array(
+      obj({
+        id,
+        metrics,
+        population: count,
+        population_density_per_km2: finite.nonnegative(),
+      }).strict(),
+    ),
+    buildings: z.array(
+      obj({
+        id,
+        capacity: count,
+        occupancy: count,
+        functional: z.boolean(),
+      }).strict(),
+    ),
+    resources: z.array(
+      obj({ id, available_units: finite.nonnegative() }).strict(),
+    ),
+  })
+    .strict()
+    .nullable()
+    .optional(),
 }).strict();
 export const snapshot = obj({
   id,
@@ -720,7 +751,7 @@ export const serverMessage = z.discriminatedUnion("type", [
     simulation_id: id,
     sent_at: date,
     type: z.literal("frame"),
-    data: world,
+    data: streamFrame,
   }).strict(),
   obj({
     schema_version: z.literal("1.0.0"),

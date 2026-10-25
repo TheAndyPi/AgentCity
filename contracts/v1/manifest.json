@@ -3,7 +3,7 @@
   "schema_draft": "2020-12",
   "status": "frozen",
   "sha256": {
-    "CONTRACT.md": "483eea20cb86df37d2d1e8a96471abc90b58404b040923f8d26008b6fcf728f1",
+    "CONTRACT.md": "e22d808824d1be7100489ab400887ae67699e38913ccb91fa3bfca725137ba9e",
     "fixtures/active_flood.json": "9b4c00579249ac3a4687e37a0d5ab7b236e1b5d8a143281f3c5356b0cc1c70a3",
     "fixtures/all_empty_lists.json": "6147e5143e7463a712064569218d29c9b98689a5b89e4b3b132b21a00e2f1074",
     "fixtures/archived_simulation.json": "ff3682e7aa303d2953297ff144d6414290ee8595c0277fb1561a59bd2881a8b6",
@@ -29,6 +29,7 @@
     "fixtures/invalid_scene_part_size.json": "9fd801a86d49709aaacb3e02a48560764b7d4223d1a24b22b34f7a0105a96ea7",
     "fixtures/invalid_scene_scale.json": "624eb00d386e6950e013fecafd80a80422dbe516a5493b569576a87efca04d1a",
     "fixtures/invalid_wellbeing_delta.json": "714bd6d606a0e244f19c0f1f29645bcaefc9490e4b7ecd826fdd6aa0f19f9c31",
+    "fixtures/one_second_city.json": "875a3bb9b2b481146491454fa6e04ae1005ce2659eb7350e6c930131a6a2d5ec",
     "fixtures/paused_queued_event.json": "91dace432d75d7dd14077c51a6374822d869a4e95b16c780310bd49b4db3cffd",
     "fixtures/pending_outcome.json": "87fc0c6fa157471afc367e559c44071672088501f5d5a0102be42e9bdfcc794d",
     "fixtures/ready_paused_city.json": "4d29b635e167a4e00f2ad0fdff0de615f39e8881a8c07b94ad8ca4dd72172fcc",
@@ -39,14 +40,15 @@
     "fixtures/running_city.json": "507616f7de02edec36544d4d4a88a69c75c96188a2b265e2580c0f1c539d5165",
     "fixtures/scenario_scene_preview.json": "1530e8a0d991af5d7a7a24f791cf4a78f8ca6a3125e892dadaacba0f0d6c244c",
     "fixtures/stale_preview_error.json": "3ea2fa26c02c1fccc8a17f3aa5dda56488a05f8285678dd03aef1f14bbc088a6",
+    "fixtures/transport_mapless_frame.json": "fb6d82732e78ce8bb5069c585a20e384a44855baf7966307a2819812f2a23131",
     "fixtures/transport_reconnection.json": "5be858e34da07a489f9d887b92efd76ee05354baaa3269a540069d45810971a5",
     "fixtures/transport_snapshot.json": "b4a8dec12e0ee23b819ac0488141483b596360bb79744eac2cad9a4bd11f2ac5",
     "fixtures/valid_integral_json_numbers.json": "df47c4bb580b14e35bfcf25bd279c0041a6a9402927135f5d0dbca83172fe99f",
     "fixtures/validation_error.json": "ff8863be139260ced2601adbc1b447a433d9f847868d1ac36a1c0e552756f19e",
-    "openapi.yaml": "af29b30510bb177839ac131a732112048a91fac1f19cf3be29cb634de522e4b1",
-    "schemas.json": "0a3dbc5c5e05b1d99bfcee4eb014432b1eb9d6302e78a61cfeacb7aa8c60a31b",
-    "stream.schema.json": "e8f8fd751977da8ded15ebc97fda15390c4d17a795074d8dba1a73a44f20379c"
+    "openapi.yaml": "b926e2509c3e981f229a1f9f5ec51979dfce6e5f827788484681c4c9dc5ca7bd",
+    "schemas.json": "d3e56f73fe8a8b837d9152aff22b9623dccc680ddbcef42f48ee60af117dfcd1",
+    "stream.schema.json": "e16bafd57afad6dba18d09921f71309e76158d57081c8600d2585c7ebcef1c76"
   },
   "bootstrap_note": "Initial bootstrap validation corrected JSON Schema numeric bounds, UUID/date/name/unique-ID constraints, strict response fields, and documented middleware headers. Contract text and wire version unchanged. No frontend consumer was present.",
-  "snapshot_revision": 2
+  "snapshot_revision": 3
 }

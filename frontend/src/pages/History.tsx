@@ -78,7 +78,9 @@ export default function History() {
       (r): r is PromiseRejectedResult => r.status === "rejected",
     );
     worlds.reload();
-    setSelected((ids) => ids.filter((id) => !deleting.some((s) => s.id === id)));
+    setSelected((ids) =>
+      ids.filter((id) => !deleting.some((s) => s.id === id)),
+    );
     if (failed.length) {
       setDeleting(failed);
       setError(
@@ -103,7 +105,12 @@ export default function History() {
       (r): r is PromiseRejectedResult => r.status === "rejected",
     );
     setSelected((ids) =>
-      ids.filter((id) => !targets.some((s, i) => s.id === id && results[i].status === "fulfilled")),
+      ids.filter(
+        (id) =>
+          !targets.some(
+            (s, i) => s.id === id && results[i].status === "fulfilled",
+          ),
+      ),
     );
     worlds.reload();
     if (failures.length)
@@ -278,11 +285,7 @@ export default function History() {
         />
       )}{" "}
       {compare && (
-        <Modal
-          title="Compare branches"
-          onClose={() => setCompare(null)}
-          wide
-        >
+        <Modal title="Compare branches" onClose={() => setCompare(null)} wide>
           <ComparePanel frame={compare} revision={compare.ref.revision} />
         </Modal>
       )}
@@ -316,31 +319,66 @@ function WorldCard({
   onOverview: (frame: WorldFrame) => void;
 }) {
   const { client } = useApp();
-  const r = useQuery(() => client.state(s.id, s.revision), [s.id, s.revision]);
+  const card = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!card.current) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(card.current);
+    return () => observer.disconnect();
+  }, []);
+  const r = useQuery(
+    () => (visible ? client.state(s.id, s.revision) : Promise.resolve(null)),
+    [s.id, s.revision, visible],
+  );
   const open = (e: SyntheticEvent) => {
     if (
-      (e.target as HTMLElement).closest("button, a, input, label, select, textarea")
+      (e.target as HTMLElement).closest(
+        "button, a, input, label, select, textarea",
+      )
     )
       return;
     if (r.data) onOverview(r.data);
   };
   return (
     <article
+      ref={card}
       className={`world-card ${archived ? "archived" : ""} ${selected ? "selected" : ""}`}
       tabIndex={0}
       aria-label={`${s.name}. Open the simulation overview`}
       onClick={open}
       onKeyDown={(e) => {
-        if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        if (
+          (e.key === "Enter" || e.key === " ") &&
+          e.target === e.currentTarget
+        ) {
           e.preventDefault();
           open(e);
         }
       }}
     >
       <div className="world-card-art">
-        {r.data ? <CityArt map={r.data.map} /> : <span className="city-art-pending" />}
+        {r.data ? (
+          <CityArt map={r.data.map} />
+        ) : (
+          <span className="city-art-pending" />
+        )}
         <span className="pill">{pretty(s.config.mode)}</span>
-        {(s.status === "initializing" || s.status === "failed" || s.status === "completed") && (
+        {(s.status === "initializing" ||
+          s.status === "failed" ||
+          s.status === "completed") && (
           <span className="pill status-pill">{pretty(s.status)}</span>
         )}
         <label className="card-checkbox">
@@ -498,7 +536,10 @@ function DuplicateDialog({
         beforeEvent.get(p.id) ??
         (p.reason === "pre_event" ? p.label.replace(/^Before /, "") : null),
     }))
-    .sort((a, b) => Number(!a.event) - Number(!b.event) || a.ref.revision - b.ref.revision);
+    .sort(
+      (a, b) =>
+        Number(!a.event) - Number(!b.event) || a.ref.revision - b.ref.revision,
+    );
   const deduped = useRef(false);
   useEffect(() => {
     if (!names.data || deduped.current) return;
@@ -524,14 +565,10 @@ function DuplicateDialog({
     }
   };
   return (
-    <Modal
-      title="Duplicate simulation"
-      onClose={onClose}
-      busy={busy}
-    >
+    <Modal title="Duplicate simulation" onClose={onClose} busy={busy}>
       <p>
-        Duplicate the whole simulation or start the copy from a saved point.
-        The original stays unchanged.
+        Duplicate the whole simulation or start the copy from a saved point. The
+        original stays unchanged.
       </p>
       <Field label="Name" error={nameTaken ? takenMessage : undefined}>
         <input

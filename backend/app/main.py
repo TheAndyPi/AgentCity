@@ -20,7 +20,7 @@ from starlette.exceptions import HTTPException
 
 from app import contracts as c
 from app.api.security import COOKIE, Security
-from app.api.views import Cursors, agent_detail, agent_records, frame, overview
+from app.api.views import Cursors, StreamFrames, agent_detail, agent_records, frame, map_version, overview
 from app.infrastructure.config import AppConfig
 from app.infrastructure.errors import DomainError, require
 from app.narration.router import install_narration, narrate
@@ -43,6 +43,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
     async def lifespan(app):
         service = Service(runtime)
         app.state.service = service
+        app.state.stream_frames = StreamFrames()
         app.state.security = Security(service)
         app.state.cursors = Cursors(service.repo.meta["cursor_secret"])
         integrations.state.service = service
@@ -352,7 +353,13 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
 
     @app.get(API + "/simulations/{sid}/agents/{aid}", response_model=c.Success[c.AgentDetail])
     async def agent(request: Request, sid: str, aid: str, revision: Revision = None):
-        return ok(request, agent_detail(resolved(request, sid, revision), aid, app.state.cursors))
+        state = resolved(request, sid, revision)
+        return ok(
+            request,
+            agent_detail(
+                state, aid, app.state.cursors, decisions=app.state.service.history(state, "decisions")
+            ),
+        )
 
     @app.get(
         API + "/simulations/{sid}/agents/{aid}/{collection}",
@@ -369,12 +376,19 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
     ):
         resource = f"{sid}/agents/{aid}/{collection}"
         state = resolved(request, sid, revision, cursor, resource, {})
-        return paged(request, state, agent_records(state, aid, collection), resource, {}, cursor, limit)
+        items = agent_records(state, aid, collection)
+        if collection == "decisions":
+            items = [
+                item
+                for item in reversed(app.state.service.history(state, "decisions"))
+                if item.agent_id == aid
+            ]
+        return paged(request, state, items, resource, {}, cursor, limit)
 
     @app.get(API + "/simulations/{sid}/decisions/{did}", response_model=c.Success[c.Decision])
     async def decision(request: Request, sid: str, did: str, revision: Revision = None):
         state = resolved(request, sid, revision)
-        item = next((item for item in state.decisions if item.id == did), None)
+        item = next((item for item in app.state.service.history(state, "decisions") if item.id == did), None)
         require(item is not None, "NOT_FOUND", "Decision not found at this revision", 404)
         return ok(request, item)
 
@@ -405,19 +419,62 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
 
     @app.get(API + "/simulations/{sid}/dialogue", response_model=c.Success[c.Page[c.Dialogue]])
     async def dialogue(
-        request: Request, sid: str, revision: Revision = None, cursor: str | None = None, limit: Limit = 25
+        request: Request,
+        sid: str,
+        revision: Revision = None,
+        cursor: str | None = None,
+        limit: Limit = 25,
+        agent_id: str | None = None,
+        interaction_id: str | None = None,
     ):
         resource = f"{sid}/dialogue"
-        state = resolved(request, sid, revision, cursor, resource, {})
-        return paged(
-            request,
-            state,
-            sorted(state.dialogue, key=lambda d: (d.tick, d.id), reverse=True),
-            resource,
-            {},
-            cursor,
-            limit,
-        )
+        filters = {"agent_id": agent_id, "interaction_id": interaction_id}
+        service, cursors = services(request)
+        context = cursors.context(request.state.owner, resource, filters, revision, cursor)
+        # Append positions remain stable while the live head advances. A cursor
+        # freezes the upper bound, so later messages cannot duplicate older pages.
+        state = service.owned(request.state.owner, sid, None if context else revision)
+        index = state.dialogue_index()
+        if interaction_id and agent_id:
+            lines = min(
+                index.by_interaction.get(interaction_id, []), index.by_participant.get(agent_id, []), key=len
+            )
+        elif interaction_id:
+            lines = index.by_interaction.get(interaction_id, [])
+        elif agent_id:
+            lines = index.by_participant.get(agent_id, [])
+        else:
+            lines = state.dialogue
+        boundary = context["before"] if context else len(state.dialogue)
+        import bisect
+
+        # Indexed lists are append ordered; binary search finds the cursor in
+        # O(log history), then reads at most one page (plus filtered matches).
+        stop = bisect.bisect_left(lines, boundary, key=lambda line: index.positions[line.id])
+        items = []
+        position = stop - 1
+        while position >= 0 and len(items) < limit:
+            line = lines[position]
+            position -= 1
+            if agent_id and agent_id not in {line.speaker_id, *line.recipient_ids}:
+                continue
+            if interaction_id and line.interaction_id != interaction_id:
+                continue
+            items.append(line)
+        next_cursor = None
+        if position >= 0 and items:
+            next_cursor = cursors.sign(
+                dict(
+                    owner=request.state.owner,
+                    resource=resource,
+                    filters=filters,
+                    revision=context["revision"]
+                    if context
+                    else (revision if revision is not None else state.simulation.revision),
+                    before=index.positions[items[-1].id],
+                )
+            )
+        return ok(request, dict(items=items, next_cursor=next_cursor))
 
     @app.get(API + "/simulations/{sid}/metrics", response_model=c.Success[c.MetricSeries])
     async def metrics(
@@ -432,7 +489,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
         end = state.simulation.tick if to_tick is None else min(to_tick, state.simulation.tick)
         points = [
             p
-            for p in state.metric_points
+            for p in app.state.service.history(state, "metric_points")
             if from_tick <= p.tick <= end and (p.tick - from_tick) % stride == 0
         ]
         return ok(request, c.MetricSeries(points=points))
@@ -447,7 +504,11 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
     ):
         resource = f"{sid}/timeline"
         state = resolved(request, sid, revision, cursor, resource, {})
-        entries = app.state.service.repo.meta["simulations"][sid][: state.simulation.revision + 1]
+        entries = [
+            entry
+            for entry in app.state.service.repo.meta["simulations"][sid]
+            if entry["revision"] <= state.simulation.revision
+        ]
         items = [
             c.TimelinePoint(
                 ref=c.Ref(tick=item["tick"], revision=item["revision"]),
@@ -734,7 +795,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
                     "exposed_count",
                 ]
             )
-            for point in state.metric_points:
+            for point in service.history(state, "metric_points"):
                 writer.writerow(
                     [
                         sid,
@@ -754,7 +815,14 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
                 headers={"Content-Disposition": 'attachment; filename="metrics.csv"'},
             )
         frames = []
-        for rev in range(state.simulation.revision + 1):
+        for rev in sorted(
+            {
+                entry["revision"]
+                for entry in service.repo.meta["simulations"][sid]
+                if entry["revision"] <= state.simulation.revision
+            }
+            | {state.simulation.revision}
+        ):
             historical = service.owned(request.state.owner, sid, rev)
             if historical.simulation.initialization.stage == "ready":
                 frames.append(frame(historical))
@@ -763,11 +831,14 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
             c.Export(
                 simulation=state.simulation,
                 frames=frames,
-                agents=[agent_detail(state, aid, all_records=True) for aid in state.citizens],
+                agents=[
+                    agent_detail(state, aid, all_records=True, decisions=service.history(state, "decisions"))
+                    for aid in state.citizens
+                ],
                 events=[event_report(state, runtime) for runtime in state.events.values()],
-                decisions=state.decisions,
+                decisions=service.history(state, "decisions"),
                 dialogue=state.dialogue,
-                metrics=state.metric_points,
+                metrics=service.history(state, "metric_points"),
             ),
         )
 
@@ -807,13 +878,19 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
 
         async def sender():
             revision = -1
-            ready_sent = False
+            sent_map_version = None
             last_send = 0
             loop = asyncio.get_running_loop()
             while True:
+                # Read after pacing/backpressure so intermediate revisions are skipped.
+                delay = 0.05 - (loop.time() - last_send)
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                changed = service.head_event(sid)
                 websocket.app.state.security.authorize_stream(websocket, owner)
                 state = service.owned(owner, sid)
                 message = None
+                encoded = None
                 if service.repo.degraded:
                     message = dict(
                         type="error",
@@ -828,25 +905,35 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
                     if state.simulation.initialization.stage != "ready":
                         message = dict(type="initialization", data=state.simulation.model_dump())
                     else:
-                        message = dict(
-                            type="frame" if ready_sent else "snapshot", data=frame(state).model_dump()
+                        version = map_version(state)
+                        encoded = websocket.app.state.stream_frames.encoded(
+                            state, snapshot=sent_map_version != version
                         )
-                        ready_sent = True
+                        sent_map_version = version
                     revision = state.simulation.revision
                 elif loop.time() - last_send >= 15:
                     message = dict(
                         type="heartbeat", data=dict(revision=revision, status=state.simulation.status)
                     )
-                if message:
+                if message is not None:
                     value = dict(schema_version="1.0.0", simulation_id=sid, sent_at=now(), **message)
                     encoded = json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+                if encoded is not None:
                     websocket.app.state.security.authorize_stream(websocket, owner)
                     await asyncio.wait_for(websocket.send_text(encoded), timeout=2)
                     service.stats["socket_bytes"] += len(encoded.encode())
                     last_send = loop.time()
-                    if message["type"] == "error":
+                    if message is not None and message["type"] == "error":
                         return
-                await asyncio.sleep(0.1)
+                else:
+                    # Publication replaces the event before waking all subscribers.
+                    # Capturing it before reading the head prevents a lost wake-up.
+                    try:
+                        await asyncio.wait_for(
+                            changed.wait(), timeout=max(0.001, 15 - (loop.time() - last_send))
+                        )
+                    except TimeoutError:
+                        pass
 
         tasks = [
             asyncio.create_task(receiver()),
@@ -916,7 +1003,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
                     }
                 )
         schema["info"]["description"] = (
-            "Contract 1.0.0. Private single-owner demo. Local mode permits loopback only; session mode uses the server-set agentcity_session HttpOnly Secure SameSite=Lax cookie. All writes require Idempotency-Key and CSRF (except login). Full-frame WebSocket protocol is in contracts/v1/stream.schema.json."
+            "Contract 1.0.0. Private single-owner demo. Local mode permits loopback only; session mode uses the server-set agentcity_session HttpOnly Secure SameSite=Lax cookie. All writes require Idempotency-Key and CSRF (except login). Snapshot and map-delta WebSocket protocol is in contracts/v1/stream.schema.json."
         )
         app.openapi_schema = schema
         return schema

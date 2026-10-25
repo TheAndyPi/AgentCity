@@ -7,15 +7,18 @@ from app.simulation.agents import (
     evidence,
     metric_delta,
     perception,
+    refresh_derived_metrics,
     remember,
     retrieve,
     update_metrics,
 )
 from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.game_master import advance_movement, apply_intent, rule_intent
+from app.simulation.indexes import TickContext
 from app.simulation.interactions import expire_interactions
-from app.simulation.navigation import SpatialIndex, restore_personal_space
+from app.simulation.navigation import restore_personal_space
 from app.simulation.scenarios import activate, apply_effects, finish_events
+from app.simulation.timing import legacy_ticks
 
 RULES = {
     "version": "1.0.0",
@@ -63,7 +66,9 @@ def tick(state, proposals=None):
     state.simulation.sim_time_seconds = state.simulation.tick * state.simulation.config.tick_seconds
     activate(state)
     systems.on_tick_start(state)
+    state._tick_context = TickContext(state)
     restore_personal_space(state)
+    state.dialogue_index()
     rng = random.Random()
     rng.setstate(tuple_tree(state.rng_state))
     ordering = sorted(aid for aid, c in state.citizens.items() if living(c))
@@ -80,7 +85,7 @@ def tick(state, proposals=None):
         ):
             continue
         candidate = proposals.get(aid)
-        context = perception(state, citizen, SpatialIndex(state.citizens))
+        context = perception(state, citizen, state._tick_context.spatial)
         encounter(state, citizen, context)
         # Urgent safety is always handled by the existing legal evacuation policy.
         from app.simulation.agents import hazard_severity
@@ -97,14 +102,14 @@ def tick(state, proposals=None):
             handled = True
         proposed = candidate if not handled and not threatened else None
         if proposed and proposed[0].action == "talk":
-            current_lines = [line for line in state.dialogue if aid in [line.speaker_id, *line.recipient_ids]]
+            current_lines = state.dialogue_index().by_participant.get(aid, [])
             if current_lines:
                 last = current_lines[-1]
                 interaction = state.interactions.get(last.interaction_id)
                 if (
                     interaction
                     and interaction.status in {"invited", "accepted"}
-                    and (last.tick >= state.simulation.tick or last.speaker_id == aid)
+                    and (state.simulation.tick - last.tick < legacy_ticks(state, 1) or last.speaker_id == aid)
                 ):
                     proposed = None
         if not handled:
@@ -127,9 +132,18 @@ def tick(state, proposals=None):
         }:
             advance_movement(state, citizen)
             synchronize_transport(state, citizen)
+            state._tick_context.spatial.update(citizen)
+            patient = state.citizens.get(citizen.condition.patient_id)
+            if patient is not None:
+                state._tick_context.spatial.update(patient)
     from app.disasters.physics import advance
 
+    state._tick_context.spatial = None
+    state._tick_context.hazards.clear()
+    state._tick_context.blocked = None
     advance(state)
+    state._tick_context.hazards.clear()
+    state._tick_context.blocked = None
     for citizen in state.citizens.values():
         evaluate(state, citizen, "After physical disaster exposure")
     # Consumption/rest happens before decay. Patients still decay and can die.
@@ -151,19 +165,25 @@ def tick(state, proposals=None):
     fire_effects(state)
     systems.after_tick(state)
     treatment(state)
-    # Refresh derived canonical inputs, then freeze/apply exactly one coupling phase.
-    update_metrics(state)
+    state._tick_context.hazards.clear()
+    # Freeze derived inputs once before coupling; publish the aggregate once afterwards.
+    refresh_derived_metrics(state)
     for citizen in state.citizens.values():
         background(state, citizen)
         evaluate_crisis(state, citizen)
     expire_interactions(state)
-    if state.simulation.tick % 20 == 0:
+    if state.simulation.tick % legacy_ticks(state, 20) == 0:
         for citizen in state.citizens.values():
             if not conscious(citizen):
                 continue
             episodes = [
                 memory
-                for memory in retrieve(citizen, state.simulation.tick, " ".join(citizen.goals))
+                for memory in retrieve(
+                    citizen,
+                    state.simulation.tick,
+                    " ".join(citizen.goals),
+                    tick_seconds=state.simulation.config.tick_seconds,
+                )
                 if memory.source != "reflection"
             ]
             if episodes:
@@ -179,7 +199,7 @@ def tick(state, proposals=None):
                     ),
                 )
     state.rng_state = list_tree(rng.getstate())
-    update_metrics(state)
+    update_metrics(state, refresh=False)
     resolved = finish_events(state)
     systems.after_finish(state, resolved)
     if (
@@ -190,7 +210,25 @@ def tick(state, proposals=None):
         state.simulation.pause_reason = None
         state.simulation.control_version += 1
     if resolved:
+        state._tick_context.hazards.clear()
         update_metrics(state)
         for runtime in state.events.values():
             if runtime.summary.end_tick == state.simulation.tick:
                 runtime.after = state.metric_points[-1].values.model_copy()
+
+    trim_hot_history(state)
+    state._tick_context = None
+
+
+def trim_hot_history(state):
+    """Keep live projection work bounded; persistence drains retired records to segments."""
+    for name, limit in (("decisions", 1000), ("metric_points", 600)):
+        records = getattr(state, name)
+        excess = len(records) - limit
+        if excess > 0:
+            if name == "decisions":
+                from app.simulation.lessons import summarize_retired
+
+                summarize_retired(state, records[:excess])
+            getattr(state, "pending_" + name).extend(records[:excess])
+            del records[:excess]

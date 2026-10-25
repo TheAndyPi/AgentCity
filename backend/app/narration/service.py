@@ -124,6 +124,8 @@ class NarrationService:
             )
             return await asyncio.shield(task)
         # Resolve and reject before any capacity reservation or vendor request.
+        if body.source_type == "decision":
+            state = state.model_copy(update={"decisions": self.core.history(state, "decisions")})
         text = recorded_text(state, body.source_type, body.source_id, self.config.max_characters, live=live)
         voice_id = self.voices.resolve(state, body.source_type, body.source_id, self.config)
         origin = self.config.public_origin or str(request.base_url).rstrip("/")

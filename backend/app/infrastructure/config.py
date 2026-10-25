@@ -28,10 +28,11 @@ class AppConfig:
     llm_rpm: int = 30
     llm_output_tokens: int = 512
     llm_token_budget: int = 200000
-    base_tps: float = 2
+    base_tps: float = 20
     max_agents: int = 100
     max_running: int = 1
-    autosave_interval: int = 20
+    autosave_interval: int = 200
+    persist_interval_seconds: float = 5
     persistence_mode: str = "local"
     tiger_enabled: bool = False
     tiger_database_url: str = ""
@@ -71,10 +72,11 @@ class AppConfig:
             llm_rpm=int(os.getenv("LLM_REQUESTS_PER_MINUTE", "30")),
             llm_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "512")),
             llm_token_budget=int(os.getenv("LLM_SESSION_TOKEN_BUDGET", "200000")),
-            base_tps=float(os.getenv("SIM_BASE_TICKS_PER_SECOND", "2")),
+            base_tps=float(os.getenv("SIM_BASE_TICKS_PER_SECOND", "20")),
             max_agents=int(os.getenv("SIM_MAX_AGENTS", "100")),
             max_running=int(os.getenv("SIM_MAX_RUNNING", "1")),
-            autosave_interval=int(os.getenv("AUTOSAVE_INTERVAL_TICKS", "20")),
+            autosave_interval=int(os.getenv("AUTOSAVE_INTERVAL_TICKS", "200")),
+            persist_interval_seconds=float(os.getenv("PERSIST_INTERVAL_SECONDS", "5")),
             persistence_mode=os.getenv("PERSISTENCE_MODE", "local"),
             tiger_enabled=os.getenv("TIGER_ENABLED", "false").lower() == "true",
             tiger_database_url=os.getenv("TIGER_DATABASE_URL", ""),
@@ -127,6 +129,7 @@ class AppConfig:
                 self.llm_output_tokens,
                 self.llm_token_budget,
                 self.autosave_interval,
+                self.persist_interval_seconds,
             )
             <= 0
         ):

@@ -148,3 +148,79 @@ describe("stream generations, fallback and REST races", () => {
     stop();
   });
 });
+
+it("merges a mapless delta and rejects an unknown map version", () => {
+  const store = new WorldStore();
+  const initial = at(1);
+  initial.map_version = 10;
+  store.accept(initial);
+  const { map: _map, ...delta } = at(2);
+  expect(store.acceptDelta({ ...delta, map_version: 10 })).toBe(true);
+  expect(store.getSnapshot().frame?.map).toBe(initial.map);
+  expect(() =>
+    store.acceptDelta({
+      ...delta,
+      ref: { ...delta.ref, revision: 3 },
+      map_version: 11,
+    }),
+  ).toThrow("snapshot");
+  expect(store.getSnapshot().frame?.ref.revision).toBe(2);
+});
+
+it("notifies subscribers once per animation frame with the latest revision", () => {
+  let flush!: FrameRequestCallback;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    flush = callback;
+    return 1;
+  });
+  const store = new WorldStore();
+  const changed = vi.fn();
+  store.subscribe(changed);
+  store.accept(at(1));
+  store.accept(at(2));
+  store.accept(at(3));
+  expect(changed).not.toHaveBeenCalled();
+  expect(store.getSnapshot().frame?.ref.revision).toBe(3);
+  flush(0);
+  expect(changed).toHaveBeenCalledTimes(1);
+});
+
+it("merges dynamic map stats while preserving cached geometry", () => {
+  const store = new WorldStore();
+  const initial = at(1);
+  store.accept(initial);
+  const { map: _map, ...delta } = at(2);
+  const resource = initial.map.resources[0];
+  const building = initial.map.buildings[0];
+  const zone = initial.map.zones[0];
+  store.acceptDelta({
+    ...delta,
+    map_updates: {
+      resources: [{ id: resource.id, available_units: 7 }],
+      buildings: [
+        { id: building.id, capacity: 4, occupancy: 3, functional: false },
+      ],
+      zones: [
+        {
+          id: zone.id,
+          metrics: { ...zone.metrics, safety: 5 },
+          population: 4,
+          population_density_per_km2: 100,
+        },
+      ],
+    },
+  });
+  const current = store.getSnapshot().frame!;
+  expect(current.map.cells).toBe(initial.map.cells);
+  expect(current.map.resources[0].available_units).toBe(7);
+  expect(current.map.buildings[0]).toMatchObject({
+    capacity: 4,
+    occupancy: 3,
+    functional: false,
+  });
+  expect(current.map.zones[0].metrics.safety).toBe(5);
+  expect(initial.map.resources[0].available_units).toBe(
+    resource.available_units,
+  );
+  expect(initial.map.buildings[0].functional).toBe(true);
+});

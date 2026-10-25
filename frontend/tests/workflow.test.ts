@@ -5,6 +5,7 @@ import { defaultConfig, defaultProfile } from "../src/api/defaults";
 import type { Simulation } from "../src/api/types";
 let transport: MockTransport, client: AgentCityClient;
 beforeEach(() => {
+  if (typeof sessionStorage !== "undefined") sessionStorage.clear();
   vi.useFakeTimers({ shouldAdvanceTime: true });
   transport = new MockTransport();
   client = new AgentCityClient(transport);

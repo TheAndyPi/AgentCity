@@ -444,6 +444,41 @@
       "title": "Building",
       "type": "object"
     },
+    "BuildingUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "capacity": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "occupancy": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Occupancy",
+          "type": "integer"
+        },
+        "functional": {
+          "title": "Functional",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "capacity",
+        "occupancy",
+        "functional"
+      ],
+      "title": "BuildingUpdate",
+      "type": "object"
+    },
     "Capabilities": {
       "additionalProperties": false,
       "properties": {
@@ -803,12 +838,15 @@
           "uniqueItems": true
         },
         "tick_seconds": {
-          "const": 10,
+          "enum": [
+            1,
+            10
+          ],
           "title": "Tick Seconds",
           "type": "integer"
         },
         "max_ticks": {
-          "maximum": 10000,
+          "maximum": 100000,
           "minimum": 1,
           "title": "Max Ticks",
           "type": "integer"
@@ -903,14 +941,17 @@
           "uniqueItems": true
         },
         "tick_seconds": {
-          "const": 10,
-          "default": 10,
+          "default": 1,
+          "enum": [
+            1,
+            10
+          ],
           "title": "Tick Seconds",
           "type": "integer"
         },
         "max_ticks": {
-          "default": 10000,
-          "maximum": 10000,
+          "default": 100000,
+          "maximum": 100000,
           "minimum": 1,
           "title": "Max Ticks",
           "type": "integer"
@@ -1980,6 +2021,131 @@
       "title": "Failure",
       "type": "object"
     },
+    "FrameDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "simulation": {
+          "$ref": "#/$defs/Simulation"
+        },
+        "map": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MapData"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "map_version": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Map Version",
+          "type": "integer"
+        },
+        "agents": {
+          "items": {
+            "$ref": "#/$defs/AgentSummary"
+          },
+          "title": "Agents",
+          "type": "array"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventSummary"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "policies": {
+          "$ref": "#/$defs/Policies"
+        },
+        "metrics": {
+          "$ref": "#/$defs/MetricPoint"
+        },
+        "recent_dialogue": {
+          "items": {
+            "$ref": "#/$defs/Dialogue"
+          },
+          "title": "Recent Dialogue",
+          "type": "array"
+        },
+        "active_hazards": {
+          "items": {
+            "$ref": "#/$defs/Hazard"
+          },
+          "title": "Active Hazards",
+          "type": "array"
+        },
+        "map_updates": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MapUpdates"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "ref",
+        "simulation",
+        "agents",
+        "events",
+        "policies",
+        "metrics",
+        "recent_dialogue",
+        "active_hazards"
+      ],
+      "title": "FrameDelta",
+      "type": "object"
+    },
+    "FrameMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "simulation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Simulation Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "frame",
+          "title": "Type",
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/$defs/FrameDelta"
+        }
+      },
+      "required": [
+        "schema_version",
+        "simulation_id",
+        "sent_at",
+        "type",
+        "data"
+      ],
+      "title": "FrameMessage",
+      "type": "object"
+    },
     "Hazard": {
       "additionalProperties": false,
       "properties": {
@@ -2655,6 +2821,39 @@
         "resources"
       ],
       "title": "MapData",
+      "type": "object"
+    },
+    "MapUpdates": {
+      "additionalProperties": false,
+      "properties": {
+        "zones": {
+          "items": {
+            "$ref": "#/$defs/ZoneUpdate"
+          },
+          "title": "Zones",
+          "type": "array"
+        },
+        "buildings": {
+          "items": {
+            "$ref": "#/$defs/BuildingUpdate"
+          },
+          "title": "Buildings",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/ResourceUpdate"
+          },
+          "title": "Resources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "zones",
+        "buildings",
+        "resources"
+      ],
+      "title": "MapUpdates",
       "type": "object"
     },
     "Memory": {
@@ -3808,6 +4007,28 @@
       "title": "ResourceSource",
       "type": "object"
     },
+    "ResourceUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "available_units": {
+          "minimum": 0,
+          "title": "Available Units",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "available_units"
+      ],
+      "title": "ResourceUpdate",
+      "type": "object"
+    },
     "RevisionSource": {
       "additionalProperties": false,
       "properties": {
@@ -4634,10 +4855,7 @@
           "type": "string"
         },
         "type": {
-          "enum": [
-            "snapshot",
-            "frame"
-          ],
+          "const": "snapshot",
           "title": "Type",
           "type": "string"
         },
@@ -5113,6 +5331,13 @@
         "map": {
           "$ref": "#/$defs/MapData"
         },
+        "map_version": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Map Version",
+          "type": "integer"
+        },
         "agents": {
           "items": {
             "$ref": "#/$defs/AgentSummary"
@@ -5211,11 +5436,44 @@
       ],
       "title": "Zone",
       "type": "object"
+    },
+    "ZoneUpdate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/Metrics"
+        },
+        "population": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Population",
+          "type": "integer"
+        },
+        "population_density_per_km2": {
+          "minimum": 0,
+          "title": "Population Density Per Km2",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "metrics",
+        "population",
+        "population_density_per_km2"
+      ],
+      "title": "ZoneUpdate",
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "x-contract-version": "1.0.0",
-  "x-contract-revision": 2,
+  "x-contract-revision": 3,
   "x-types": {
     "Acknowledge": {
       "$ref": "#/$defs/Acknowledge"
@@ -5243,6 +5501,9 @@
     },
     "Building": {
       "$ref": "#/$defs/Building"
+    },
+    "BuildingUpdate": {
+      "$ref": "#/$defs/BuildingUpdate"
     },
     "Capabilities": {
       "$ref": "#/$defs/Capabilities"
@@ -5331,6 +5592,12 @@
     "Failure": {
       "$ref": "#/$defs/Failure"
     },
+    "FrameDelta": {
+      "$ref": "#/$defs/FrameDelta"
+    },
+    "FrameMessage": {
+      "$ref": "#/$defs/FrameMessage"
+    },
     "Hazard": {
       "$ref": "#/$defs/Hazard"
     },
@@ -5384,6 +5651,9 @@
     },
     "MapData": {
       "$ref": "#/$defs/MapData"
+    },
+    "MapUpdates": {
+      "$ref": "#/$defs/MapUpdates"
     },
     "Memory": {
       "$ref": "#/$defs/Memory"
@@ -5462,6 +5732,9 @@
     },
     "ResourceSource": {
       "$ref": "#/$defs/ResourceSource"
+    },
+    "ResourceUpdate": {
+      "$ref": "#/$defs/ResourceUpdate"
     },
     "RevisionSource": {
       "$ref": "#/$defs/RevisionSource"
@@ -5561,6 +5834,9 @@
     },
     "Zone": {
       "$ref": "#/$defs/Zone"
+    },
+    "ZoneUpdate": {
+      "$ref": "#/$defs/ZoneUpdate"
     }
   }
 }

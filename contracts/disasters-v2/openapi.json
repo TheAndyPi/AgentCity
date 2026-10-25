@@ -519,12 +519,15 @@
           },
           "tick_seconds": {
             "type": "integer",
-            "const": 10,
+            "enum": [
+              1,
+              10
+            ],
             "title": "Tick Seconds"
           },
           "max_ticks": {
             "type": "integer",
-            "maximum": 10000.0,
+            "maximum": 100000.0,
             "minimum": 1.0,
             "title": "Max Ticks"
           }

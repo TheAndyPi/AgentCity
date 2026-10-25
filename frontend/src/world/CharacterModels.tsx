@@ -132,7 +132,11 @@ export default function CharacterModels({
   useFrame(({ clock, camera, size }) => {
     const duration = Math.min(
       4000,
-      Math.max(600, 200 / frame.simulation.speed_multiplier),
+      Math.max(
+        40,
+        (50 * frame.simulation.config.tick_seconds) /
+          frame.simulation.speed_multiplier,
+      ),
     );
     const t = reducedMotion
       ? 1

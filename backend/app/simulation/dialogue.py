@@ -10,7 +10,7 @@ import hashlib
 def choose(options, state, actor, interaction, previous):
     key = f"{state.simulation.config.seed}:{actor.summary.id}:{interaction.id}:{len(previous)}"
     offset = int.from_bytes(hashlib.sha256(key.encode()).digest()[:4]) % len(options)
-    recent = {line.text for line in state.dialogue[-100:] if line.speaker_id == actor.summary.id}
+    recent = {line.text for line in state.dialogue_index().by_speaker.get(actor.summary.id, [])[-100:]}
     return next(
         (
             options[(offset + i) % len(options)]
@@ -36,12 +36,9 @@ def personal_detail(actor):
 
 
 def opening_topic(state, actor, target, reason=""):
-    past = [
-        line.text
-        for line in state.dialogue
-        if line.speaker_id == actor.summary.id and target.summary.id in line.recipient_ids
-    ]
-    events = [m for m in actor.memories if m.text.startswith("World event:")]
+    index = state.dialogue_index()
+    past = [line.text for line in index.pair_lines(actor.summary.id, target.summary.id)[-100:]]
+    events = [m for m in actor.memories[-512:] if m.text.startswith("World event:")]
     fresh = [
         m for m in events if not any(m.text.removeprefix("World event: ")[:160] in text for text in past)
     ]
@@ -70,13 +67,7 @@ def opening_topic(state, actor, target, reason=""):
     if actor.profile.secondary_goals:
         topics.append({"kind": "goal", "detail": phrase(actor.profile.secondary_goals[0]).lower()})
     # Rotate topics across meetings without consuming the world's physical RNG.
-    meetings = len(
-        {
-            line.interaction_id
-            for line in state.dialogue
-            if line.speaker_id == actor.summary.id and target.summary.id in line.recipient_ids
-        }
-    )
+    meetings = index.meeting_count(actor.summary.id, target.summary.id)
     offset = int.from_bytes(hashlib.sha256(actor.summary.id.encode()).digest()[:2])
     return topics[(offset + meetings) % len(topics)]
 
@@ -84,7 +75,7 @@ def opening_topic(state, actor, target, reason=""):
 def rule_speech(state, actor, target, intent, interaction, previous):
     name = target.summary.name.split()[0]
     if intent.action == "talk" and not previous:
-        for memory in reversed(actor.memories):
+        for memory in reversed(actor.memories[-512:]):
             if (
                 memory.source not in {"observed", "heard"}
                 or not memory.text.startswith(("I witnessed ", "I heard about "))
@@ -97,15 +88,10 @@ def rule_speech(state, actor, target, intent, interaction, previous):
                     report = (
                         f"{name}, I learned that {deceased.summary.name} has died. I could use some support."
                     )
-                    if not any(
-                        line.speaker_id == actor.summary.id
-                        and target.summary.id in line.recipient_ids
-                        and line.text == report
-                        for line in state.dialogue
-                    ):
+                    if not state.dialogue_index().has_said(actor.summary.id, target.summary.id, report):
                         return report
     if intent.action == "warn":
-        events = [m for m in actor.memories if m.text.startswith("World event:")]
+        events = [m for m in actor.memories[-512:] if m.text.startswith("World event:")]
         detail = f"{phrase(events[-1].text.removeprefix('World event: '))}. " if events else ""
         return choose(
             [

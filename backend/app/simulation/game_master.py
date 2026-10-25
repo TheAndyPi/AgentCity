@@ -21,6 +21,7 @@ from app.simulation.building_visits import (
     trip_route,
     walkable_segment,
 )
+from app.simulation.indexes import buildings_by_id, spatial_index
 from app.simulation.interactions import accept_invitation, coordinate_aid, speak
 from app.simulation.navigation import (
     cell_at,
@@ -33,6 +34,7 @@ from app.simulation.navigation import (
     polygon_contains,
 )
 from app.simulation.scenarios import blocked_cells
+from app.simulation.timing import legacy_ticks
 
 ACTION_REGISTRY = {
     "idle": {"local": True},
@@ -85,6 +87,7 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
 
     evaluate(state, citizen, "Before ordinary action")
     context = context or perception(state, citizen)
+    dt = state.simulation.config.tick_seconds / 10
     before_energy = 100 - citizen.needs.fatigue
     did = state.next_id("decision")
     decision = Decision(
@@ -253,7 +256,7 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             before = citizen.needs.fatigue
             rest(state, citizen)
             change(citizen.summary.id, "needs.fatigue", before, citizen.needs.fatigue)
-            metric_delta(citizen, "stress", -0.6, proof)
+            metric_delta(citizen, "stress", -0.6 * dt, proof)
         elif action == "consume":
             check(
                 getattr(citizen.inventory, kind) >= amount,
@@ -332,14 +335,15 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             check(working < workplace.capacity, "CAPACITY", "Workplace is at capacity")
             # Work draws stock from the supply depot; it never creates unlogged resources.
             depot = next(
-                (r for r in state.map.resources if r.kind == "supplies" and r.available_units >= 0.25), None
+                (r for r in state.map.resources if r.kind == "supplies" and r.available_units >= 0.25 * dt),
+                None,
             )
             check(depot is not None, "RESOURCE_CONTESTED", "No supply stock remains for work yield")
             before = depot.available_units
-            depot.available_units -= 0.25
+            depot.available_units -= 0.25 * dt
             change(depot.id, "available_units", before, depot.available_units)
-            inventory_delta(citizen, "supplies", 0.25)
-            metric_delta(citizen, "happiness", 0.2, proof)
+            inventory_delta(citizen, "supplies", 0.25 * dt)
+            metric_delta(citizen, "happiness", 0.2 * dt, proof)
         elif action == "help":
             check(
                 hazard_severity(state, citizen.summary.position) == 0 and not state.policies.evacuation_order,
@@ -541,10 +545,11 @@ def advance_movement(state, citizen):
     while remaining > 1e-8 and citizen.summary.path:
         destination = citizen.summary.path[0]
         cell = cell_at(state.map, destination)
+        buildings = buildings_by_id(state)
         indoor_waypoint = any(
-            b.id in {citizen.inside_building_id, citizen.entering_building_id, citizen.leaving_building_id}
-            and polygon_contains(destination, b.footprint)
-            for b in state.map.buildings
+            key in buildings and polygon_contains(destination, buildings[key].footprint)
+            for key in (citizen.inside_building_id, citizen.entering_building_id, citizen.leaving_building_id)
+            if key is not None
         )
         if cell is None or (not cell.walkable and not indoor_waypoint) or (cell.col, cell.row) in blocked:
             citizen.summary.path = []
@@ -566,8 +571,11 @@ def advance_movement(state, citizen):
         )
         occupied = [
             c.summary.position
-            for c in state.citizens.values()
-            if c.summary.active and c is not citizen and c.summary.id != citizen.condition.patient_id
+            for c in spatial_index(state).nearby(
+                origin,
+                max(12, *(distance(origin, point) + 1.1 for point in citizen.summary.path[:6])),
+            )
+            if c is not citizen and c.summary.id != citizen.condition.patient_id
         ]
         fraction = clear_travel(origin, candidate, occupied)
         citizen.summary.position = Vec2(
@@ -590,7 +598,8 @@ def advance_movement(state, citizen):
             # Shared resources and entrances are reached from personal space.
             if len(citizen.summary.path) == 1 and distance(p, destination) <= 2.4:
                 citizen.summary.path = []
-            else:
+            elif state.simulation.tick >= citizen.next_detour_tick:
+                citizen.next_detour_tick = state.simulation.tick + legacy_ticks(state, 1)
                 for i, onward in enumerate(citizen.summary.path[:6]):
                     route = crowd_detour(
                         p,
@@ -606,13 +615,13 @@ def advance_movement(state, citizen):
             citizen.summary.path.pop(0)
     if citizen.summary.path and distance(origin_at_tick, citizen.summary.position) < 0.01:
         citizen.blocked_movement_ticks += 1
-        if citizen.blocked_movement_ticks >= 6:
+        if citizen.blocked_movement_ticks >= legacy_ticks(state, 6):
             # A stale route must not suppress autonomy forever. Release its room
             # reservation and let the next tick choose again from current facts.
             citizen.summary.path = []
             citizen.plan = None
             citizen.task_generation += 1
-            citizen.next_deliberation_tick = state.simulation.tick + 1
+            citizen.next_deliberation_tick = state.simulation.tick + legacy_ticks(state, 1)
             citizen.blocked_movement_ticks = 0
     else:
         citizen.blocked_movement_ticks = 0
@@ -734,7 +743,7 @@ def rule_intent(state, citizen, context):
             and conversation.expires_tick >= state.simulation.tick
             and citizen.summary.id in conversation.participant_ids
         ):
-            lines = [d for d in state.dialogue if d.interaction_id == conversation.id]
+            lines = state.dialogue_index().by_interaction.get(conversation.id, [])
             other_id = next((aid for aid in conversation.participant_ids if aid != citizen.summary.id), None)
             speaker = state.citizens.get(other_id)
             if (
@@ -745,7 +754,7 @@ def rule_intent(state, citizen, context):
                 if (
                     lines
                     and lines[-1].speaker_id != citizen.summary.id
-                    and lines[-1].tick < state.simulation.tick
+                    and state.simulation.tick - lines[-1].tick >= legacy_ticks(state, 1)
                 ):
                     return make_intent(
                         "talk",
@@ -823,7 +832,7 @@ def rule_intent(state, citizen, context):
             for interaction in state.interactions.values()
             if interaction.kind == "conversation"
             and citizen.summary.id in interaction.participant_ids
-            and interaction.expires_tick + 8 >= state.simulation.tick
+            and interaction.expires_tick + legacy_ticks(state, 8) >= state.simulation.tick
             for aid in interaction.participant_ids
             if aid != citizen.summary.id
         }
@@ -840,7 +849,7 @@ def rule_intent(state, citizen, context):
                 citizen.plan = dict(
                     kind="social_visit",
                     target_id=other.summary.id,
-                    expires_tick=state.simulation.tick + 30,
+                    expires_tick=state.simulation.tick + legacy_ticks(state, 30),
                     motivation=reason,
                 )
                 return make_intent(

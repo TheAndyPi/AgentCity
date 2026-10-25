@@ -220,7 +220,7 @@ def treatment(state):
             dt = state.simulation.config.tick_seconds / 10
             unit = RULES["treatment_units"] * dt
             # Bed rest requires a functioning bed; nutrition and treatment require stock.
-            rest(state, patient, RULES["bed_energy"] * dt, "care")
+            rest(state, patient, RULES["bed_energy"], "care")
             if hospital.inventory.supplies >= unit:
                 hospital.inventory.supplies -= unit
                 state.counters["resources_consumed"] += unit

@@ -423,7 +423,7 @@ export default function Setup() {
                   <input
                     type="number"
                     min={1}
-                    max={10000}
+                    max={100000}
                     value={config.max_ticks}
                     onChange={(e) =>
                       update("max_ticks", Number(e.target.value))

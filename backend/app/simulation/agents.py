@@ -1,6 +1,8 @@
 """Profile lifecycle, bounded perception, evidence-backed cognition and metrics."""
 
-from statistics import mean
+from collections import defaultdict
+from functools import lru_cache
+from heapq import nlargest
 
 from app.contracts import (
     AgentSummary,
@@ -16,8 +18,8 @@ from app.contracts import (
     Traits,
 )
 from app.simulation.characters import OCCUPATIONS, character_details, character_name
+from app.simulation.indexes import spatial_index
 from app.simulation.navigation import (
-    SpatialIndex,
     cell_at,
     distance,
     line_of_sight,
@@ -25,6 +27,12 @@ from app.simulation.navigation import (
     polygon_contains,
 )
 from app.simulation.state import Citizen
+
+
+def mean(values):
+    # Metrics are bounded floats; avoid statistics.mean's exact-ratio machinery.
+    values = values if isinstance(values, list) else list(values)
+    return sum(values) / len(values)
 
 
 def clamp(value):
@@ -138,23 +146,28 @@ def remember(state, citizen, text, source="observed", importance=50, subjects=No
     return memory
 
 
-def retrieve(citizen, tick, query="", limit=8):
-    words = set(query.lower().split())
+@lru_cache(maxsize=8192)
+def memory_words(text):
+    return frozenset(text.lower().split())
+
+
+def retrieve(citizen, tick, query="", limit=8, *, tick_seconds=10):
+    words = memory_words(query)
 
     def score(m):
         return (
             m.importance * 0.5
-            + 30 / (1 + max(0, tick - m.tick) / 10)
-            + 20 * len(words & set(m.text.lower().split())) / max(1, len(words))
+            + 30 / (1 + max(0, tick - m.tick) * tick_seconds / 100)
+            + 20 * len(words & memory_words(m.text)) / max(1, len(words))
         )
 
-    return sorted(citizen.memories, key=lambda m: (score(m), m.id), reverse=True)[:limit]
+    return nlargest(limit, citizen.memories[-512:], key=lambda m: (score(m), m.id))
 
 
 def social_delta(state, citizen, other, decision_id, delta=2):
     # Deduplicate one directed change per evidence set, including reflection proposals.
     key = f"{citizen.summary.id}:{other.summary.id}:{decision_id}"
-    if key in state.applied_social_evidence:
+    if key in state.social_evidence_index():
         return
     connect(state, citizen, other)
     relationship = citizen.relationships[other.summary.id]
@@ -191,6 +204,17 @@ def local_exposure(runtime, position, state):
 
 
 def hazard_severity(state, position):
+    context = state._tick_context
+    key = (position.x, position.y)
+    if context is not None and key in context.hazards:
+        return context.hazards[key]
+    severity = _hazard_severity(state, position)
+    if context is not None:
+        context.hazards[key] = severity
+    return severity
+
+
+def _hazard_severity(state, position):
     fires = [
         f.severity
         for f in state.behavior.fires.values()
@@ -213,31 +237,34 @@ def hazard_severity(state, position):
 
 
 def perception(state, citizen, index=None):
-    index = index or SpatialIndex(state.citizens)
+    index = index or spatial_index(state)
     p = citizen.summary.position
-    nearby = sorted(
-        [
+    candidates = sorted(
+        (
             c
             for c in index.nearby(p, 20)
-            if c.summary.id != citizen.summary.id
-            and c.inside_building_id == citizen.inside_building_id
-            and (citizen.inside_building_id or line_of_sight(state.map, p, c.summary.position))
-        ],
+            if c.summary.id != citizen.summary.id and c.inside_building_id == citizen.inside_building_id
+        ),
         key=lambda c: (distance(p, c.summary.position), c.summary.id),
-    )[:8]
-    memories = retrieve(citizen, state.simulation.tick, " ".join(citizen.goals))
+    )
+    nearby = []
+    for other in candidates:
+        if citizen.inside_building_id or line_of_sight(state.map, p, other.summary.position):
+            nearby.append(other)
+            if len(nearby) == 8:
+                break
+    memories = retrieve(
+        citizen,
+        state.simulation.tick,
+        " ".join(citizen.goals),
+        tick_seconds=state.simulation.config.tick_seconds,
+    )
     ties = sorted(
         citizen.relationships.values(),
         key=lambda r: (r.kind == "family", r.affection + r.trust),
         reverse=True,
     )[:6]
-    messages = [
-        d
-        for d in state.dialogue
-        if citizen.summary.id in d.audible_to_ids
-        or citizen.summary.id in d.recipient_ids
-        or citizen.summary.id == d.speaker_id
-    ][-6:]
+    messages = state.dialogue_index().by_audible.get(citizen.summary.id, [])[-6:]
     facts = [
         f"Position ({p.x:.1f}, {p.y:.1f}) meters",
         f"Hunger {citizen.needs.hunger:.1f}, fatigue {citizen.needs.fatigue:.1f}",
@@ -281,18 +308,27 @@ def perception(state, citizen, index=None):
     }
 
 
-def update_metrics(state):
-    active = [c for c in state.citizens.values() if c.summary.active]
-    for citizen in active:
+def refresh_derived_metrics(state):
+    for citizen in state.citizens.values():
+        if not citizen.summary.active:
+            continue
         m = citizen.summary.metrics
         m.resources = 100 * min(
-            1, sum(citizen.inventory.model_dump().values()) / max(1, citizen.target_inventory_units)
+            1,
+            (citizen.inventory.food + citizen.inventory.water + citizen.inventory.supplies)
+            / max(1, citizen.target_inventory_units),
         )
         known = [r.trust for r in citizen.relationships.values() if r.kind != "stranger"]
         m.trust = mean(known) if known else state.simulation.config.environment.initial_community_trust
         m.safety = clamp(
             100 - max(hazard_severity(state, citizen.summary.position), 100 - citizen.needs.health)
         )
+
+
+def update_metrics(state, *, refresh=True):
+    if refresh:
+        refresh_derived_metrics(state)
+    active = [c for c in state.citizens.values() if c.summary.active]
     values = Metrics(
         **{
             key: mean(getattr(c.summary.metrics, key) for c in active) if active else 0
@@ -327,8 +363,15 @@ def update_metrics(state):
         state.metric_points[-1] = point
     else:
         state.metric_points.append(point)
+    zone_members = defaultdict(list)
+    occupancy = defaultdict(int)
+    for citizen in active:
+        cell = cell_at(state.map, citizen.summary.position)
+        if cell:
+            zone_members[cell.zone_id].append(citizen)
+        occupancy[citizen.inside_building_id] += 1
     for zone in state.map.zones:
-        members = [c for c in active if cell_at(state.map, c.summary.position).zone_id == zone.id]
+        members = zone_members[zone.id]
         zone.population = len(members)
         zone.population_density_per_km2 = len(members) / (polygon_area(zone.polygon) / 1_000_000)
         zone.metrics = (
@@ -342,5 +385,5 @@ def update_metrics(state):
             else values.model_copy()
         )
     for building in state.map.buildings:
-        building.occupancy = sum(c.inside_building_id == building.id for c in active)
+        building.occupancy = occupancy[building.id]
     return point

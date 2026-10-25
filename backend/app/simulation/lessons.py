@@ -51,8 +51,55 @@ def fact(theme, text, decisions=(), memory_ids=()):
 
 
 def spoken(state, decisions, action):
-    keys = {(d.agent_id, d.tick) for d in decisions}
-    return [line for line in state.dialogue if line.intent == action and (line.speaker_id, line.tick) in keys]
+    from bisect import bisect_left
+
+    index = state.dialogue_index()
+    result = []
+    for aid, tick in {(d.agent_id, d.tick) for d in decisions}:
+        lines = index.by_speaker.get(aid, [])
+        position = bisect_left(lines, tick, key=lambda line: line.tick)
+        while position < len(lines) and lines[position].tick == tick:
+            line = lines[position]
+            if line.intent == action:
+                result.append(line)
+            position += 1
+    return sorted(result, key=lambda line: (line.tick, line.id))
+
+
+def summarize_retired(state, decisions):
+    """Preserve bounded event facts before live decisions move to cold storage."""
+    for runtime in state.events.values():
+        if runtime.summary.status != "active":
+            continue
+        cohort = set(runtime.cohort)
+        start = runtime.summary.start_tick or 0
+        for decision in decisions:
+            if decision.tick < start or decision.agent_id not in cohort:
+                continue
+            action = decision.intent.action
+            if decision.rejection_code == "RESOURCE_CONTESTED":
+                action = "contested"
+            elif decision.outcome == "rejected" or action not in {
+                "evacuate",
+                "warn",
+                "help",
+                "trade",
+                "talk",
+            }:
+                continue
+            elif action == "trade" and not decision.outcome_description.startswith("Both parties accepted"):
+                continue
+            summary = runtime.retired_action_summary.setdefault(
+                action, dict(count=0, agents=[], targets=[], samples=[], destinations={})
+            )
+            summary["count"] += 1
+            for key, value in (("agents", decision.agent_id), ("targets", decision.intent.target_id)):
+                if value and value not in summary[key]:
+                    summary[key].append(value)
+            if len(summary["samples"]) < MAX_EVIDENCE_IDS:
+                summary["samples"].append(decision.model_dump(mode="json"))
+            if action == "evacuate":
+                summary["destinations"][decision.agent_id] = decision.intent.target_id
 
 
 def gather_facts(state, runtime):
@@ -63,8 +110,24 @@ def gather_facts(state, runtime):
     buildings = {b.id: b for b in state.map.buildings}
     window = [d for d in state.decisions if start <= d.tick <= end and d.agent_id in cohort]
 
+    from app.contracts import Decision
+
+    def retired(action):
+        return runtime.retired_action_summary.get(action, {})
+
     def taken(action):
-        return [d for d in window if d.intent.action == action and d.outcome != "rejected"]
+        older = [Decision.model_validate(item) for item in retired(action).get("samples", [])]
+        return older + [d for d in window if d.intent.action == action and d.outcome != "rejected"]
+
+    def actors(action, records):
+        return [*retired(action).get("agents", []), *(d.agent_id for d in records)]
+
+    def targets(action, records):
+        return [*retired(action).get("targets", []), *(d.intent.target_id for d in records)]
+
+    def total(action, records):
+        old_ids = {item["id"] for item in retired(action).get("samples", [])}
+        return retired(action).get("count", 0) + sum(d.id not in old_ids for d in records)
 
     facts = []
     if cohort and any(e.type == "hazard" for e in runtime.spec.effects):
@@ -78,8 +141,13 @@ def gather_facts(state, runtime):
         }
         # Each safe citizen counts once, toward the last shelter they headed for.
         destinations = {
-            d.agent_id: d.intent.target_id for d in evacuations if d.intent.target_id in buildings
+            aid: target
+            for aid, target in retired("evacuate").get("destinations", {}).items()
+            if target in buildings
         }
+        destinations.update(
+            {d.agent_id: d.intent.target_id for d in evacuations if d.intent.target_id in buildings}
+        )
         shelters = Counter(target for aid, target in destinations.items() if aid in safe)
         shelter, count = shelters.most_common(1)[0] if shelters else (None, 0)
         if total == 1:
@@ -119,8 +187,8 @@ def gather_facts(state, runtime):
     if warnings:
         lines = spoken(state, warnings, "warn")
         text = (
-            f"{names(state, [d.agent_id for d in warnings])} warned "
-            f"{plural(len({d.intent.target_id for d in warnings}), 'neighbor')}"
+            f"{names(state, actors('warn', warnings))} warned "
+            f"{plural(len(set(targets('warn', warnings))), 'neighbor')}"
         )
         facts.append(
             fact("warning", sentence(text + (f", saying {quote(lines[0].text)}" if lines else "")), warnings)
@@ -131,9 +199,9 @@ def gather_facts(state, runtime):
         facts.append(
             fact(
                 "mutual_aid",
-                f"{names(state, [d.agent_id for d in helping])} gave supplies to "
-                f"{names(state, [d.intent.target_id for d in helping])} "
-                f"({plural(len(helping), 'act')} of help).",
+                f"{names(state, actors('help', helping))} gave supplies to "
+                f"{names(state, targets('help', helping))} "
+                f"({plural(total('help', helping), 'act')} of help).",
                 helping,
             )
         )
@@ -142,8 +210,8 @@ def gather_facts(state, runtime):
         facts.append(
             fact(
                 "mutual_aid",
-                f"{names(state, [d.agent_id for d in trades] + [d.intent.target_id for d in trades])} "
-                f"completed {plural(len(trades), 'trade')} to cover what each other lacked.",
+                f"{names(state, actors('trade', trades) + targets('trade', trades))} "
+                f"completed {plural(total('trade', trades), 'trade')} to cover what each other lacked.",
                 trades,
             )
         )
@@ -162,21 +230,36 @@ def gather_facts(state, runtime):
             )
         )
 
-    contested = [d for d in window if d.rejection_code == "RESOURCE_CONTESTED"]
+    contested = [Decision.model_validate(item) for item in retired("contested").get("samples", [])] + [
+        d for d in window if d.rejection_code == "RESOURCE_CONTESTED"
+    ]
     if contested:
         kinds = Counter(d.intent.parameters.resource_kind or "supplies" for d in contested)
         facts.append(
             fact(
                 "scarcity",
-                f"{names(state, [d.agent_id for d in contested])} reached for "
+                f"{names(state, actors('contested', contested))} reached for "
                 f"{join(sorted(kinds))} that had already run out "
-                f"({plural(len(contested), 'contested claim')}).",
+                f"({plural(total('contested', contested), 'contested claim')}).",
                 contested,
             )
         )
 
     talks = taken("talk")
-    about = [line for line in spoken(state, talks, "talk") if mentions_event(runtime, line.text)]
+    # Dialogue remains complete and its participant index bounds this event read.
+    import bisect
+
+    about = []
+    index = state.dialogue_index()
+    for aid in cohort:
+        lines = index.by_speaker.get(aid, [])
+        first = bisect.bisect_left(lines, start, key=lambda line: line.tick)
+        for line in lines[first:]:
+            if line.tick > end:
+                break
+            if line.intent == "talk" and mentions_event(runtime, line.text):
+                about.append(line)
+    about.sort(key=lambda line: (line.tick, line.id))
     if about:
         keys = {(line.speaker_id, line.tick) for line in about}
         line = about[0]

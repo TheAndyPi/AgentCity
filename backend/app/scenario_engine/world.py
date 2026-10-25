@@ -12,6 +12,7 @@ from app.scenario_engine.systems import (
 )
 from app.simulation.agents import clamp, remember
 from app.simulation.navigation import distance
+from app.simulation.timing import legacy_ticks
 
 CENTER = (64, 64)
 
@@ -82,7 +83,8 @@ def new_agent(state, citizen):
         rent_factor=state.systems.home_rent.get(home.id, 1.0) if home else 1.0,
         home_id=home.id if home else None,
         renter=not (income == "high" and unit(config.seed, aid, "owner") < 0.45),
-        next_review_tick=state.simulation.tick + int(unit(config.seed, aid, "review") * 12),
+        next_review_tick=state.simulation.tick
+        + legacy_ticks(state, int(unit(config.seed, aid, "review") * 12)),
     )
     from app.scenario_engine.responses import habitual_mode
 
@@ -107,6 +109,7 @@ def rent_multiplier(state):
 
 
 def rent_for(state, agent):
+    """Quote rent per legacy ten-second interval; callers scale elapsed charges."""
     if not agent.renter:
         return 0.0
     rent = RENT_PER_TICK * rent_multiplier(state) * agent.rent_factor

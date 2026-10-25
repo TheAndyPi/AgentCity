@@ -257,8 +257,9 @@ def passive(state, citizen):
 def rest(state, citizen, base=6, phase="activity"):
     if not living(citizen):
         return
-    impact(state, citizen, "energy", base * rest_multiplier(citizen), "Rest quality", phase)
-    impact(state, citizen, "mental", RULES["rest_mental"], "Quiet rest", phase)
+    dt = state.simulation.config.tick_seconds / 10
+    impact(state, citizen, "energy", base * rest_multiplier(citizen) * dt, "Rest quality", phase)
+    impact(state, citizen, "mental", RULES["rest_mental"] * dt, "Quiet rest", phase)
 
 
 def share_loss(state, actor, listener, text, proof):

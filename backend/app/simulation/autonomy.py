@@ -5,6 +5,7 @@ import hashlib
 from app.scenario_engine import responses
 from app.simulation.building_visits import interior_slot
 from app.simulation.navigation import distance
+from app.simulation.timing import legacy_ticks
 
 
 def social_choice(state, citizen, candidates):
@@ -44,7 +45,7 @@ def social_choice(state, citizen, candidates):
         else:
             reason = f"I want to talk with {name} about my hope to {citizen.profile.primary_goal.lower().rstrip('.')}"
         # Reproducible variety, independent of world RNG and other people's minds.
-        key = f"{citizen.summary.id}:{other.summary.id}:{state.simulation.tick // 24}"
+        key = f"{citizen.summary.id}:{other.summary.id}:{state.simulation.tick // legacy_ticks(state, 24)}"
         score += int.from_bytes(hashlib.sha256(key.encode()).digest()[:2]) / 65535 * 12
         choices.append((score, other.summary.id, other, reason))
     if not choices:
@@ -67,7 +68,7 @@ def routine_destination(state, citizen):
     ):
         return home, "Go home to rest and regain my energy"
     phase = (
-        state.simulation.tick // 16 + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
+        state.simulation.tick // legacy_ticks(state, 16) + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
     ) % 3
     kind = ["work", "community", "shop"][phase]
     facilities = [

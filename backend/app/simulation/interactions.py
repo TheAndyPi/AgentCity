@@ -6,8 +6,10 @@ from app.contracts import Belief, Dialogue
 from app.simulation.agents import evidence, remember, social_delta
 from app.simulation.building_visits import same_room, sync_building_location
 from app.simulation.dialogue import rule_speech
-from app.simulation.navigation import SpatialIndex, distance, line_of_sight
+from app.simulation.indexes import spatial_index
+from app.simulation.navigation import distance, line_of_sight
 from app.simulation.state import Interaction
+from app.simulation.timing import legacy_ticks
 
 
 def accept_invitation(state, actor, target, kind, proposal=None):
@@ -41,7 +43,7 @@ def accept_invitation(state, actor, target, kind, proposal=None):
         initiator_id=actor.summary.id,
         participant_ids=[actor.summary.id, target.summary.id],
         accepted_ids=[actor.summary.id],
-        expires_tick=state.simulation.tick + 3,
+        expires_tick=state.simulation.tick + legacy_ticks(state, 3),
         proposal=proposal or {},
     )
     state.interactions[interaction.id] = interaction
@@ -49,7 +51,7 @@ def accept_invitation(state, actor, target, kind, proposal=None):
 
 
 def speak(state, actor, target, intent, decision_id, interaction):
-    previous = [d for d in state.dialogue if d.interaction_id == interaction.id]
+    previous = state.dialogue_index().by_interaction.get(interaction.id, [])
     text = (intent.parameters.message or rule_speech(state, actor, target, intent, interaction, previous))[
         :2000
     ]
@@ -58,7 +60,7 @@ def speak(state, actor, target, intent, decision_id, interaction):
     # Physical filtering occurs independently for each message, including overhearers.
     audible = [
         c.summary.id
-        for c in SpatialIndex(state.citizens).nearby(actor.summary.position, 8)
+        for c in spatial_index(state).nearby(actor.summary.position, 8)
         if conscious(c)
         and same_room(actor, c)
         and (actor.inside_building_id or line_of_sight(state.map, actor.summary.position, c.summary.position))
@@ -86,14 +88,14 @@ def speak(state, actor, target, intent, decision_id, interaction):
     ) % (2 * math.pi)
     if interaction.status == "accepted":
         target.summary.heading_rad = (actor.summary.heading_rad + math.pi) % (2 * math.pi)
-    interaction.expires_tick = state.simulation.tick + 5
+    interaction.expires_tick = state.simulation.tick + legacy_ticks(state, 5)
     interaction.turns += 1
     if interaction.kind == "warning":
         interaction.status = "ended"
     if dialogue.end_conversation:
         interaction.status = "ended"
         for citizen in (actor, target):
-            citizen.next_social_tick = state.simulation.tick + 10
+            citizen.next_social_tick = state.simulation.tick + legacy_ticks(state, 10)
             citizen.summary.path = []
             if citizen.plan and citizen.plan.get("kind") == "social_visit":
                 citizen.plan = None
@@ -162,7 +164,7 @@ def coordinate_aid(state, actor, target, decision_id):
     if group is None:
         candidates = [
             citizen.summary.id
-            for citizen in SpatialIndex(state.citizens).nearby(actor.summary.position, 3)
+            for citizen in spatial_index(state).nearby(actor.summary.position, 3)
             if citizen.summary.id != target.summary.id
             and line_of_sight(state.map, actor.summary.position, citizen.summary.position)
         ][:8]
@@ -174,7 +176,7 @@ def coordinate_aid(state, actor, target, decision_id):
             initiator_id=actor.summary.id,
             participant_ids=candidates,
             accepted_ids=[],
-            expires_tick=state.simulation.tick + 5,
+            expires_tick=state.simulation.tick + legacy_ticks(state, 5),
             proposal=dict(
                 target_id=target.summary.id, description="Offer local aid; participation is voluntary"
             ),

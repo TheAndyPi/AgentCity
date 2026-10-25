@@ -1,0 +1,7 @@
+{
+  "status": "implementation complete; final validation stopped at user request",
+  "performance_target_met": false,
+  "latest_tick_p95_ms": 54.94,
+  "target_tick_p95_ms": 25,
+  "note": "Final changes are untested at user request. Added nearest-visible perception short circuit, per-tick building index, and allocation-free indoor collision samples after the latest measurement. No final 20Hz end-to-end benchmark is claimed."
+}

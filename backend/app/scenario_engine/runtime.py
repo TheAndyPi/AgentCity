@@ -17,6 +17,7 @@ from app.scenario_engine.systems import (
 )
 from app.scenario_engine.world import enable, rent_for, sync_agents, trace, walking_speed
 from app.simulation.agents import clamp, evidence, metric_delta, remember
+from app.simulation.timing import legacy_ticks
 
 SERVICE_FAILURES = {"CAPACITY", "INFRASTRUCTURE_UNAVAILABLE", "UNREACHABLE"}
 IRREVERSIBLE = {
@@ -180,6 +181,7 @@ def after_tick(state):
     if not systems.enabled:
         return
     policy = systems.policy
+    dt = state.simulation.config.tick_seconds / 10
     buildings = {b.id: b for b in state.map.buildings}
     funding = mutations.funding_level(state)
     shortfall = systems.treasury < -30
@@ -191,7 +193,7 @@ def after_tick(state):
         if agent.trip_mode and not citizen.summary.path:
             citizen.summary.movement_speed_mps = walking_speed(citizen)
             agent.trip_mode = None
-        rent = rent_for(state, agent)
+        rent = rent_for(state, agent) * dt
         if rent:
             paid = min(rent, max(0.0, agent.wallet))
             agent.wallet = round(agent.wallet - paid, 4)
@@ -209,7 +211,7 @@ def after_tick(state):
             agent.incentives.get("conservation_bonus")
             and sum(citizen.inventory.model_dump().values()) <= citizen.target_inventory_units
         ):
-            bonus = agent.incentives["conservation_bonus"] * 0.1
+            bonus = agent.incentives["conservation_bonus"] * 0.1 * dt
             agent.wallet += bonus
             systems.treasury -= bonus
         inside = buildings.get(citizen.inside_building_id or "")
@@ -226,7 +228,6 @@ def after_tick(state):
             and citizen.condition.care != "hospital"
         ):
             hospital = state.behavior.hospitals.get(inside.id)
-            dt = state.simulation.config.tick_seconds / 10
             units = RULES["treatment_units"] * funding * dt
             if hospital and units > 0 and hospital.inventory.supplies >= units and citizen.needs.health < 100:
                 hospital.inventory.supplies -= units
@@ -235,28 +236,27 @@ def after_tick(state):
                     state, citizen, "health", 0.35 * funding * dt, "Funded walk-in hospital supplies", "care"
                 )
                 bump(systems, "hospital_care")
-                if (
-                    agent.conditions.get("illness") is not None
-                    and state.simulation.tick - agent.conditions["illness"] >= 6
-                ):
+                if agent.conditions.get("illness") is not None and state.simulation.tick - agent.conditions[
+                    "illness"
+                ] >= legacy_ticks(state, 6):
                     agent.conditions.pop("illness")
         wellbeing(state, citizen, agent, inside)
         if not living(citizen):
             continue
         if agent.wallet < STRAIN_WALLET:
             proof = evidence(f"Financial strain: wallet below {STRAIN_WALLET:g} credits")
-            metric_delta(citizen, "stress", 0.25, proof)
-            metric_delta(citizen, "happiness", -0.15, proof)
+            metric_delta(citizen, "stress", 0.25 * dt, proof)
+            metric_delta(citizen, "happiness", -0.15 * dt, proof)
         if conscious(citizen):
             responses.review(state, citizen)
     organizations(state)
-    systems.treasury -= TRANSIT_OPERATING_COST * policy.transportation.transit_service_level
-    systems.treasury -= HOSPITAL_UPKEEP * max(0.0, funding - 1)
+    systems.treasury -= TRANSIT_OPERATING_COST * policy.transportation.transit_service_level * dt
+    systems.treasury -= HOSPITAL_UPKEEP * max(0.0, funding - 1) * dt
     for building_id, stock in systems.shop_stock.items():
         building = buildings.get(building_id)
         if building and building.functional and stock < SHOP_STOCK_MAX:
-            systems.shop_stock[building_id] = min(SHOP_STOCK_MAX, stock + SHOP_PRODUCTION)
-            bump(systems, "shop_production", SHOP_PRODUCTION)
+            systems.shop_stock[building_id] = min(SHOP_STOCK_MAX, stock + SHOP_PRODUCTION * dt)
+            bump(systems, "shop_production", SHOP_PRODUCTION * dt)
     if systems.treasury < -30:
         bump(systems, "shortfall_ticks")
     systems.treasury = round(systems.treasury, 4)
@@ -267,7 +267,10 @@ def shop(state, citizen, agent, building):
     agent.shop_visits[building.id] = agent.shop_visits.get(building.id, 0) + 1
     agent.regular_shop = max(agent.shop_visits, key=lambda k: (agent.shop_visits[k], k))
     limit = 5 if responses.inventory_floor(state, citizen) > 2 else 3
-    if state.simulation.tick - agent.last_purchase_tick < 8 or citizen.inventory.food >= limit:
+    if (
+        state.simulation.tick - agent.last_purchase_tick < legacy_ticks(state, 8)
+        or citizen.inventory.food >= limit
+    ):
         return
     price = round(FOOD_PRICE * systems.policy.business.price_level, 4)
     bump(systems, "service_attempts")
@@ -298,6 +301,11 @@ def shop(state, citizen, agent, building):
         )
 
 
+def probability_for_tick(state, legacy_probability):
+    """Preserve the event hazard per simulated second across tick sizes."""
+    return 1 - (1 - legacy_probability) ** (state.simulation.config.tick_seconds / 10)
+
+
 def wellbeing(state, citizen, agent, inside):
     """Everyday illness, ageing and regional conditions; care and shelter mitigate them."""
     from app.behavior.vitals import evaluate, impact, living
@@ -308,10 +316,11 @@ def wellbeing(state, citizen, agent, inside):
         return living(citizen)
 
     tick = state.simulation.tick
+    dt = state.simulation.config.tick_seconds / 10
     age = citizen.profile.age
     if "illness" not in agent.conditions:
         chance = 0.003 + 0.004 * max(0, age - 50) / 30
-        if unit(citizen.summary.id, tick, "illness") < chance:
+        if unit(citizen.summary.id, tick, "illness") < probability_for_tick(state, chance):
             agent.conditions["illness"] = tick
             if not health(-12, "Fell ill"):
                 return
@@ -319,12 +328,12 @@ def wellbeing(state, citizen, agent, inside):
             bump(state.systems, "illnesses")
     elif not (inside and inside.kind == "hospital"):
         since = tick - agent.conditions["illness"]
-        if not health(-0.1 if since < 40 else 0.3, "Ongoing illness"):
+        if not health((-0.1 if since < legacy_ticks(state, 40) else 0.3) * dt, "Ongoing illness"):
             return
-        if since >= 70:
+        if since >= legacy_ticks(state, 70):
             agent.conditions.pop("illness")
     if age > 60:
-        if not health(-0.01 * (age - 60) / 20, "Age-related city-system pressure"):
+        if not health(-0.01 * (age - 60) / 20 * dt, "Age-related city-system pressure"):
             return
     for condition in state.systems.conditions:
         here = in_region(citizen.summary.position, condition["region"])
@@ -338,17 +347,17 @@ def wellbeing(state, citizen, agent, inside):
         sheltered = inside is not None
         kind = condition["condition"]
         if kind in {"heat", "cold"} and not sheltered:
-            if not health(-0.05 * strength, f"Exposure to {kind}", proof):
+            if not health(-0.05 * strength * dt, f"Exposure to {kind}", proof):
                 return
-            metric_delta(citizen, "stress", 0.3 * strength, proof)
+            metric_delta(citizen, "stress", 0.3 * strength * dt, proof)
         elif kind == "pollution":
-            if not health(-0.03 * strength, "Exposure to pollution", proof):
+            if not health(-0.03 * strength * dt, "Exposure to pollution", proof):
                 return
-            metric_delta(citizen, "stress", 0.15 * strength, proof)
+            metric_delta(citizen, "stress", 0.15 * strength * dt, proof)
         elif kind == "noise" and not sheltered:
-            metric_delta(citizen, "stress", 0.3 * strength, proof)
+            metric_delta(citizen, "stress", 0.3 * strength * dt, proof)
         elif kind == "illness" and "illness" not in agent.conditions:
-            if unit(citizen.summary.id, tick, key) < 0.02 * strength:
+            if unit(citizen.summary.id, tick, key) < probability_for_tick(state, 0.02 * strength):
                 agent.conditions["illness"] = tick
                 if not health(-12, "Scenario illness", proof):
                     return
@@ -360,6 +369,7 @@ def organizations(state):
 
     systems = state.systems
     tick = state.simulation.tick
+    dt = state.simulation.config.tick_seconds / 10
     for org in systems.organizations.values():
         if not org.active or not org.members:
             continue
@@ -368,7 +378,7 @@ def organizations(state):
             for aid in org.members
             if aid in state.citizens and conscious(state.citizens[aid])
         ]
-        if org.kind == "mutual_aid" and (tick - org.created_tick) % 6 == 0:
+        if org.kind == "mutual_aid" and (tick - org.created_tick) % legacy_ticks(state, 6) == 0:
             for donor in members:
                 surplus = max(("supplies", "food"), key=lambda k: getattr(donor.inventory, k))
                 if donor.inventory.supplies + donor.inventory.food > 8:
@@ -395,9 +405,11 @@ def organizations(state):
                 f"Took part in the {org.name} gathering", event_ids=[org.event_id] if org.event_id else None
             )
             for citizen in present:
-                citizen.needs.social = clamp(citizen.needs.social - 2)
-                metric_delta(citizen, "happiness", 0.2, proof)
-            if (tick - org.created_tick) % org.rally_every == 3 and present:
+                citizen.needs.social = clamp(citizen.needs.social - 2 * dt)
+                metric_delta(citizen, "happiness", 0.2 * dt, proof)
+            if (tick - org.created_tick) % legacy_ticks(state, org.rally_every) == legacy_ticks(
+                state, 3
+            ) and present:
                 observers = [
                     c
                     for c in state.citizens.values()
