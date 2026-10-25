@@ -31,6 +31,15 @@ panels provide scoped links. The same drawer in saved history pins observations
 to its selected revision. Existing local reports remain available while
 observations are disabled or the warehouse is unavailable.
 
+If the panel says **Not Found**, check the running integration OpenAPI at
+`/api/v1/integrations/openapi.json`: it must include the six observation routes.
+A frontend hot reload does not restart the Python API. Save/pause running cities,
+restart the local launcher, then refresh the observation panel. A configured but
+disabled adapter returns status HTTP 200 with `state=disabled`; data queries return
+HTTP 501 until enabled. Missing key/passphrase files must be corrected on the
+machine running the backend before enabling ingestion. Restarting preserves the
+local flood history for subsequent backfill.
+
 ## What is measured
 
 The projection records agent stats and life state, existing directed relationship

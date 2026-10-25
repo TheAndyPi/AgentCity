@@ -77,6 +77,18 @@ export class ObservationsClient {
     const failed = failure.safeParse(raw);
     if (failed.success) {
       const error = failed.data.error;
+      if (
+        route === "status" &&
+        error.code === "NOT_FOUND" &&
+        ["not found", "extension route unavailable"].includes(
+          error.message.trim().toLowerCase(),
+        )
+      )
+        throw new ApiError(
+          "SERVICE_UNAVAILABLE",
+          "The running backend does not include observation routes. Restart AgentCity to load the updated API, then refresh this panel. Your saved simulation history is preserved.",
+          true,
+        );
       if (error.code === "UNAUTHENTICATED" && typeof window !== "undefined")
         window.dispatchEvent(new Event("agentcity:session-expired"));
       throw new ApiError(

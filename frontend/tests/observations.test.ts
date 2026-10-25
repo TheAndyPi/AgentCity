@@ -54,6 +54,33 @@ const response = (data: unknown) => ({
 const selection = { through_revision: 7, agent_id: "agent one", start_tick: 0 };
 
 describe("Snowflake observation client", () => {
+  it("explains an outdated backend without confusing it with a missing city", async () => {
+    for (const message of ["Not Found", "Simulation not found"]) {
+      const client = new ObservationsClient({
+        mode: "live",
+        async request() {
+          return {
+            schema_version: "1.0.0",
+            request_id: "550e8400-e29b-41d4-a716-446655440000",
+            error: {
+              code: "NOT_FOUND",
+              message,
+              retryable: false,
+              details: [],
+            },
+          };
+        },
+      });
+      await expect(client.status("city/a", selection)).rejects.toMatchObject(
+        message === "Not Found"
+          ? {
+              code: "SERVICE_UNAVAILABLE",
+              message: expect.stringContaining("Restart AgentCity"),
+            }
+          : { code: "NOT_FOUND", message },
+      );
+    }
+  });
   it("encodes selection, caches a pinned query for 30 seconds, and forwards cancellation", async () => {
     let now = 100;
     const request = vi.fn(async () => response(trends()));
