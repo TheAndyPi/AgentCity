@@ -702,3 +702,11 @@ build, 43 frozen core hashes and Ruff/format passed. Initial failures and fixes,
 10/30/100-agent performance measurements, evidence paths and external limitations
 are recorded in [the disaster merge report](release/disaster-merge-2026-10-25.md).
 No paid provider calls or real disaster-audio listening audition claimed.
+
+Disaster merge restart follow-up: verified merge/report `25e1883` pushed normally
+to dev and the integration branch. User-authorized original-store restart reached
+readiness; **20/20** saved cities restored paused. UI `http://127.0.0.1:5173`,
+same-origin capabilities and new disaster state/OpenAPI returned 200. Current
+Gemini/narration enablement was preserved; no paid provider call or smoke mutation.
+Original production build passed, and unrelated local README edits remain intact.
+See the merge report and ignored before/after restart evidence for details.

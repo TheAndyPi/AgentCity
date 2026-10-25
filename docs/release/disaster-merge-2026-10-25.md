@@ -71,3 +71,22 @@ listening audition was exercised. Controlled playback proves transport and mixer
 behavior; real voice/music quality remains unverified. Existing local saved-history
 verification and single-writer storage guarantees remain intact. No source-store rewrite.
 Restart/readiness evidence will be appended after the authorized local restart.
+
+## Authorized original-store restart
+
+Restarted the verified original launcher/process tree after merging, retaining
+current server configuration and the real DATA_DIR. Before shutdown, all **20**
+saved cities were already paused; no pause commands were necessary. Readiness
+returned with `status=ok`, and all **20** cities restored paused. The development
+UI at `http://127.0.0.1:5173/`, its same-origin capability proxy, an existing city's
+new v2 disaster state route, and the independent disaster OpenAPI all returned
+200. Original-checkout production build also passed. Startup occurred at
+04:40:25 local time; readiness was confirmed by 04:43:49. The launcher uses the
+existing configurable 1200-second allowance for this large-history recovery.
+
+Gemini and narration were enabled in the user's current configuration before and
+after restart; these settings were preserved. No smoke mutation or paid-provider
+request was made. Sanitized `before-restart.json`, `after-restart.json`, build log
+and launcher output are retained alongside the test evidence. The unrelated local
+README edit was reapplied successfully after the fast-forward; it remains uncommitted.
+This is documentation-only follow-up to the tested source; no application change.
