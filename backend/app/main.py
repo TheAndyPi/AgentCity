@@ -151,6 +151,11 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
                         owner, csrf = app.state.security.identity(request, unsafe, is_login)
                     request.state.owner = owner
                     request.state.csrf = csrf
+                    parts = request.url.path.split("/")
+                    if "simulations" in parts:
+                        index = parts.index("simulations") + 1
+                        if index < len(parts) and parts[index]:
+                            await app.state.service.load(owner, parts[index])
             return await call_next(request)
         except DomainError as error:
             return failure(request, error.code, error.message, error.status, error.details)
@@ -278,6 +283,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
     ):
         service, cursors = services(request)
         owner = request.state.owner
+        summaries = await service.summaries()
         filters = {"archived": archived}
         value = cursors.context(owner, "simulations", filters, None, cursor)
         if value:
@@ -286,19 +292,19 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
         else:
             heads = sorted(
                 [
-                    h
-                    for h in service.heads.values()
-                    if h.owner_id == owner and h.simulation.archived == archived
+                    simulation
+                    for saved_owner, simulation in summaries.values()
+                    if saved_owner == owner and simulation.archived == archived
                 ],
-                key=lambda h: (h.simulation.updated_at, h.simulation.id),
+                key=lambda h: (h.updated_at, h.id),
                 reverse=True,
             )
-            selection = [(h.simulation.id, h.simulation.revision) for h in heads]
+            selection = [(h.id, h.revision) for h in heads]
             offset = 0
         items = [
-            service.owned(owner, sid, rev).simulation
+            (service.owned(owner, sid, rev).simulation if sid in service.heads else summaries[sid][1])
             for sid, rev in selection[offset : offset + limit]
-            if sid in service.heads
+            if sid in summaries and summaries[sid][0] == owner
         ]
         next_cursor = (
             cursors.sign(
@@ -851,6 +857,7 @@ def create_app(config: AppConfig | None = None, narration_config=None, narration
         service = websocket.app.state.service
         try:
             owner, _ = websocket.app.state.security.identity(websocket)
+            await service.load(owner, sid)
             service.owned(owner, sid)
         except DomainError:
             await websocket.close(code=1008)

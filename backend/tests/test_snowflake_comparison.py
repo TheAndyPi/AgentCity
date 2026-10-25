@@ -14,7 +14,7 @@ from snowflake_fake import SnowflakeFake
 
 from app.infrastructure.config import AppConfig
 from app.snowflake.application import create_app
-from app.snowflake.comparison import METRICS, stage
+from app.snowflake.comparison import METRICS, canonical, digest, stage
 from app.snowflake.config import SnowflakeConfig
 from app.snowflake.dto import ComparisonResponse, Failure
 from app.snowflake.ledger import Ledger
@@ -68,6 +68,14 @@ def export(client, pin):
     return client.get(
         f"/api/v1/simulations/{pin['simulation_id']}/export", params={"through_revision": pin["revision"]}
     ).json()["data"]
+
+
+def test_export_hash_survives_numeric_coercion_on_restore():
+    original = {"conditions": [{"integrity": 100}], "sim_time_seconds": 20}
+    restored = {"conditions": [{"integrity": 100.0}], "sim_time_seconds": 20.0}
+    assert canonical(original) == canonical(restored)
+    assert digest(original) == digest(restored)
+    assert digest(original) != digest({**restored, "sim_time_seconds": 20.5})
 
 
 def test_s01_s02_exact_readback_branch_keys_and_pinned_citations(tmp_path):

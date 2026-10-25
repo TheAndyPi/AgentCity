@@ -257,6 +257,8 @@ def test_t04_restart_replays_after_external_commit_before_local_cursor(integrate
     client.portal.call(client.app.state.service.close)
     with client_for(config) as second:
         csrf(second)
+        assert second.app.state.service.heads == {}
+        assert second.get(f"/api/v1/simulations/{sid}").status_code == 200
         assert caught_up(second, sid) == committed
         assert sink.rows == baseline
         assert_export_rows(sink, second.get(f"/api/v1/simulations/{sid}/export").json()["data"])

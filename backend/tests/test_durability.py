@@ -34,7 +34,11 @@ def test_restart_pauses_and_idempotency_survives(tmp_path):
         assert command(client, sid, "play").status_code == 200
     with TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
         csrf(client)
+        listed = client.get("/api/v1/simulations").json()["data"]["items"][0]
+        assert listed["status"] == "paused"
+        assert client.app.state.service.heads == {}
         loaded = client.get(f"/api/v1/simulations/{sid}").json()["data"]
+        assert listed["control_version"] == loaded["control_version"]
         assert loaded["status"] == "paused" and loaded["pause_reason"] == "loaded"
         retried = write(client, f"/simulations/{sid}/commands", body, key=key)
         assert retried.json() == original.json()
@@ -222,3 +226,86 @@ def test_pending_and_active_event_restore_without_reapplying(client, ticks):
         and polygon_contains(resource.position, before.events[event["id"]].spec.affected_polygon)
     ]
     assert len(applied) == len(resources)
+
+
+def test_saved_worlds_are_not_loaded_until_requested(tmp_path, monkeypatch):
+    config = AppConfig(data_dir=tmp_path / "lazy-store")
+    with TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        csrf(client)
+        first = create_city(client)["id"]
+        second = create_city(client)["id"]
+        command(client, first, "step", count=2)
+        command(client, second, "step", count=2)
+        journals = dict(client.app.state.service.repo.meta["simulations"])
+
+    reads = []
+    original = Repository._checked_data
+
+    def tracked(repo, entry):
+        reads.append(entry["sha256"])
+        return original(repo, entry)
+
+    monkeypatch.setattr(Repository, "_checked_data", tracked)
+    with TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        assert reads == []
+        assert client.get("/health/ready").status_code == 200
+        assert client.get("/api/v1/capabilities").status_code == 200
+        csrf(client)
+        assert client.get("/api/v1/settings").status_code == 200
+        assert reads == []
+        assert client.app.state.service.heads == {}
+        listing = client.get("/api/v1/simulations")
+        assert listing.status_code == 200, listing.text
+        assert {item["id"] for item in listing.json()["data"]["items"]} == {first, second}
+        assert set(reads) == {entries[-1]["sha256"] for entries in journals.values()}
+        assert client.app.state.service.heads == {}
+        reads.clear()
+        loaded = client.get(f"/api/v1/simulations/{first}/state")
+        assert loaded.status_code == 200, loaded.text
+        assert set(client.app.state.service.heads) == {first}
+        assert journals[second][0]["sha256"] not in reads
+        assert journals[first][0]["sha256"] not in reads
+        historical = client.get(f"/api/v1/simulations/{first}/state?revision=0")
+        # The initial revision is readable but its world is not ready to render yet.
+        assert historical.status_code == 409, historical.text
+        assert journals[first][0]["sha256"] in reads
+
+    with TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        assert client.app.state.service.heads == {}
+        with client.websocket_connect(f"ws://127.0.0.1/api/v1/simulations/{second}/stream"):
+            assert set(client.app.state.service.heads) == {second}
+
+
+def test_loading_saved_world_does_not_block_health_or_new_worlds(tmp_path, monkeypatch):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    config = AppConfig(data_dir=tmp_path / "responsive-store")
+    with TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        csrf(client)
+        sid = create_city(client)["id"]
+    started = threading.Event()
+    release = threading.Event()
+    original = Repository._read
+
+    def slow_restore(repo, entry, **kwargs):
+        if not release.is_set():
+            started.set()
+            assert release.wait(10)
+        return original(repo, entry, **kwargs)
+
+    monkeypatch.setattr(Repository, "_read", slow_restore)
+    with (
+        TestClient(create_app(config), base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client,
+        ThreadPoolExecutor() as pool,
+    ):
+        csrf(client)
+        opening = pool.submit(client.get, f"/api/v1/simulations/{sid}")
+        try:
+            assert started.wait(5)
+            assert client.get("/health/ready").status_code == 200
+            assert client.get("/api/v1/settings").status_code == 200
+            assert create_city(client)["id"] != sid
+        finally:
+            release.set()
+        assert opening.result(timeout=10).status_code == 200

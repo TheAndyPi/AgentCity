@@ -186,3 +186,26 @@ export function pointAlongRoute(route: Vec2[], progress: number): Vec2 {
   }
   return route.at(-1)!;
 }
+
+/** Match playback to delivered snapshots, which can batch several simulation ticks. */
+export class WalkingCadence {
+  private id = "";
+  private tick = -1;
+  private arrived = 0;
+  duration = 600;
+
+  observe(id: string, tick: number, now: number, running: boolean): number {
+    if (id !== this.id || tick < this.tick) {
+      this.duration = 600;
+      this.arrived = now;
+    } else if (tick > this.tick) {
+      const elapsed = now - this.arrived;
+      // Paused steps should remain visible; long stalls must not leave walkers lagging.
+      this.duration = running ? Math.max(100, Math.min(2000, elapsed)) : 600;
+      this.arrived = now;
+    }
+    this.id = id;
+    this.tick = tick;
+    return this.duration;
+  }
+}

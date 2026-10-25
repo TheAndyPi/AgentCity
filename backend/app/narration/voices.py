@@ -1,4 +1,4 @@
-"""Stable, collision-free citizen voices; no cloning or synthesized voice identities."""
+"""Stable citizen voice assignments; no cloning or synthesized voice identities."""
 
 from app.infrastructure.errors import require
 
@@ -7,13 +7,21 @@ class VoiceAssignments:
     def __init__(self, store):
         self.store = store
         with store.lock:
+            # SQLite cannot drop the old voice uniqueness constraint in place.
+            schema = store.db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='character_voices'"
+            ).fetchone()
+            if schema and "UNIQUE" in schema[0].upper():
+                store.db.execute("ALTER TABLE character_voices RENAME TO character_voices_legacy")
             store.db.execute("""
                 CREATE TABLE IF NOT EXISTS character_voices (
                   owner TEXT NOT NULL, simulation_id TEXT NOT NULL,
                   agent_id TEXT NOT NULL, voice_id TEXT NOT NULL,
-                  PRIMARY KEY(owner, simulation_id, agent_id),
-                  UNIQUE(owner, simulation_id, voice_id))
+                  PRIMARY KEY(owner, simulation_id, agent_id))
             """)
+            if schema and "UNIQUE" in schema[0].upper():
+                store.db.execute("INSERT INTO character_voices SELECT * FROM character_voices_legacy")
+                store.db.execute("DROP TABLE character_voices_legacy")
             store.db.commit()
 
     def resolve(self, state, source_type, source_id, config):
@@ -29,7 +37,7 @@ class VoiceAssignments:
             record = state.dialogue_index().by_id.get(source_id)
             agent_id = record.speaker_id if record else None
         require(agent_id in state.citizens, "NOT_FOUND", "Recorded speaker not found in this simulation", 404)
-        pool = config.character_voice_ids
+        pool = config.character_voice_ids or (config.voice_id,)
         owner, sid = state.owner_id, state.simulation.id
         agents = sorted(state.citizens)
         with self.store.lock:
@@ -51,14 +59,16 @@ class VoiceAssignments:
                 if parent
                 else {}
             )
-            # Reserve even absent/deceased and removed-pool identities. A child must
-            # never give a historical speaker's voice to a newly added citizen.
+            # Preserve historical identities and prefer unused voices before sharing.
             additions = {aid: voice for aid, voice in inherited.items() if aid not in assigned}
             assigned.update(additions)
             available = [voice for voice in pool if voice not in assigned.values()]
             for aid in agents:
-                if aid not in assigned and available:
-                    additions[aid] = assigned[aid] = available.pop(0)
+                if aid not in assigned:
+                    voice = available.pop(0) if available else min(
+                        pool, key=lambda candidate: sum(v == candidate for v in assigned.values())
+                    )
+                    additions[aid] = assigned[aid] = voice
             try:
                 db.executemany(
                     "INSERT INTO character_voices VALUES (?,?,?,?)",
@@ -68,13 +78,6 @@ class VoiceAssignments:
             except BaseException:
                 db.rollback()
                 raise
-        require(
-            agent_id in assigned,
-            "SERVICE_UNAVAILABLE",
-            "Not enough distinct ElevenLabs voices; this citizen's voice is unavailable. "
-            "Configure more ELEVENLABS_CHARACTER_VOICE_IDS; existing voices remain usable",
-            503,
-        )
         require(
             assigned[agent_id] in pool,
             "SERVICE_UNAVAILABLE",

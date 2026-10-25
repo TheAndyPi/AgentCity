@@ -1,5 +1,9 @@
 import { expect, it } from "vitest";
-import { acknowledgedRoute, pointAlongRoute } from "../src/world/motion";
+import {
+  WalkingCadence,
+  acknowledgedRoute,
+  pointAlongRoute,
+} from "../src/world/motion";
 import { insideBuilding, doorway } from "../src/world/buildingAccess";
 import { fixtureWorld } from "../src/api/fixtures";
 import { speechScale } from "../src/world/speech";
@@ -64,4 +68,19 @@ it("shrinks dialogue with orthographic zoom while retaining bubbles in wide view
   expect(speechScale(12)).toBeLessThan(speechScale(45));
   expect(speechScale(12)).toBeGreaterThan(0);
   expect(speechScale(2)).toBeLessThan(0.5);
+});
+
+it("paces walking to delivered frames rather than individual simulation ticks", () => {
+  const cadence = new WalkingCadence();
+  expect(cadence.observe("city", 0, 0, true)).toBe(600);
+  expect(cadence.observe("city", 10, 500, true)).toBe(500);
+  // Same-tick metadata updates must not reset the arrival clock.
+  cadence.observe("city", 10, 700, true);
+  expect(cadence.observe("city", 20, 1000, true)).toBe(500);
+  expect(cadence.observe("city", 21, 1010, true)).toBe(100);
+  expect(cadence.observe("city", 22, 10000, true)).toBe(2000);
+  expect(cadence.observe("city", 23, 20000, false)).toBe(600);
+  expect(cadence.observe("other", 0, 21000, true)).toBe(600);
+  expect(cadence.observe("other", 10, 21400, true)).toBe(400);
+  expect(cadence.observe("other", 0, 21500, true)).toBe(600);
 });

@@ -81,6 +81,7 @@ class ComparisonService:
         fingerprint = digest(body.model_dump(mode="json"))
         # Even cached results require current authorization to both histories.
         for item in (body.a, body.b):
+            await self.parent.state.service.load(owner, item.simulation_id)
             self.parent.state.service.owned(owner, item.simulation_id, item.revision)
         cached = self.ledger.lookup(owner, key, fingerprint)
         if cached:

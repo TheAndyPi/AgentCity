@@ -28,7 +28,7 @@ import Buildings, { BuildingTag } from "./Buildings";
 import { buildingBounds, buildingInfo, type Building } from "./buildingLayout";
 import type { GroundRect } from "./groundLayout";
 import { neon, worldPalette } from "./palette";
-import { acknowledgedRoute, pointAlongRoute } from "./motion";
+import { WalkingCadence, acknowledgedRoute, pointAlongRoute } from "./motion";
 import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
 import ScenarioScene from "./ScenarioScene";
@@ -738,6 +738,15 @@ function MapWalker({
 }) {
   const group = useRef<SVGGElement>(null);
   const position = useRef(agent.position);
+  const cadence = useRef(new WalkingCadence());
+  useLayoutEffect(() => {
+    cadence.current.observe(
+      frame.simulation.id,
+      frame.ref.tick,
+      performance.now(),
+      frame.simulation.status === "running",
+    );
+  }, [frame]);
   const simulation = useRef(frame.simulation.id);
   const tick = useRef(frame.ref.tick);
   useLayoutEffect(() => {
@@ -747,10 +756,7 @@ function MapWalker({
     const start = reset ? agent.position : position.current;
     const route = acknowledgedRoute(start, agent.position, frame.map);
     const began = performance.now();
-    const duration = Math.min(
-      4000,
-      Math.max(600, 200 / frame.simulation.speed_multiplier),
-    );
+    const duration = cadence.current.duration;
     let request = 0;
     const draw = () => {
       const t =
