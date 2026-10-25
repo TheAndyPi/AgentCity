@@ -377,6 +377,11 @@ export default function Simulation() {
       </div>
     );
   const s = frame.simulation;
+  const deadCount = frame.agents.filter((a) => !a.active).length;
+  const unconsciousCount = frame.agents.filter(
+    (a) => a.active && a.emotion === "unconscious",
+  ).length;
+  const populationNote = `${frame.agents.length - deadCount} living, including ${unconsciousCount} unconscious; ${deadCount} dead. Mean metrics include living citizens.${deadCount ? " Population composition has changed after deaths." : ""}`;
   const readOnly = revision !== null;
   const selected =
     focused[0] ??
@@ -765,7 +770,7 @@ export default function Simulation() {
               ? "Gemini + rules"
               : "Rules engine"}
         </span>
-        <div className="quick-stats glass">
+        <div className="quick-stats glass" title={populationNote}>
           {(Object.keys(metricLabels) as (keyof typeof metricLabels)[]).map(
             (k) => (
               <button
@@ -993,7 +998,15 @@ export default function Simulation() {
       <div className="city-footer">
         <span>
           <Users size={13} />
-          {s.agent_count} citizens<span className="footer-dot">·</span>
+          {s.agent_count} citizens
+          {(deadCount > 0 || unconsciousCount > 0) && (
+            <span title={populationNote}>
+              {" "}
+              · {frame.agents.length - deadCount} living · {unconsciousCount}{" "}
+              unconscious · {deadCount} dead
+            </span>
+          )}
+          <span className="footer-dot">·</span>
           {settings.view_mode === "2d" || fallback ? "2D MAP" : "3D WORLD"}
           {follow && (
             <span className="positive">Following citizen · pan to stop</span>
@@ -1092,10 +1105,7 @@ export default function Simulation() {
         />
       )}
       {help && (
-        <Modal
-          title="Keyboard shortcuts"
-          onClose={() => setHelp(false)}
-        >
+        <Modal title="Keyboard shortcuts" onClose={() => setHelp(false)}>
           <p className="muted">
             Shortcuts apply when the map has keyboard focus. Click an empty part
             of the map first.
