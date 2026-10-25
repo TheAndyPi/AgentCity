@@ -324,3 +324,20 @@ evolution. Coordinate shared focus/HUD hooks instead of replacing one another's
 files. Core v1 snapshots remain frozen: new action/life schemas need an explicit
 versioned API/migration and matching consumers/security. Existing secrets, runtime
 data and the running dev server are unchanged by these task files.
+
+### Stress-triggered crises added to the behavior assignment
+
+The user requested high stress (~80%) to cause the same effects as low Mental.
+The [behavior task](prompts/agent-survival-personality-class-conflict.md) now
+specifies **Mental <=10 OR Stress >=80**, each sufficient independently, with
+one shared personality-weighted crisis episode. Simultaneous triggers do not
+duplicate effects; cause evidence identifies one or both. Initial recovery
+requires Mental >=25 AND Stress <=60 for three consecutive ticks.
+
+Current code has a Stress metric but no independent Mental value, so there is
+no existing stress-to-Mental mechanism. The implementation task now explicitly
+requires bounded sustained-stress Mental loss plus recovery, without treating
+Mental as `100-stress`. AB-05 adds independent threshold boundaries; new AB-18/19
+cover combined triggers, exit hysteresis and persisted stress/Mental interaction.
+This update changes task specifications only; concurrent implementation edits
+are outside this documentation commit.

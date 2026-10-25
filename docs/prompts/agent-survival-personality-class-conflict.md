@@ -13,7 +13,9 @@ Gemini, Tiger, Snowflake, narration, history, security and scenario behavior.
   confirmed either threshold is fatal; do not require both or substitute a long
   starvation grace period. Thresholds use canonical numeric state, not rounded UI.
 - Energy <= 0 causes fainting/unconsciousness for a living citizen.
-- Mental stability at or below 10 triggers a personality-dependent crisis.
+- Mental stability <=10 **OR stress >=80** independently triggers the same
+  personality-dependent crisis system. Use raw percentages and configurable,
+  versioned thresholds, initially 10 and 80 respectively.
   Behaviors must include withdrawal at home, aggression that can kill another
   citizen, and starting a fire, with real bounded simulation consequences.
 - Compassionate/cooperative citizens help unconscious or badly injured people,
@@ -35,6 +37,13 @@ Use versioned documented rules for starting values, stress/need/pain/isolation/
 grief/conflict losses and rest/support/treatment gains. Avoid double-counting one
 event through multiple callbacks. Existing profiles migrate deterministically to
 documented defaults; do not infer traits or wealth from a citizen's name.
+
+Stress already exists as `summary.metrics.stress`, but the current application
+has no independent Mental state for stress to reduce. Implement that relationship:
+sustained stress contributes to mental-stability loss under an explicit bounded
+per-tick rule, while rest/support/treatment can improve it. Mental is not simply
+`100-stress`; retain independent values and independent crisis triggers. Do not
+wait for high stress to drain Mental to 10 before allowing a stress-triggered crisis.
 
 Persist life state (`alive`, `unconscious`, `dead`), transition cause/evidence and
 tick, crisis mode/episode/cooldown, and rescue/treatment state as needed. Treat
@@ -76,15 +85,25 @@ while carrying someone, detach them safely at the current real location and make
 the patient eligible for another rescue. Do not create duplicate occupants or
 leave an invisible patient following a removed carrier.
 
-## 3. Mental crisis behavior
+## 3. Mental/stress crisis behavior
 
-At mental <=10, enter one recorded crisis episode using seeded deterministic
+At mental <=10 **or stress >=80**, enter one recorded crisis episode using seeded deterministic
 selection weighted by the existing personality traits, current needs, relationship
 conflict, perceived threats and recent memories. Publish the chosen mode/reason;
 do not roll an unrelated new mode every tick. Use bounded duration, cooldown and
-an exit threshold initially mental >=25 for several stable ticks. Recovery may
-come from rest, safety, social comfort, food or hospital care. Low Mental alone
-does not automatically kill anyone.
+exit hysteresis: initially require **mental >=25 AND stress <=60 for three
+consecutive ticks** before recovery, with those parameters versioned/configurable.
+Recovery may come from rest, safety, social comfort, food or hospital care. Low
+Mental or high stress alone does not automatically kill anyone.
+
+Both triggers enter the same personality-weighted modes below, including
+withdrawal, panic, support seeking, aggression and fire-setting. If both thresholds
+are crossed together, create one episode, not two actions, doubled damage or two
+mode rolls. Record the cause as low mental, high stress, or both and preserve the
+supporting measurements/evidence. A second trigger crossing during an existing
+episode adds cause evidence without restarting it. Rising Mental cannot clear a
+crisis while stress remains high, nor can falling stress clear persistently low
+Mental. Keep death/unconsciousness precedence and the existing action safeguards.
 
 Required modes and interactions:
 
@@ -96,7 +115,7 @@ Required modes and interactions:
 | Aggression | Lower empathy/cooperation, higher risk tolerance and a specific grievance | Approach a perceived nearby target and attempt bounded attacks; actions may injure and eventually kill through health loss. |
 | Destructive/fire-setting | Destructive crisis choice, higher risk and low concern for others | Move to a reachable nearby valid target and attempt one bounded ignition action, producing an actual engine fire/hazard if legal. |
 
-Do not map every low-mental citizen to violence. Wealth/class alone does not
+Do not map every low-mental or highly stressed citizen to violence. Wealth/class alone does not
 execute an attack; actions still require an eligible mode, motive and legal target.
 Personality weights, probabilities, damage, durations and rates must be written
 as versioned gameplay rules, not unexplained magic numbers or model discretion.
@@ -197,7 +216,7 @@ edit. Citizens cannot silently change global laws or public resource ownership.
 | High curiosity + unfamiliar event | Investigate/ask questions when safe; gain observed knowledge, without overriding evacuation. |
 | Low trust + uncertain warning | Seek corroboration or ask a trusted contact; preserve uncertainty and subjective trust. |
 | Friend/family learns of death | Evidence-backed grief and mental loss; supportive contact/rest can improve recovery. |
-| Low mental + low empathy/cooperation + grievance | Elevated aggression/destruction weight, bounded by action validation/cooldowns. |
+| Low mental OR high stress + low empathy/cooperation + grievance | Elevated aggression/destruction weight, bounded by action validation/cooldowns. |
 | Wealth gap + low empathy/cooperation | Cross-class avoidance/refusal and negative directed ties, with capped evidence-backed changes. |
 | Wealth + high empathy/cooperation | Sharing, rescue and reconciliation can overcome class resentment. |
 | Poor + high cooperation + shared unfair treatment | Solidarity and mutual aid; conflict escalation needs additional motives/conditions. |
@@ -252,7 +271,7 @@ and browser tests with expected state/decisions/counters, not only HTTP 200.
 | AB-02 | A citizen is killed/starves before their turn, during damage or end-of-tick decay. | No later action/movement/speech/recovery; pending proposals invalidated; possessions and reservations conserved. |
 | AB-03 | Energy 0 with positive health/fullness, then passive/hospital recovery. | Unconscious, not dead; no ordinary intents; wake only at documented threshold; no repeated transition events. |
 | AB-04 | Unconscious person remains hungry/in a hazard; carrier faints/dies. | Death still possible; patient placed at actual position, no teleport/duplicate carrier/bed. |
-| AB-05 | Mental 10 versus 10.1; repeated ticks; recovery/cooldown. | Defined crisis boundary, stable episode and exit hysteresis; no fresh crisis roll/log every tick. |
+| AB-05 | Mental 10 versus 10.1 with low stress; stress 80 versus 79.9 with healthy Mental. | Either independent threshold enters the same crisis system; nonqualifying raw values do not; stable episode and exit hysteresis. |
 | AB-06 | Identical crisis setup with contrasting personalities and fixed seeds. | Supported withdrawal/support/panic/aggression/fire modes have reproducible rule-based differences and recorded motives. |
 | AB-07 | Legal attack versus remote/dead/unconscious actor or out-of-range target. | Bounded once-per-action damage, immediate fatal transition when applicable; rejected attempts have no effects. |
 | AB-08 | Legal ignition, invalid/remote ignition, repeated requests, cap/extinction. | Actual bounded fire exposure and evacuation; no duplicate hazards, arbitrary destruction or visual-only success. |
@@ -265,6 +284,8 @@ and browser tests with expected state/decisions/counters, not only HTTP 200.
 | AB-15 | Legacy store and old v1 clients; new version security/validation. | Defined migration without historical mutation, strict schemas, denied unowned/unauthenticated commands and preserved v1 hashes. |
 | AB-16 | All citizens dead, several unconscious, source deletion and analytics export. | Correct living/survival denominators, finite valid metrics/counters, restorable branch/history and truthful adapter support. |
 | AB-17 | Real browser simulation: faint -> rescue -> hospital -> recovery; fatal threshold; two crisis modes; class encounter. | Correct visible states/meters, movements, explanations, logs and disabled impossible actions in dev's existing design. |
+| AB-18 | Both crisis triggers together; second trigger crosses during an episode; Mental recovers while stress stays high and vice versa. | One episode/mode roll with correct cause evidence, no doubled effects; recovery only after both exit conditions hold for three ticks. |
+| AB-19 | Sustained stress, rest/support/treatment, save/restart and branch. | Exact documented bounded stress-to-Mental changes, no accidental inverse-meter coupling, independent onset at stress 80 and reproducible persisted recovery/cooldown. |
 
 Run focused tests while building, then the full backend/frontend/contract/build
 gates and relevant browser suites on the integrated branch. Keep paid providers
