@@ -744,3 +744,26 @@ browser cases passed** with no skips/flakes. Low-angle desktop/mobile screenshot
 were visually checked. Evidence: ignored `backend/.tmp/camera-ground-evidence/`
 plus `backend/.tmp/camera-ground-final-core/`. No backend restart, saved-city
 mutation or paid provider request was needed; unrelated local README preserved.
+
+### 2026-10-25 — Automatic Snowflake observations
+
+Implemented in parallel capture, warehouse and interface worktrees, integrated on
+`codex/snowflake-observations`. Local immutable revision history supplies a
+resumable, independently enabled Snowflake read model. Exact activation baselines,
+directed relationship changes, existing beliefs, life-state denominators and
+event follow-up support city trends and cited event reports. Dense relationship
+baselines are split into bounded facts; initialized population/beliefs are
+baselines rather than invented adoption events. Existing comparison behavior and
+the frozen core contracts remain unchanged.
+
+The city overview, citizen and event drawers link to the observation panel;
+saved-history inspection stays pinned. New response models and OpenAPI describe
+the independent observation extension. Setup, migration, units, recovery and
+verification commands are in [Snowflake observations](release/snowflake-observations.md).
+Default tests and browser verification use explicit offline warehouse transports;
+no paid Snowflake request or production migration was made.
+
+Validation: full backend **630 passed, 2 skipped**; frontend **195 passed**;
+observation UI/worker and existing comparison browsers **7 passed**. The additional
+citywide-counter scope regression passed separately. TypeScript, production build,
+Ruff and all 43 frozen core contract hashes passed.

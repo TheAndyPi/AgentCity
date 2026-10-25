@@ -110,6 +110,10 @@ const measurement = z
     tick: counter.nullable(),
     city: z.record(z.string(), finite.nullable()),
     cohort: z.record(z.string(), finite.nullable()),
+    denominators: z
+      .record(z.string(), z.record(z.string(), counter))
+      .nullable()
+      .optional(),
   })
   .strict();
 export const eventDetailSchema = z
@@ -120,6 +124,7 @@ export const eventDetailSchema = z
     resolution: measurement,
     followup: measurement,
     followup_complete: z.boolean(),
+    change_counts: z.object({ explicit: counter, temporal: counter }).strict(),
     observations: z.array(
       z
         .object({

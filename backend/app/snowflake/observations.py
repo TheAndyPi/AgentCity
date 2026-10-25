@@ -359,6 +359,13 @@ class ObservationService:
         require(self.enabled, "FEATURE_UNAVAILABLE", "Snowflake observations are disabled", 501)
         if kind == "trends":
             require(filters.get("metric") in METRICS, "INVALID_REQUEST", "Unknown observation metric", 400)
+            require(
+                not filters.get("agent_id")
+                or filters.get("metric") not in {"cooperation_count", "conflict_count"},
+                "INVALID_REQUEST",
+                "Cooperation and conflict totals are citywide; clear the citizen filter",
+                400,
+            )
         start = filters.get("start_tick", 0)
         end = filters.get("end_tick", 9007199254740991)
         require(start <= end, "INVALID_REQUEST", "Start tick must not exceed end tick", 400)

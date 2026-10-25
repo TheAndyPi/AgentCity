@@ -20,6 +20,7 @@ RELATIONSHIP_METRICS = {
     "relationship_respect": "respect",
     "relationship_familiarity": "familiarity",
 }
+
 COUNT_METRICS = (
     "population",
     "deaths",
@@ -65,6 +66,10 @@ METRICS = {
         "denominator": "Recorded numeric belief confidence on the source 0–100 scale",
     },
 }
+
+
+METRICS["cooperation_count"]["denominator"] = "Citywide cumulative cooperative actions"
+METRICS["conflict_count"]["denominator"] = "Citywide cumulative conflicts"
 
 
 def empty_coverage():

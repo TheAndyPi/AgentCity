@@ -231,6 +231,14 @@ describe("observation contracts and chart", () => {
     expect(html).toContain('tabindex="0"');
     expect(html).toContain("Flood, resolved, ticks 1 to 2");
     expect(html).not.toMatch(/NaN|Infinity/);
+    const lowScore = renderToStaticMarkup(
+      createElement(TrendChart, {
+        data: { ...trends(), items: [point(0, 20)], events: [] },
+        label: "Health",
+        onEvent() {},
+      }),
+    );
+    expect(lowScore).toContain('y="29">100</text>');
   });
 
   it("renders unavailable values truthfully and keeps flat or single-point graphs finite", () => {

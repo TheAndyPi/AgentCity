@@ -39,6 +39,7 @@ const child = spawnProcess(
       ENABLE_NARRATION: "false",
       TIGER_ENABLED: "false",
       SNOWFLAKE_ENABLED: "false",
+      SNOWFLAKE_OBSERVATIONS_ENABLED: "false",
       CHOKIDAR_USEPOLLING: "true",
       ALLOWED_ORIGINS: "http://127.0.0.1:15175,http://127.0.0.1:10830",
       AGENTCITY_BACKEND_URL: "http://127.0.0.1:10830",

@@ -31,7 +31,7 @@ async function step(page: Page, sid: string) {
   await api(page, `/simulations/${sid}/commands`, "POST", {
     request_id: randomUUID(),
     expected_control_version: city.control_version,
-    command: { type: "step" },
+    command: { type: "step", count: 1 },
   });
 }
 
@@ -77,7 +77,10 @@ async function createCity(page: Page, openingEvent = false) {
 
 async function openObservations(page: Page) {
   await page
-    .getByRole("button", { name: /^Happiness .*view reasons$/ })
+    .getByRole("button", { name: "Open city menu", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Simulation overview", exact: true })
     .click();
   await page.getByRole("button", { name: "Observations", exact: true }).click();
   return page.locator(".observations-panel");
@@ -216,6 +219,7 @@ async function fixtureWarehouse(page: Page, frame: WorldFrame) {
             cohort: { health: 90, deaths: 0 },
           },
           followup_complete: false,
+          change_counts: { explicit: 1, temporal: 0 },
           observations: [
             {
               id: "health_delta",
@@ -280,6 +284,7 @@ test("warehouse UI fixtures agree across graph/table, filters and real citizen/e
   await expect(panel.getByRole("img")).toHaveAccessibleName(
     /Community trust, ticks/,
   );
+  await panel.getByText(/Trend data table ·/).click();
   await expect(
     panel.getByRole("row").filter({ hasText: "60–60" }),
   ).toContainText("60");

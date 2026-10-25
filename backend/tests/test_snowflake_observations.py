@@ -27,6 +27,21 @@ from app.snowflake.transport import SnowflakeTransport, VendorUnavailable
 ROOT = "/api/v1/integrations/snowflake/observations/v1/simulations/"
 
 
+def test_global_action_totals_cannot_be_mislabeled_as_one_citizen(tmp_path):
+    with connected(tmp_path) as (client, _, observer):
+        city = create_city(client)
+        sid = city["id"]
+        reconcile(client, observer)
+        agent_id = next(iter(client.app.state.service.heads[sid].citizens))
+        for metric in ("cooperation_count", "conflict_count"):
+            response = client.get(
+                ROOT + sid + "/trends",
+                params={"through_revision": city["revision"], "metric": metric, "agent_id": agent_id},
+            )
+            assert response.status_code == 400
+            assert "citywide" in response.json()["error"]["message"]
+
+
 def snow_config(**fields):
     return SimpleNamespace(
         **(

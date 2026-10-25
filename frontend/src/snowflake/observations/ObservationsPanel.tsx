@@ -32,6 +32,16 @@ export function formatObservation(value: unknown): string {
   return String(value);
 }
 
+function observationUnit(unit: string): string {
+  const labels: Record<string, string> = {
+    population_mean_0_100: "Population mean (0–100)",
+    directed_mean_0_100: "Directed relationship mean (0–100)",
+    recorded_count: "Recorded count",
+    recorded_confidence_0_100: "Recorded confidence (0–100)",
+  };
+  return labels[unit] ?? unit.replaceAll("_", " ");
+}
+
 /** Keep gaps unknown: a missing observation never becomes a zero or a connecting line. */
 export function trendSegments(points: TrendPoint[]): TrendPoint[][] {
   const segments: TrendPoint[][] = [];
@@ -68,8 +78,9 @@ export function TrendChart({
   const values = points
     .flatMap((point) => [point.min, point.max, point.mean])
     .filter((v): v is number => v !== null);
-  const bottom = Math.min(0, ...values);
-  const top = Math.max(bottom + 1, ...values);
+  const boundedScore = data.unit.endsWith("_0_100");
+  const bottom = boundedScore ? 0 : Math.min(0, ...values);
+  const top = boundedScore ? 100 : Math.max(bottom + 1, ...values);
   const x = (tick: number) => 39 + (302 * (tick - first)) / (last - first);
   const y = (value: number) => 145 - (120 * (value - bottom)) / (top - bottom);
   return (
@@ -271,6 +282,11 @@ function EventReport({
         {detail.event.start_tick ?? "pending"} · resolution{" "}
         {detail.event.end_tick ?? "pending"}
       </p>
+      <p>
+        Recorded event links: {detail.change_counts.explicit}. Other changes in
+        the observation window: {detail.change_counts.temporal}. Evidence below
+        is a bounded sample; the totals cover all recorded changes.
+      </p>
       {!detail.followup_complete && (
         <p className="observations-notice">
           Follow-up is partial. The 30 physical ticks after resolution have not
@@ -329,11 +345,20 @@ function EventReport({
                 ].map((metric) => (
                   <tr key={metric}>
                     <th scope="row">{metric.replaceAll("_", " ")}</th>
-                    <td>{formatObservation(detail.baseline[scope][metric])}</td>
-                    <td>
-                      {formatObservation(detail.resolution[scope][metric])}
-                    </td>
-                    <td>{formatObservation(detail.followup[scope][metric])}</td>
+                    {(["baseline", "resolution", "followup"] as const).map(
+                      (phase) => (
+                        <td key={phase}>
+                          {formatObservation(detail[phase][scope][metric])}
+                          {detail[phase].denominators?.[scope]?.[metric] !==
+                            undefined && (
+                            <small>
+                              n ={" "}
+                              {detail[phase].denominators?.[scope]?.[metric]}
+                            </small>
+                          )}
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -729,6 +754,7 @@ export function ObservationsPanel({
                   Measure
                   <select
                     id={`${id}-metric`}
+                    aria-label="Measure"
                     value={metric}
                     onChange={(e) => setMetric(e.target.value)}
                   >
@@ -740,7 +766,16 @@ export function ObservationsPanel({
                       </option>
                     )}
                     {(data?.metrics.items ?? []).map((item) => (
-                      <option key={item.id} value={item.id}>
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        disabled={
+                          !!selectedAgent &&
+                          ["cooperation_count", "conflict_count"].includes(
+                            item.id,
+                          )
+                        }
+                      >
                         {item.label}
                       </option>
                     ))}
@@ -750,8 +785,16 @@ export function ObservationsPanel({
                   Citizen
                   <select
                     id={`${id}-agent`}
+                    aria-label="Citizen"
                     value={selectedAgent}
-                    onChange={(e) => setSelectedAgent(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedAgent(e.target.value);
+                      if (
+                        e.target.value &&
+                        ["cooperation_count", "conflict_count"].includes(metric)
+                      )
+                        setMetric("health");
+                    }}
                   >
                     <option value="">Whole city</option>
                     {selectedAgent &&
@@ -769,6 +812,7 @@ export function ObservationsPanel({
                   Event
                   <select
                     id={`${id}-event`}
+                    aria-label="Event"
                     value={selectedEvent}
                     onChange={(e) => setSelectedEvent(e.target.value)}
                   >
@@ -829,7 +873,7 @@ export function ObservationsPanel({
                 <>
                   <h4>{selected?.label ?? metric.replaceAll("_", " ")}</h4>
                   <p className="observations-provenance">
-                    Units: {data.trends.unit} ·{" "}
+                    {observationUnit(data.trends.unit)} ·{" "}
                     {selected?.denominator ?? "See each point's denominator"}
                   </p>
                   <TrendChart
@@ -889,7 +933,12 @@ export function ObservationsPanel({
                             <th scope="col">Mean</th>
                             <th scope="col">Min–max</th>
                             <th scope="col">Samples</th>
-                            <th scope="col">Denominator</th>
+                            <th
+                              scope="col"
+                              title="Largest contributing group within the bucket"
+                            >
+                              Max denominator
+                            </th>
                           </tr>
                         </thead>
                         <tbody>

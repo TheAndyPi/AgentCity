@@ -2,6 +2,7 @@
 
 from fastapi import Query, Request
 
+from app.snowflake import observations_models as models
 from app.snowflake.observations import ObservationService
 from app.snowflake.observations_dto import METRICS, empty_coverage
 
@@ -20,11 +21,15 @@ def install_observations(child, parent, config, transport=None, gate=None):
     def response(request, data):
         return dict(schema_version="1.0.0", request_id=request.state.request_id, data=data)
 
-    @child.get(PREFIX + "/status", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/status", tags=["Snowflake observations"], response_model=models.Response[models.Status]
+    )
     async def status(request: Request, sid: str, through_revision: int | None = Query(default=None, ge=0)):
         return response(request, service.status(request.state.owner, sid, through_revision))
 
-    @child.get(PREFIX + "/metrics", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/metrics", tags=["Snowflake observations"], response_model=models.Response[models.Metrics]
+    )
     async def metrics(request: Request, sid: str, through_revision: int | None = Query(default=None, ge=0)):
         head = service.core.owned(request.state.owner, sid, through_revision)
         revision = head.simulation.revision if through_revision is None else through_revision
@@ -40,7 +45,9 @@ def install_observations(child, parent, config, transport=None, gate=None):
             },
         )
 
-    @child.get(PREFIX + "/trends", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/trends", tags=["Snowflake observations"], response_model=models.Response[models.Trends]
+    )
     async def trends(
         request: Request,
         sid: str,
@@ -64,7 +71,9 @@ def install_observations(child, parent, config, transport=None, gate=None):
         )
         return response(request, value)
 
-    @child.get(PREFIX + "/events", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/events", tags=["Snowflake observations"], response_model=models.Response[models.Events]
+    )
     async def events(
         request: Request,
         sid: str,
@@ -88,7 +97,12 @@ def install_observations(child, parent, config, transport=None, gate=None):
         )
         return response(request, value)
 
-    @child.get(PREFIX + "/events/{event_id}", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/events/{event_id}",
+        tags=["Snowflake observations"],
+        response_model=models.Response[models.EventDetail],
+        response_model_exclude_none=False,
+    )
     async def event_detail(
         request: Request,
         sid: str,
@@ -100,7 +114,9 @@ def install_observations(child, parent, config, transport=None, gate=None):
         )
         return response(request, value)
 
-    @child.get(PREFIX + "/changes", tags=["Snowflake observations"])
+    @child.get(
+        PREFIX + "/changes", tags=["Snowflake observations"], response_model=models.Response[models.Changes]
+    )
     async def changes(
         request: Request,
         sid: str,
