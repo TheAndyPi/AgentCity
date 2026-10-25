@@ -510,3 +510,15 @@ limits: [disaster controls handoff](release/disaster-controls-handoff.md),
 [disaster audio handoff](release/disaster-audio-handoff.md). The separate survival
 state machine and live SQL/provider audition are not claimed as shipped here.
 The tested source commit is recorded in the following verification note.
+
+### Disaster verification note
+
+Tested implementation commit: **`b10701f`**. Final source checks after the broad
+448-case collection passed the **127** physics/action/routing regressions and
+**19** controlled audio cases (including one unavailable voice while another
+assigned voice remains usable). Final frontend build and all **174** unit tests
+passed. The **8** combined narration/disaster browser cases passed; the **3**
+disaster cases passed again with the final cancellation/scenery and voice-error
+isolation code. All **43** frozen core checks and Ruff/format gates passed.
+The following evidence update waits for the reloaded damaged map before taking
+its screenshot; it changes test readiness and reporting only.

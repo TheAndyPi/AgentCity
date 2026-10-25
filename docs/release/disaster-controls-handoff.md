@@ -116,3 +116,9 @@ trapping/clearing, cancel, historical reads, save/branch, late preview generatio
 and real decoded browser media. Audio delivery/configuration and remaining external
 audition are documented in [disaster audio handoff](disaster-audio-handoff.md).
 Final command results and tested commit are appended in the development log.
+
+Tested implementation commit: **`b10701f`**. Broad verification: 448 backend passed
+and two opt-in SQL skips; final refinements additionally passed 127 focused
+physics/action/routing tests and 19 audio tests. Final frontend: 174 unit tests,
+production build; browser coverage: 26 core + 8 narration/disaster + 3 Snowflake.
+The three disaster browser cases were also rerun on the final implementation.

@@ -86,6 +86,9 @@ test("DS controls are independent and damage survives outcome and reload", async
   await page
     .getByRole("button", { name: "Preview event", exact: true })
     .click();
+  await page.getByRole("dialog").evaluate((node) => {
+    node.scrollTop = 0;
+  });
   await page.screenshot({
     path: "artifacts/disasters/controls.png",
     fullPage: true,
@@ -122,6 +125,12 @@ test("DS controls are independent and damage survives outcome and reload", async
   );
   expect(after.conditions).toEqual(before.conditions);
   expect(after.damage).toEqual(before.damage);
+  await expect(page.locator(".disaster-panel summary")).toContainText(
+    "damaged buildings",
+  );
+  await expect(
+    page.locator(".world-2d text").filter({ hasText: "×" }).first(),
+  ).toBeVisible();
   await page.screenshot({
     path: "artifacts/disasters/aftermath.png",
     fullPage: true,

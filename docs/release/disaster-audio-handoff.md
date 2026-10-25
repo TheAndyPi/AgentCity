@@ -119,3 +119,9 @@ queues, mute/categories, late completions, scope/replay/pause and reaction burst
 The browser suite plays decoded valid media with advancing playback time and checks
 cancellation/reload, plus the existing complete live-voice/manual narration suite.
 Final counts and tested commit are in the development log.
+
+Tested implementation commit: **`b10701f`**. Final controlled audio tests: **19
+passed**; frontend unit suite: **174 passed**; combined browser audio/disaster
+suite: **8 passed**, followed by **3** final disaster browser passes. A single
+unavailable citizen voice does not disable another assigned citizen's reaction.
+No real paid-provider audition is included in these results.
