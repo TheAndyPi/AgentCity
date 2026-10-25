@@ -23,9 +23,13 @@ ticks AS (
  ))
  GROUP BY r.TICK
 ),
+versions AS (
+ SELECT f.*,LEAD(REVISION,1,9007199254740992) OVER(PARTITION BY KIND,ENTITY_ID ORDER BY REVISION) next_revision
+ FROM facts f WHERE KIND IN('agent','relationship','opinion')
+),
 agent_latest AS (
- SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN facts f ON f.REVISION<=t.REVISION AND f.KIND='agent'
- QUALIFY ROW_NUMBER() OVER(PARTITION BY t.TICK,f.ENTITY_ID ORDER BY f.REVISION DESC,f.FACT_ID)=1
+ SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN versions f
+ ON f.REVISION<=t.REVISION AND f.next_revision>t.REVISION AND f.KIND='agent'
 ),
 living AS (
  SELECT * FROM agent_latest
@@ -33,8 +37,8 @@ living AS (
  AND PAYLOAD:life::VARCHAR!='dead'
 ),
 relationship_latest AS (
- SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN facts f ON f.REVISION<=t.REVISION AND f.KIND='relationship'
- QUALIFY ROW_NUMBER() OVER(PARTITION BY t.TICK,f.ENTITY_ID ORDER BY f.REVISION DESC,f.FACT_ID)=1
+ SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN versions f
+ ON f.REVISION<=t.REVISION AND f.next_revision>t.REVISION AND f.KIND='relationship'
 ),
 relationships AS (
  SELECT r.* FROM relationship_latest r JOIN living a ON a.TICK=r.TICK AND a.ENTITY_ID=r.PAYLOAD:from_agent_id::VARCHAR
@@ -43,8 +47,8 @@ relationships AS (
  AND (p.v:agent_id IS NULL OR r.PAYLOAD:from_agent_id::VARCHAR=p.v:agent_id::VARCHAR)
 ),
 opinion_latest AS (
- SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN facts f ON f.REVISION<=t.REVISION AND f.KIND='opinion'
- QUALIFY ROW_NUMBER() OVER(PARTITION BY t.TICK,f.ENTITY_ID ORDER BY f.REVISION DESC,f.FACT_ID)=1
+ SELECT t.TICK,t.REVISION,f.ENTITY_ID,f.PAYLOAD FROM ticks t JOIN versions f
+ ON f.REVISION<=t.REVISION AND f.next_revision>t.REVISION AND f.KIND='opinion'
 ),
 opinions AS (
  SELECT o.* FROM opinion_latest o JOIN living a ON a.TICK=o.TICK AND a.ENTITY_ID=o.PAYLOAD:agent_id::VARCHAR,p

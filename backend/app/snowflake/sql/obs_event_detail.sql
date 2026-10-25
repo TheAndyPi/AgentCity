@@ -57,8 +57,8 @@ snapshots AS (
 'social_need',AVG(IFF(s.living,TRY_TO_DOUBLE(s.payload:social_need::VARCHAR),NULL)),
 'mental',AVG(IFF(s.living,TRY_TO_DOUBLE(s.payload:mental::VARCHAR),NULL)),
 'institutional_trust',AVG(IFF(s.living,TRY_TO_DOUBLE(s.payload:institutional_trust::VARCHAR),NULL)),
-'population',IFF(MAX(IFF(ph.available,1,0))=1,COUNT_IF(s.living),NULL),
-'deaths',IFF(MAX(IFF(ph.available,1,0))=1,COUNT_IF(s.payload:life::VARCHAR='dead'),NULL)
+'population',IFF(MAX(IFF(ph.available,1,0))=1,COALESCE(COUNT_IF(s.living),0),NULL),
+'deaths',IFF(MAX(IFF(ph.available,1,0))=1,COALESCE(COUNT_IF(s.payload:life::VARCHAR='dead'),0),NULL)
 ),'cohort',OBJECT_CONSTRUCT_KEEP_NULL('happiness',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:happiness::VARCHAR),NULL)),
 'safety',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:safety::VARCHAR),NULL)),
 'trust',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:trust::VARCHAR),NULL)),
@@ -70,8 +70,8 @@ snapshots AS (
 'social_need',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:social_need::VARCHAR),NULL)),
 'mental',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:mental::VARCHAR),NULL)),
 'institutional_trust',AVG(IFF(s.in_cohort AND s.living,TRY_TO_DOUBLE(s.payload:institutional_trust::VARCHAR),NULL)),
-'population',IFF(MAX(IFF(ph.available,1,0))=1,COUNT_IF(s.in_cohort AND s.living),NULL),
-'deaths',IFF(MAX(IFF(ph.available,1,0))=1,COUNT_IF(s.in_cohort AND s.payload:life::VARCHAR='dead'),NULL)
+'population',IFF(MAX(IFF(ph.available,1,0))=1,COALESCE(COUNT_IF(s.in_cohort AND s.living),0),NULL),
+'deaths',IFF(MAX(IFF(ph.available,1,0))=1,COALESCE(COUNT_IF(s.in_cohort AND s.payload:life::VARCHAR='dead'),0),NULL)
 ,'initial_population',ARRAY_SIZE(ANY_VALUE(ph.cohort)))) value,
  ph.revision FROM phases ph LEFT JOIN samples s ON s.phase=ph.phase
  GROUP BY ph.phase,ph.tick,ph.revision

@@ -17,6 +17,8 @@ RELATIONSHIP_METRICS = {
     "relationship_trust": "trust",
     "relationship_affection": "affection",
     "relationship_conflict": "conflict",
+    "relationship_respect": "respect",
+    "relationship_familiarity": "familiarity",
 }
 COUNT_METRICS = (
     "population",
@@ -60,7 +62,7 @@ METRICS = {
         "id": "opinion_confidence",
         "label": "Belief confidence",
         "unit": "recorded_confidence_0_100",
-        "denominator": "Recorded numeric belief confidence, normalized to 0–100 by source scale",
+        "denominator": "Recorded numeric belief confidence on the source 0–100 scale",
     },
 }
 
