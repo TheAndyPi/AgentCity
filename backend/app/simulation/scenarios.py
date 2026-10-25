@@ -610,6 +610,9 @@ def activate(state):
     for runtime in state.events.values():
         if runtime.summary.status != "queued":
             continue
+        from app.snowflake.observations_projection import capture_baseline
+
+        runtime.observation_baseline = capture_baseline(state)
         if runtime.physical is None:
             hazards = [effect for effect in runtime.spec.effects if effect.type == "hazard"]
             if hazards:
