@@ -26,7 +26,7 @@ from app.infrastructure.errors import require
 from app.simulation.agents import clamp, evidence, hazard_severity, metric_delta, remember
 from app.simulation.lessons import compose_lessons, gather_facts
 from app.simulation.navigation import polygon_contains, simple_polygon
-from app.simulation.scenario_scene import CATALOG, affirmed_mentions, build_scene, matches
+from app.simulation.scenario_scene import CATALOG, affirmed_mentions, build_scene, matches, negated
 from app.simulation.state import EventRuntime, expiry
 
 
@@ -234,6 +234,20 @@ def validate_spec(state, spec):
         )
 
 
+def region(text):
+    """The first cardinal direction named as a whole word, in north/east/west/south priority."""
+    patterns = dict(
+        north=r"\bnorth(?:-?(?:east|west))?",
+        east=r"\b(?:(?:north|south)-?)?east",
+        west=r"\b(?:(?:north|south)-?)?west",
+        south=r"\bsouth(?:-?(?:east|west))?",
+    )
+    for direction, pattern in patterns.items():
+        if re.search(pattern + r"(?:ern|ward)?\b", text):
+            return direction
+    return None
+
+
 def preset(state, kind, policy=None, prompt=""):
     text = prompt.lower()
     polygon = rectangle(0, 0, state.map.width_m, state.map.height_m)
@@ -241,13 +255,14 @@ def preset(state, kind, policy=None, prompt=""):
         # Leave safe facilities outside a default hazard's reach. An explicit
         # citywide prompt can still deliberately test a citywide emergency.
         polygon = rectangle(0, 0, state.map.width_m / 2, state.map.height_m * 0.5625)
-    if "north" in text:
+    direction = region(text)
+    if direction == "north":
         polygon = rectangle(0, 64, 128, 128)
-    elif "east" in text:
+    elif direction == "east":
         polygon = rectangle(64, 0, 128, 128)
-    elif "west" in text:
+    elif direction == "west":
         polygon = rectangle(0, 0, 64, 128)
-    elif "south" in text:
+    elif direction == "south":
         polygon = rectangle(0, 0, 128, 64)
     elif any(term in text for term in ("whole city", "entire city", "citywide")):
         polygon = rectangle(0, 0, 128, 128)
@@ -255,9 +270,9 @@ def preset(state, kind, policy=None, prompt=""):
     severity_match = re.search(r"severity\s*[:=]?\s*(\d+(?:\.\d+)?)", text)
     if severity_match:
         severity = float(severity_match[1])
-    elif any(word in text for word in ("severe", "major", "extreme")):
+    elif re.search(r"\b(?:severe|major|extreme)\b", text):
         severity = 85
-    elif any(word in text for word in ("mild", "minor", "small")):
+    elif re.search(r"\b(?:mild|minor|small)\b", text):
         severity = 25
     match = re.search(r"(?:for\s+)?(\d+)\s*ticks?", text)
     duration = int(match[1]) if match else 12
@@ -306,7 +321,8 @@ def preset(state, kind, policy=None, prompt=""):
 
 def unsupported_physical_requests(description):
     """Building geometry/lifecycle changes have no corresponding simulation effect."""
-    buildings = r"\b(?:hospitals?|buildings?|houses?|homes?|shelters?|schools?|bridges?|towers?|offices?)\b"
+    nouns = r"(?:hospitals?|buildings?|houses?|homes?|shelters?|schools?|bridges?|towers?|offices?)"
+    buildings = r"\b" + nouns + r"\b"
     actions = {
         "destruction": (
             "destroy",
@@ -353,6 +369,14 @@ def unsupported_physical_requests(description):
             "rebuilding",
         ),
     }
+    # These verbs are only construction when a building is their object.
+    creates = re.compile(
+        r"\b(?:create[sd]?|creating|add(?:s|ed|ing)?|(?:puts?|putting|sets?|setting)\s+up)\s+"
+        r"(?:(?!(?:to|at|in|into|on|near|by|for|from|with|beside|inside|outside|behind)\b)[\w-]+\s+){0,3}?"
+        + nouns
+        + r"\b"
+    )
+    appears = re.compile(r"\bnew\s+" + nouns + r"\s+(?:appears?|rises?|goes up|springs up|is added)\b")
     clauses = re.split(r"[.!?;\n]", description.lower())
     unsupported = []
     for kind, verbs in actions.items():
@@ -360,7 +384,14 @@ def unsupported_physical_requests(description):
             re.search(buildings, clause)
             and (
                 any(affirmed_mentions(clause, verb) for verb in verbs)
-                or (kind == "construction" and re.search(r"\bbuilding\s+(?:a|an|the|new|another)\b", clause))
+                or (
+                    kind == "construction"
+                    and (
+                        re.search(r"\bbuilding\s+(?:a|an|the|new|another)\b", clause)
+                        or any(not negated(clause, m.start(), m.end()) for m in creates.finditer(clause))
+                        or appears.search(clause)
+                    )
+                )
             )
             for clause in clauses
         ):
@@ -370,10 +401,24 @@ def unsupported_physical_requests(description):
     return unsupported
 
 
-def compile_preview(state, source, prompt=None, source_event_id=None, policy=None, design=None):
+INTERPRETATION_FAILURE = (
+    "The model failed to interpret this scenario input as simulation effects. Specify these parameters: "
+    "the kind of event (for example a flood, fire, storm, food or water shortage, power outage, rumor, "
+    "festival, market, concert, community aid, clinic, illness, snow, heatwave, visitors, wildlife, "
+    "robots or dinosaurs), and optionally where (north, east, south, west or citywide), how severe "
+    '(mild, severe or "severity 70") and how long (for example "for 20 ticks"). Or describe the '
+    "scenario prompt in another way so that its effects can be interpreted."
+)
+
+
+def compile_preview(
+    state, source, prompt=None, source_event_id=None, policy=None, design=None, interpreted=None
+):
+    """`interpreted` holds catalog recipe ids a model chose for a prompt no keyword matched."""
     unsupported = []
     warnings = []
     recipes = []
+    uninterpretable = False
     if source == "repeat":
         runtime = state.events.get(source_event_id)
         require(
@@ -397,23 +442,20 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         spec.title = prompt[:80]
     else:
         text = (prompt or "").lower()
-        recipes = matches(text)
+        recipes = matches(text) or [r for r in CATALOG if r["id"] in (interpreted or [])][:8]
         kinds = [r["kind"] for r in recipes]
         spec = preset(state, kinds[0] if kinds else "custom", prompt=prompt or "")
-        # Keep every custom premise as citizen-visible world context. Familiar
-        # mechanics can accompany it, but a keyword list never gates an event.
         premise = (prompt or "").strip()
         require(bool(premise), "INVALID_REQUEST", "Describe an event first", 400)
         spec.title = " ".join(premise.split())[:80].strip()
-        if not kinds and not any(word in text for word in ("north", "east", "west", "south")):
+        if not kinds and not region(text):
             spec.affected_polygon = rectangle(0, 0, state.map.width_m, state.map.height_m)
             spec.origin = Vec2(x=state.map.width_m / 2, y=state.map.height_m / 2)
-        if not recipes and not (design and design.parts):
+        if interpreted and recipes and not matches(text):
             warnings.append(
-                "This premise is represented by a labeled abstract landmark. Citizens can remember and "
-                "discuss it; physical changes beyond the listed effects are not simulated. "
-                "Add details such as a market, visitors, wildlife or weather for specific effects."
+                "Interpreted by the model as: " + ", ".join(r["id"].replace("_", " ") for r in recipes) + "."
             )
+        uninterpretable = not recipes
     if source not in {"repeat", "policy"}:
         # Compose recipes without multiplying duplicate effects from overlapping phrases.
         effects = []
@@ -472,9 +514,20 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         for prop in spec.scene:
             if not prop.label.startswith("Illustration: "):
                 prop.label = f"Illustration: {prop.label}"[:80]
-    can_commit = bool(spec.effects)
+    # A premise only becomes an event once it maps to at least one simulation effect family;
+    # its information effect alone is not an interpretation.
+    can_commit = bool(spec.effects) and not uninterpretable
     if can_commit:
         validate_spec(state, spec)
+    interpretation = (
+        INTERPRETATION_FAILURE
+        if uninterpretable
+        else f"{limitation} Narrative request: {spec.description[:1700]}"
+        if unsupported
+        else f"{spec.description[:1900]} Citizens respond in their own way over {spec.duration_ticks} ticks."
+    )
+    if uninterpretable:
+        unsupported.append(INTERPRETATION_FAILURE)
     return ScenarioPreview(
         id=state.next_id("preview"),
         simulation_id=state.simulation.id,
@@ -482,11 +535,7 @@ def compile_preview(state, source, prompt=None, source_event_id=None, policy=Non
         source_event_id=source_event_id,
         based_on=state.ref(),
         expires_at=expiry(),
-        interpretation=(
-            f"{limitation} Narrative request: {spec.description[:1700]}"
-            if unsupported
-            else f"{spec.description[:1900]} Citizens respond in their own way over {spec.duration_ticks} ticks."
-        ),
+        interpretation=interpretation,
         spec=spec,
         affected_agent_ids=[
             a

@@ -9,6 +9,13 @@ import type {
   Vec2,
   WorldFrame,
 } from "./types";
+const INTERPRETATION_FAILURE =
+  "The model failed to interpret this scenario input as simulation effects. Specify these parameters: " +
+  "the kind of event (for example a flood, fire, storm, food or water shortage, power outage, rumor, " +
+  "festival, market, concert, community aid, clinic, illness, snow, heatwave, visitors, wildlife, " +
+  "robots or dinosaurs), and optionally where (north, east, south, west or citywide), how severe " +
+  '(mild, severe or "severity 70") and how long (for example "for 20 ticks"). Or describe the ' +
+  "scenario prompt in another way so that its effects can be interpreted.";
 function pointInPolygon(p: Vec2, polygon: Vec2[]) {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -163,7 +170,9 @@ export function scenarioFixture(
     source_event_id: null,
     based_on: frame.ref,
     expires_at: new Date(Date.now() + 600000).toISOString(),
-    interpretation: `${premise} Citizens respond in their own way.`,
+    interpretation: recipes.length
+      ? `${premise} Citizens respond in their own way.`
+      : INTERPRETATION_FAILURE,
     spec: {
       title,
       description: premise,
@@ -182,12 +191,8 @@ export function scenarioFixture(
     affected_building_ids: frame.map.buildings
       .filter((b) => pointInPolygon(b.entrance, polygon))
       .map((b) => b.id),
-    warnings: recipes.length
-      ? []
-      : [
-          "This premise is represented by a labeled abstract landmark. Citizens can remember and discuss it.",
-        ],
-    unsupported_requests: [],
-    can_commit: !!premise,
+    warnings: [],
+    unsupported_requests: recipes.length ? [] : [INTERPRETATION_FAILURE],
+    can_commit: !!premise && recipes.length > 0,
   };
 }

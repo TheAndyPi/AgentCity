@@ -402,7 +402,7 @@ def test_full_length_custom_event_and_empty_event_validation(client):
     from app.infrastructure.errors import DomainError
 
     state = world(client)
-    prompt = "A" * 2000
+    prompt = "A festival " + "A" * 1989
     result = compile_preview(state, "custom", prompt)
     assert result.can_commit and result.spec.description == prompt
     assert len(result.interpretation) <= 2000
@@ -431,6 +431,50 @@ def test_hazard_lesson_tells_what_happened_and_what_was_learned(client):
     assert safety.evidence.decision_ids
     for did in safety.evidence.decision_ids:
         assert decisions[did].agent_id in report.affected_agent_ids
+
+
+def test_repeat_evacuations_count_each_citizen_once(client):
+    from app.simulation.agents import hazard_severity
+    from app.simulation.game_master import make_intent
+    from app.simulation.lessons import gather_facts
+    from app.simulation.scenarios import queue_event
+
+    state = world(client)
+    preview = compile_preview(state, "custom", "A flood in the east for 5 ticks")
+    runtime = state.events[queue_event(state, preview, state.snapshots[0].id, False).id]
+    tick(state)
+    citizen = state.citizens[runtime.cohort[0]]
+    runtime.cohort = [citizen.summary.id]
+    runtime.evacuated_count = 1
+    shelter = next(
+        b
+        for b in state.map.buildings
+        if b.kind in {"shelter", "community"} and hazard_severity(state, b.entrance) == 0
+    )
+    citizen.summary.position = shelter.entrance.model_copy()
+    for _ in range(2):
+        decision = make_intent("evacuate", target=shelter.id)
+        record = c.Decision(
+            id=state.next_id("decision"),
+            agent_id=citizen.summary.id,
+            tick=state.simulation.tick,
+            source="rules",
+            intent=decision,
+            observed_facts=[],
+            memory_ids=[],
+            relationship_agent_ids=[],
+            concise_rationale="",
+            outcome="accepted",
+            outcome_description="Path accepted",
+            rejection_code=None,
+            effects=[],
+            event_ids=[],
+        )
+        state.decisions.append(record)
+    safety = gather_facts(state, runtime)[0]["text"]
+    assert safety == (
+        f"{citizen.summary.name}, the only citizen in the affected area, reached safety at {shelter.name}."
+    )
 
 
 def test_outside_aid_lesson_does_not_credit_neighbors(client):

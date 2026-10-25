@@ -70,15 +70,35 @@ def gather_facts(state, runtime):
     if cohort and any(e.type == "hazard" for e in runtime.spec.effects):
         total = len(cohort)
         evacuations = taken("evacuate")
-        shelters = Counter(d.intent.target_id for d in evacuations if d.intent.target_id in buildings)
-        text = (
-            f"All {total} citizens in the affected area reached safety"
-            if runtime.evacuated_count == total
-            else f"{runtime.evacuated_count} of {total} citizens in the affected area reached safety"
-        )
-        if shelters:
-            shelter, count = shelters.most_common(1)[0]
-            text += f"; {count} of them headed for {buildings[shelter].name}"
+        safe = {
+            aid
+            for aid in runtime.cohort
+            if state.citizens[aid].summary.active
+            and hazard_severity(state, state.citizens[aid].summary.position) == 0
+        }
+        # Each safe citizen counts once, toward the last shelter they headed for.
+        destinations = {
+            d.agent_id: d.intent.target_id for d in evacuations if d.intent.target_id in buildings
+        }
+        shelters = Counter(target for aid, target in destinations.items() if aid in safe)
+        shelter, count = shelters.most_common(1)[0] if shelters else (None, 0)
+        if total == 1:
+            text = f"{names(state, cohort)}, the only citizen in the affected area, " + (
+                f"reached safety at {buildings[shelter].name}"
+                if shelter
+                else "reached safety"
+                if safe
+                else "did not reach safety"
+            )
+        else:
+            text = (
+                f"All {total} citizens in the affected area reached safety"
+                if len(safe) == total
+                else f"{len(safe)} of {total} citizens in the affected area reached safety"
+            )
+            if shelter:
+                share = f"{count} of them" if count < len(safe) else "all of them" if count > 1 else "they"
+                text += f"; {share} headed for {buildings[shelter].name}"
         facts.append(fact("safety", text + ".", evacuations))
         stranded = [
             aid
@@ -168,19 +188,19 @@ def gather_facts(state, runtime):
         facts.append(fact("information", sentence(text), [d for d in talks if (d.agent_id, d.tick) in keys]))
 
     if any(e.type == "information" and e.reliability < 100 for e in runtime.spec.effects):
-        heard = [
-            memory.id
+        heard = {
+            citizen.summary.id: memory.id
             for citizen in state.citizens.values()
             for memory in citizen.memories
             if memory.source == "heard" and runtime.summary.id in memory.evidence.event_ids
-        ]
+        }
         if heard:
             facts.append(
                 fact(
                     "rumor",
                     f"{plural(len(heard), 'citizen')} heard an unverified report about the event "
                     "before anyone could confirm it.",
-                    memory_ids=heard,
+                    memory_ids=heard.values(),
                 )
             )
 

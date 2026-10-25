@@ -53,7 +53,10 @@ describe("procedural scenario scenes", () => {
       "Gravity reverses without any fire",
     );
     expect(unknown.spec.scene?.[0].model).toBe("monument");
-    expect(unknown.warnings[0]).toContain("abstract landmark");
+    expect(unknown.can_commit).toBe(false);
+    expect(unknown.unsupported_requests[0]).toContain(
+      "failed to interpret this scenario input",
+    );
     expect(unknown.spec.effects.some((e) => e.type === "hazard")).toBe(false);
   });
   it("honors count and color without confusing water and food shortages", () => {

@@ -175,7 +175,11 @@ export function PreviewCard({
         <div className="warning">
           <ShieldAlert size={18} />
           <div>
-            <strong>Unsupported parts</strong>
+            <strong>
+              {preview.can_commit
+                ? "Unsupported parts"
+                : "This scenario could not be interpreted"}
+            </strong>
             {preview.unsupported_requests.map((u, i) => (
               <p key={i}>{u}</p>
             ))}

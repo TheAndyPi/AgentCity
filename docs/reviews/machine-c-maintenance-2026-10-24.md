@@ -162,3 +162,16 @@ prompt files, proposal schemas or event/report payloads changed in this branch.
 
 Retention, endurance, broad browser-suite cleanup and unavailable optional
 integrations remain separate work as described in the original review.
+
+## Authorized integration follow-up
+
+The user subsequently authorized resolving the conflict and pushing to `dev`,
+with test-case repairs assigned to another machine. Integration starts from
+`28dee4f` (the newer frontend/city update), retaining that commit and merging
+Machine C's `f08b328` and Machine B's `fceecf9`. The gateway import conflict is
+resolved by retaining both navigation helpers and the scenario catalog import.
+The automatic merges retain the new fonts and skyline work alongside the patched
+dependencies, Settings operation lifecycle, lesson deadline and credential-worker
+lifetime. No test cases were repaired or test suites rerun for this integration;
+only conflict-marker, Python syntax and manifest/lockfile consistency checks were
+performed. The validation results above describe the earlier maintenance branch.

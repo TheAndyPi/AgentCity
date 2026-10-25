@@ -13,22 +13,62 @@ CATALOG = json.loads((Path(__file__).resolve().parents[3] / "contracts/scenario-
 COLORS = json.loads((Path(__file__).resolve().parents[3] / "contracts/scenario-palette.json").read_text())
 
 
+MODIFIERS = (
+    r"(?:a|an|the|any|severe|major|extreme|mild|minor|small|heavy|dangerous|new|large|"
+    r"significant|serious|local|nearby|expected|be|been|being|of|risk|chance|sign|signs|threat)"
+)
+NEGATED_BEFORE = re.compile(r"(?:\b(?:no|without|not|never|neither|nor)|n't)(?:\s+" + MODIFIERS + r")*\s*$")
+NEGATED_AFTER = re.compile(
+    r"^\s+(?:(?:is|are|was|were|will|would|should|does|do|did|has|have|had|can|could)\s+"
+    r"(?:(?:be|been)\s+)?(?:not|never|no longer)\b|"
+    r"(?:isn't|aren't|wasn't|weren't|won't|wouldn't|shouldn't|doesn't|don't|didn't|can't|couldn't)\b)"
+)
+EVENT_TERM = (
+    r"(?:"
+    + "|".join(re.escape(t) for t in sorted({t for r in CATALOG for t in r["terms"]}, key=len, reverse=True))
+    + r")(?:e?s)?"
+)
+# "X or Y" and "X nor Y" always join a list, as does a bare "X and Y". A comma, ", and"
+# or "and a Y" only does when the list continues, so "no flood and a fire starts" and
+# "no flood, a fire starts" still affirm the fire.
+LINK = r"(?P<link>\s*,\s*(?:or|nor)\s+|\s+(?:or|nor|and)\s+|\s*,\s*(?:and\s+)?)"
+QUALIFIED = r"(?P<qualifiers>(?:" + MODIFIERS + r"\s+)*)"
+LIST_BEFORE = re.compile(r"\b(?P<item>" + EVENT_TERM + r")" + LINK + QUALIFIED + r"$")
+LIST_AFTER = re.compile(r"^" + LINK + QUALIFIED + EVENT_TERM + r"\b")
+
+
+def strong(link):
+    joiner = link["link"]
+    if re.search(r"\b(?:or|nor)\b", joiner):
+        return True
+    return "," not in joiner and not link["qualifiers"]
+
+
+def negated(text, start, end):
+    continues = LIST_AFTER.match(text[end:])
+    before = text[:start]
+    while not NEGATED_BEFORE.search(before):
+        link = LIST_BEFORE.search(before)
+        if not link or not (strong(link) or continues):
+            break
+        before = before[: link.start("item")]
+    else:
+        return True
+    after = text[end:]
+    while not NEGATED_AFTER.search(after):
+        link = LIST_AFTER.match(after)
+        if not link or not strong(link):
+            return False
+        after = after[link.end() :]
+    return True
+
+
 def affirmed_mentions(text, term):
     """Match occurrences individually so a denial cannot hide a later affirmative clause."""
-    modifiers = (
-        "a|an|the|any|severe|major|extreme|mild|minor|small|heavy|dangerous|new|large|"
-        "significant|serious|local|nearby|expected|been"
-    )
-    prefix = re.compile(r"\b(?:no|without|not|never)\s+(?:(?:" + modifiers + r")\s+)*$")
-    suffix = re.compile(
-        r"^\s+(?:(?:is|are|was|were|will|would|should|does|do|did|has|have|had|can|could)\s+"
-        r"(?:(?:be|been)\s+)?(?:not|never|no longer)\b|"
-        r"(?:isn't|aren't|wasn't|weren't|won't|wouldn't|shouldn't|doesn't|don't|didn't|can't|couldn't)\b)"
-    )
     return [
         mention
         for mention in re.finditer(r"\b" + re.escape(term) + r"\b", text)
-        if not prefix.search(text[: mention.start()]) and not suffix.search(text[mention.end() :])
+        if not negated(text, mention.start(), mention.end())
     ]
 
 
