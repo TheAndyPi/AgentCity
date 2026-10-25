@@ -22,6 +22,8 @@ jsonschema-specifications==2025.9.1
 opentelemetry-api==1.45.1
 packaging==26.3
 pluggy==1.7.0
+psycopg==3.3.3
+psycopg-binary==3.3.3
 pyasn1==0.6.4
 pyasn1-modules==0.4.2
 pycparser==3.12
@@ -38,6 +40,7 @@ starlette==1.9.0
 truststore==0.10.5
 typing-inspection==0.4.4
 typing_extensions==4.16.0
+tzdata==2026.5; sys_platform == 'win32'
 urllib3==2.8.0
 uvicorn==0.54.0
 websockets==17.3

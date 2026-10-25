@@ -27,6 +27,8 @@ import type {
 import type { Overlay } from "../world/World";
 import * as S from "../api/schemas";
 import Narration from "./Narration";
+import { SnowflakeComparison } from "../snowflake/SnowflakeComparison";
+import { SnowflakeClient } from "../snowflake/client";
 import { Conversations, Personality, TraitsRoster } from "./LifePanels";
 import { ReportMetrics } from "./OutcomeDialog";
 export type DrawerNode =
@@ -1207,7 +1209,10 @@ export function ComparePanel({
   revision: number;
   otherId?: string;
 }) {
-  const { client } = useApp();
+  const { client, capabilities } = useApp();
+  const [snowflakeClient] = useState(
+    () => new SnowflakeClient(client.transport),
+  );
   const worlds = useQuery(
     async () => [
       ...(await client.simulations()),
@@ -1370,6 +1375,15 @@ export function ComparePanel({
             Endpoint ticks can differ. Separate model runs do not establish
             statistical significance.
           </p>
+          <SnowflakeComparison
+            enabled={client.mode === "live" && !!capabilities?.snowflake}
+            a={{ simulation_id: frame.simulation.id, revision }}
+            b={{
+              simulation_id: data.data.sim.id,
+              revision: data.data.sim.revision,
+            }}
+            client={snowflakeClient}
+          />
         </>
       )}
     </>

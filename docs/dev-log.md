@@ -112,3 +112,135 @@ written as required acceptance specifications; their machines must implement
 the actual adapter tests alongside code. No external integration is claimed
 complete from these specifications. This task did not rerun the full backend or
 full browser suite and made no live vendor calls or deployment changes.
+
+## 2026-10-24 — Machine B Snowflake comparison handoff
+
+Implementation: `ef0aae2bc0e7519bc942a0252a50e099c8b6091b`, branch
+`codex/snowflake-comparison`, based on fetched `origin/dev` at `2d22559`.
+See [the Snowflake handoff](release/snowflake-handoff.md) for API/schema, SQL setup,
+configuration, bounded Cortex selection, retry/crash policy and exact commands.
+
+Delivered isolated `backend/app/snowflake/**`, a runnable real-core composition,
+versioned bound SQL, durable separate request/model-budget ledger, a service-specific
+frontend client/schema/component, controlled external HTTP fixtures, 30 backend
+acceptance tests and two browser cases. JSON inputs come from the existing owned
+export implementation at explicit revisions. Source/branch keys and citations
+include simulation/revision identity; numeric differences come from verified
+read-back. No Tiger dependency or scenario/lesson/provider/settings changes.
+
+Actual results on this branch:
+
+- Focused Snowflake backend: **30 passed** in 45.21s. Covers S-01–S-05, literal
+  fixture deltas, inherited IDs, missing records, every citation resolving at its
+  pinned revision, pending/completed/changed retries, response loss and restart,
+  cost limits, blocked-vendor ticking, caller cancellation, SQL asynchronous
+  polling/output bounds, key-pair signing and independent OpenAPI snapshot.
+- Browser S-06 with the real composed application route and only the external
+  Snowflake HTTP transport faked: **2 passed**. Displayed values match returned
+  records, response-loss retry keeps the same key/body/result, disabled UI makes
+  no integration request. This does not verify the default shared entry point.
+- Frontend unit/consumer: **150 passed**; production build/TypeScript passed.
+  All **43 core contract hashes**, DTO, parent OpenAPI and stream snapshots match.
+- Ruff lint passed across backend; changed Python files pass Ruff format.
+  Full format gate reports untouched `test_city_layout.py:96`.
+- Full backend run: **325 passed, 1 failed** in 153.64s, collected before the final
+  five Snowflake cases were added. The failure is
+  `test_domain.py::test_repeat_evacuations_count_each_citizen_once`, `StopIteration`
+  finding an unexposed shelter at line 449. Reproduced on an isolated untouched
+  `git archive origin/dev` with no Snowflake files. Scenario fixes are excluded.
+- Live opt-in SQL API smoke: **unverified**, HTTP 422 / insufficient privileges
+  when creating the unique disposable schema. Key files/config existed, but real
+  table setup/read-back and Cortex were not reached. No production cleanup or
+  real Cortex success is claimed. `node scripts/snowflake-live-smoke.mjs --live`
+  is the explicit rerun command after the operator grants suitable schema access.
+
+New consumed server configuration names: `SNOWFLAKE_ENABLED`, `SNOWFLAKE_ACCOUNT`,
+`SNOWFLAKE_USER`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`, `SNOWFLAKE_WAREHOUSE`,
+`SNOWFLAKE_ROLE`, `SNOWFLAKE_PRIVATE_KEY_FILE`,
+`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_FILE`, `SNOWFLAKE_CORTEX_MODEL`. Values remain local.
+Existing pinned dependencies suffice; no shared manifests or locks changed.
+
+**A's next action:** apply the checked
+[minimal wiring patch](release/snowflake-wiring.patch) to coordinator-owned main,
+capability and existing ComparePanel entry points; compose Tiger/narration routes
+on the same child app, provision the dedicated runtime schema/grants, rerun real
+SQL/Cortex smoke and combined public application gates. The branch provides
+`app.snowflake.application:create_app` for executable adapter/browser evidence;
+normal `app.main:app` wiring and full release acceptance are not claimed complete.
+
+## 2026-10-24 — Machine A Tiger and combined integration handoff
+
+Branch: `codex/tiger-release-integration`, from fetched dev
+`2d22559368ffede1d0a5e500c487541a0120dda2`. Tiger/deployment implementation:
+`a20e964`; normal merge of B's `37c5fbc` followed by shared default-app/UI wiring:
+`c724845a85368660fb5d13347bf76e9f5883f219`. Final full test tree:
+`0f6b3a9909aaf6babf69165fbf0acc0fa9ec302d` (additional branch deletion/restart
+assertions). Subsequent handoff commits contain documentation and measured evidence.
+No force push or direct dev push was used.
+
+Delivered `backend/app/integrations/**` with versioned PostgreSQL migration,
+parameterized idempotent upserts, verified TLS, bounded committed-history
+reconciliation, persistent checksum/digest-bound progress, safe lag/error status
+and a shared independently documented integration sub-app. Local persistence stays
+authoritative. Metrics, decisions, event snapshots and sampled public agent summaries
+are ingested; full relationship history/private memories/dialogue are not claimed.
+Writer-lock publication precedes optional ingestion; controlled failures prove local
+commits, ticks and HTTP controls survive vendor outages.
+
+Merged B's implementation without replacing newer dev files. Snowflake and Tiger
+share one mount; capability and the default History/Drawer comparison UI are wired.
+Added default-app/public UI tests, isolated browser settings/city cleanup, safe
+offline backup/restore tooling, one-worker systemd/Caddy configuration and operator
+restart/restore/rollback steps in `deploy/`. Details:
+[Tiger handoff](release/tiger-handoff.md), [validation report](release/validation-report.md).
+
+Actual results on the combined application:
+
+- Fresh locked frontend and isolated backend installs passed; `pip check` passed.
+- Final `npm test`: **150 frontend passed; 351 backend passed / 2 opt-in skips**
+  in 185.93s; all **43 frozen hashes**, DTO/OpenAPI/stream snapshots, Ruff lint and
+  full format gates passed. The skipped SQL cases were executed separately below.
+- Production build/TypeScript passed. Full and production npm audits: **zero**.
+- Full core browser: **26 passed**, no skips/flaky/failures; test-only polling
+  avoided the documented Windows Vite watcher issue. All 7 Settings cases passed.
+  Snowflake browser: **3 passed**, including the default production History dialog
+  and exact numeric read-back with controlled external transport.
+- Real Tiger SQL/public-worker tests: **2 passed**, exact rows/totals, repeated
+  delivery, branch provenance, restart and query deadline. Disposable schemas only;
+  no credentials or vendor bodies were printed. The same tests on disposable local
+  PostgreSQL 18.6 with verified TLS and a non-owner/non-superuser role: **2 passed**.
+- Explicit source deletion -> actual app restart/read-back: focused **3 passed**;
+  local backup/restore exact state tests also passed in the full suite.
+- Benchmarked 10/30/100 agents and completed a configured 100-tick horizon under
+  blocked Tiger. At 100 agents, normal 40-tick workload: step/control p95
+  **426.72/240.14 ms**, **1.84 ticks/s**, **20.37 MiB** store. The 100-tick blocked
+  workload: **539.85/335.55 ms**, **1.76 ticks/s**, **53.79 MiB**, honest **119-revision
+  lag**. Full raw results and RAM/cadence limits are in the report. No 10,000-tick
+  endurance or hosted SLO pass is claimed.
+
+Initial full-browser evidence was **22 passed / 4 failed** on stale selectors and
+fixed-population assumptions; all behavioral checks were retained while adapting
+to the actual controls. The existing unique-evacuee test's unsafe-region fixture
+was repaired without changing scenarios, and the city-layout test was formatted.
+B's two route-index assumptions were updated to the shared child; cancellation and
+blocked-vendor assertions remain. The report preserves these failures and reruns.
+
+Actual new Tiger environment names: `TIGER_ENABLED`, `TIGER_DATABASE_URL`,
+`TIGER_SCHEMA`, `TIGER_TIMEOUT_SECONDS`, `TIGER_REVISION_BATCH`,
+`TIGER_MOVEMENT_SAMPLE_TICKS`, `TIGER_POLL_SECONDS`, `TIGER_RETRY_MIN_SECONDS`,
+`TIGER_RETRY_MAX_SECONDS`; opt-in tests use `TIGER_TEST_DATABASE_URL`.
+`.env.example` now documents consumed Snowflake names and stops advertising unused
+password/token fields. Dependency addition is only pinned `psycopg[binary]==3.3.3`
+and its matching lock entries; all vendor credentials remain server-side.
+
+**Remaining release blockers:** C's `codex/elevenlabs-narration` branch/handoff was
+still absent at the last fetch, so narration remains honestly disabled/501 and
+N-01–N-07 are blocked. B reported real Snowflake smoke HTTP 422 / insufficient
+schema privileges; A did not claim a fresh real SQL/Cortex pass. Vultr/HTTPS host
+access, supervision, deployed security/media and host restore/rollback remain
+unverified. Review and normally merge this branch after those service/host gates;
+do not treat the passing local/Tiger scope as a three-service release sign-off.
+Automatic review blocked cleanup of one stopped temporary PostgreSQL bootstrap
+folder; it remains outside the workspace and has no effect on the app/tests.
+Generated browser screenshots were retained as evidence after cleanup review
+also rejected their deletion.

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Snowflake comparison acceptance</title>
+  </head>
+  <body>
+    <main
+      id="root"
+      style="max-width: 760px; padding: 24px; margin: 0 auto"
+    ></main>
+    <script type="module">
+      import React from "react";
+      import { createRoot } from "react-dom/client";
+      import { SnowflakeComparison } from "../../src/snowflake/SnowflakeComparison.tsx";
+      import "../../src/styles.css";
+      const params = new URLSearchParams(location.search);
+      const a = {
+        simulation_id: params.get("a"),
+        revision: Number(params.get("ar")),
+      };
+      const b = {
+        simulation_id: params.get("b"),
+        revision: Number(params.get("br")),
+      };
+      createRoot(document.getElementById("root")).render(
+        React.createElement(SnowflakeComparison, {
+          enabled: params.get("disabled") !== "true",
+          a,
+          b,
+        }),
+      );
+    </script>
+  </body>
+</html>

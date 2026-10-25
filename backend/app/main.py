@@ -26,6 +26,8 @@ from app.infrastructure.errors import DomainError, require
 from app.service import Service, Transaction
 from app.simulation.scenarios import event_report
 from app.simulation.state import now, uid
+from app.snowflake.config import SnowflakeConfig
+from app.snowflake.router import install_snowflake
 
 Revision = Annotated[int | None, Query(ge=0, le=9007199254740991)]
 Limit = Annotated[int, Query(ge=1, le=100)]
@@ -34,6 +36,7 @@ API = "/api/v1"
 
 def create_app(config: AppConfig | None = None):
     runtime = config or AppConfig.from_env()
+    snowflake_config = SnowflakeConfig.from_env()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -41,6 +44,9 @@ def create_app(config: AppConfig | None = None):
         app.state.service = service
         app.state.security = Security(service)
         app.state.cursors = Cursors(service.repo.meta["cursor_secret"])
+        integrations.state.service = service
+        integrations.state.security = app.state.security
+        integrations.state.cursors = app.state.cursors
         await service.start()
         expirer = asyncio.create_task(service.expire_holds())
         try:
@@ -208,7 +214,7 @@ def create_app(config: AppConfig | None = None):
                 max_concurrent_running_simulations=runtime.max_running,
                 gemini=runtime.gemini_enabled,
                 narration=False,
-                snowflake=False,
+                snowflake=app.state.integrations.state.comparison.config.enabled,
                 persistence="local",
                 replay=True,
                 branching=True,
@@ -914,6 +920,12 @@ def create_app(config: AppConfig | None = None):
         return schema
 
     app.openapi = openapi
+    from app.integrations.api import integration_app
+
+    integrations = integration_app(lambda: app.state.service, app.exception_handlers)
+    app.state.integrations = integrations
+    app.mount(API + "/integrations", integrations)
+    install_snowflake(app, snowflake_config)
     if runtime.frontend_dist:
         from app.infrastructure.frontend import mount_frontend
 

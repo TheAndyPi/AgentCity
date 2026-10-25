@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { randomUUID } from "node:crypto";
 import type { Settings, Simulation, WorldFrame } from "../src/api/types";
 

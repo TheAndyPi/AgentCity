@@ -1,0 +1,115 @@
+{
+  "contract_version": "1.0.0",
+  "mode": "rules",
+  "platform": "measured locally; see Python/runtime lock",
+  "results": [
+    {
+      "population": 10,
+      "initialization_seconds": 0.17780639999909909,
+      "manual_ticks": 30,
+      "live_ticks": 10,
+      "http_step_p95_ms": 79.7154000010778,
+      "http_control_p95_ms": 58.03129999912926,
+      "achieved_live_ticks_per_second": 1.900337773637017,
+      "tick_compute_p95_ms": 5.795600000055856,
+      "commit_p95_ms": 17.29919999888807,
+      "provider_queue_depth": 0,
+      "decision_sources": {
+        "rules": 193
+      },
+      "rules_fraction": 1.0,
+      "usage": {
+        "simulation_id": "simulation_cc3835957e3e45d4944fb5a29c7e2931",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "calls": 0,
+        "failed_calls": 0,
+        "estimated_cost_usd": null,
+        "pricing_as_of": null
+      },
+      "socket_bytes": 5512153,
+      "persisted_bytes": 5548970,
+      "revisions": 59,
+      "peak_process_bytes": 106786816,
+      "tiger_enabled": false,
+      "tiger_blocked_fake": false,
+      "tiger_lag_revisions": 59,
+      "configured_horizon": 10000,
+      "final_tick": 40,
+      "final_status": "paused"
+    },
+    {
+      "population": 30,
+      "initialization_seconds": 0.3206122999999934,
+      "manual_ticks": 30,
+      "live_ticks": 10,
+      "http_step_p95_ms": 164.48940000009316,
+      "http_control_p95_ms": 108.75089999899501,
+      "achieved_live_ticks_per_second": 1.8699019460814168,
+      "tick_compute_p95_ms": 11.87729999946896,
+      "commit_p95_ms": 24.56029999848397,
+      "provider_queue_depth": 0,
+      "decision_sources": {
+        "rules": 525
+      },
+      "rules_fraction": 1.0,
+      "usage": {
+        "simulation_id": "simulation_3bfc8bd8496c492ca4fcdbfd31e1583c",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "calls": 0,
+        "failed_calls": 0,
+        "estimated_cost_usd": null,
+        "pricing_as_of": null
+      },
+      "socket_bytes": 6277003,
+      "persisted_bytes": 9103783,
+      "revisions": 59,
+      "peak_process_bytes": 141369344,
+      "tiger_enabled": false,
+      "tiger_blocked_fake": false,
+      "tiger_lag_revisions": 59,
+      "configured_horizon": 10000,
+      "final_tick": 40,
+      "final_status": "paused"
+    },
+    {
+      "population": 100,
+      "initialization_seconds": 0.5416143999991618,
+      "manual_ticks": 30,
+      "live_ticks": 10,
+      "http_step_p95_ms": 426.7173999996885,
+      "http_control_p95_ms": 240.13559999912104,
+      "achieved_live_ticks_per_second": 1.839977116572818,
+      "tick_compute_p95_ms": 50.408700000843965,
+      "commit_p95_ms": 48.96269999881042,
+      "provider_queue_depth": 0,
+      "decision_sources": {
+        "rules": 1764
+      },
+      "rules_fraction": 1.0,
+      "usage": {
+        "simulation_id": "simulation_ffa99fe391df4c93ab003702bac61217",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "calls": 0,
+        "failed_calls": 0,
+        "estimated_cost_usd": null,
+        "pricing_as_of": null
+      },
+      "socket_bytes": 6820349,
+      "persisted_bytes": 21359959,
+      "revisions": 59,
+      "peak_process_bytes": 222371840,
+      "tiger_enabled": false,
+      "tiger_blocked_fake": false,
+      "tiger_lag_revisions": 59,
+      "configured_horizon": 10000,
+      "final_tick": 40,
+      "final_status": "paused"
+    }
+  ]
+}

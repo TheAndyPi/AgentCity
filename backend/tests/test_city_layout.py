@@ -100,7 +100,9 @@ def test_addresses_capacity_skyline_and_river_vary_by_seed():
         assert water and all(cell.col >= 60 or cell.row >= 60 for cell in water)
         rivers.add(tuple((cell.col, cell.row) for cell in water))
     assert len(rivers) == 12
-    assert {all(cell.col >= 60 for cell in city_map(seed=s).cells if cell.terrain == "water") for s in range(12)} == {
+    assert {
+        all(cell.col >= 60 for cell in city_map(seed=s).cells if cell.terrain == "water") for s in range(12)
+    } == {
         True,
         False,
     }

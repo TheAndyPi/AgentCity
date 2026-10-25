@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { randomUUID } from "node:crypto";
 import {
   copyFileSync,
@@ -102,8 +102,11 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
   await page.goto("/simulations/new");
   const name = `Live integration ${Date.now()}`;
   await page.getByLabel("Simulation name").fill(name);
+  await page
+    .getByRole("slider", { name: "Number of agents", exact: true })
+    .fill("10");
   await expect(
-    page.getByRole("spinbutton", { name: "Population", exact: true }),
+    page.getByRole("slider", { name: "Number of agents", exact: true }),
   ).toHaveValue("10");
   await page
     .getByLabel("Scenario description")
@@ -768,7 +771,7 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     .click();
   await expect(page.getByLabel("Simulation name")).toHaveValue(name);
   await expect(
-    page.getByRole("spinbutton", { name: "Population", exact: true }),
+    page.getByRole("slider", { name: "Number of agents", exact: true }),
   ).toHaveValue("10");
   await page.getByRole("checkbox", { name: /Aster integration/ }).check();
   await page

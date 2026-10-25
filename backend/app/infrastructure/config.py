@@ -33,6 +33,15 @@ class AppConfig:
     max_running: int = 1
     autosave_interval: int = 20
     persistence_mode: str = "local"
+    tiger_enabled: bool = False
+    tiger_database_url: str = ""
+    tiger_schema: str = "agentcity_tiger"
+    tiger_timeout: float = 10
+    tiger_revision_batch: int = 4
+    tiger_sample_ticks: int = 2
+    tiger_poll_seconds: float = 5
+    tiger_retry_min: float = 1
+    tiger_retry_max: float = 60
 
     @classmethod
     def from_env(cls):
@@ -67,6 +76,15 @@ class AppConfig:
             max_running=int(os.getenv("SIM_MAX_RUNNING", "1")),
             autosave_interval=int(os.getenv("AUTOSAVE_INTERVAL_TICKS", "20")),
             persistence_mode=os.getenv("PERSISTENCE_MODE", "local"),
+            tiger_enabled=os.getenv("TIGER_ENABLED", "false").lower() == "true",
+            tiger_database_url=os.getenv("TIGER_DATABASE_URL", ""),
+            tiger_schema=os.getenv("TIGER_SCHEMA", "agentcity_tiger"),
+            tiger_timeout=float(os.getenv("TIGER_TIMEOUT_SECONDS", "10")),
+            tiger_revision_batch=int(os.getenv("TIGER_REVISION_BATCH", "4")),
+            tiger_sample_ticks=int(os.getenv("TIGER_MOVEMENT_SAMPLE_TICKS", "2")),
+            tiger_poll_seconds=float(os.getenv("TIGER_POLL_SECONDS", "5")),
+            tiger_retry_min=float(os.getenv("TIGER_RETRY_MIN_SECONDS", "1")),
+            tiger_retry_max=float(os.getenv("TIGER_RETRY_MAX_SECONDS", "60")),
         )
 
     @property
@@ -75,6 +93,18 @@ class AppConfig:
         return self.llm_mode == "gemini" and bool(configured and self.gemini_model)
 
     def validate(self):
+        if self.tiger_enabled and not self.tiger_database_url:
+            raise ValueError("TIGER_ENABLED requires TIGER_DATABASE_URL")
+        if not self.tiger_schema.isidentifier() or len(self.tiger_schema) > 63:
+            raise ValueError("TIGER_SCHEMA must be a PostgreSQL identifier of at most 63 characters")
+        if not (
+            0 < self.tiger_timeout <= 30
+            and 1 <= self.tiger_revision_batch <= 16
+            and 1 <= self.tiger_sample_ticks <= 100
+            and 0 < self.tiger_poll_seconds <= 60
+            and 0 < self.tiger_retry_min <= self.tiger_retry_max <= 300
+        ):
+            raise ValueError("invalid Tiger ingestion budgets")
         if self.gemini_backend not in {"developer", "vertex"}:
             raise ValueError("GEMINI_BACKEND must be developer or vertex")
         if self.gemini_backend == "vertex" and not self.google_cloud_location:
