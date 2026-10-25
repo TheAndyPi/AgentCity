@@ -1,0 +1,10 @@
+{
+  "dev": "adf62957cf076fb71153be4ce794bce081c23ac2",
+  "machine_b": "fceecf9301e4163b2a2fe15876472e8fdfed052e",
+  "branch": "codex/dependency-settings-deadlines",
+  "dev_vs_machine_b_file_preview_conflicts": 1,
+  "maintenance_vs_machine_b_file_preview_conflicts": 1,
+  "conflict": "Adjacent imports: retain Machine A distance/line_of_sight and Machine B CATALOG. Same conflict exists on unmodified dev; no lesson or auth method conflict.",
+  "combined_scenario_tests_run": false,
+  "machine_b_merged": false
+}

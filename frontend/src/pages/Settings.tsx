@@ -26,6 +26,7 @@ import {
   Empty,
 } from "../components/ui";
 import { useApp, useQuery, messageOf } from "../state/app";
+import { ApiError } from "../api/client";
 import type {
   CustomAgent,
   Profile,
@@ -36,6 +37,10 @@ import { formatChord, isMac, shortcutChoices } from "../platform";
 import * as S from "../api/schemas";
 type Shortcuts = Preferences["shortcuts"];
 type ShortcutAction = keyof Shortcuts;
+type SettingsOperation = {
+  patch: Partial<Preferences>;
+  request?: { key: string; body: Preferences };
+};
 export default function Settings() {
   const { client, settings, setSettings, notice } = useApp();
   const [shortcuts, setShortcuts] = useState<Shortcuts>(settings.shortcuts),
@@ -47,43 +52,75 @@ export default function Settings() {
   useEffect(() => {
     if (!shortcutsDirty) setShortcuts(settings.shortcuts);
   }, [settings.shortcuts, shortcutsDirty]);
-  const latest = useRef(settings);
-  latest.current = settings;
-  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const confirmed = useRef(settings);
+  const operations = useRef<SettingsOperation[]>([]);
+  const draining = useRef<Promise<void> | null>(null);
+  const shortcutsOperation = useRef<SettingsOperation | null>(null);
+  if (!operations.current.length && !draining.current)
+    confirmed.current = settings;
+  const publish = () =>
+    setSettings(
+      operations.current.reduce(
+        (value, operation) => ({ ...value, ...operation.patch }),
+        confirmed.current,
+      ),
+    );
+  const drain = () => {
+    if (draining.current) return draining.current;
+    draining.current = (async () => {
+      while (operations.current.length) {
+        const operation = operations.current[0];
+        // Freeze the normalized body and expected version with the key. A lost
+        // response leaves this exact request at the head of the queue for retry.
+        operation.request ??= {
+          key: crypto.randomUUID(),
+          body: S.settings.parse({ ...confirmed.current, ...operation.patch }),
+        };
+        try {
+          confirmed.current = await client.saveSettings(
+            operation.request.body,
+            operation.request.key,
+          );
+        } catch (e) {
+          if (
+            e instanceof ApiError &&
+            !e.retryable &&
+            e.code !== "CONTRACT_ERROR"
+          ) {
+            operation.request = undefined;
+            if (e.code === "CONTROL_CONFLICT")
+              confirmed.current = await client.settings();
+          }
+          publish();
+          throw e;
+        }
+        // A confirmed save has ended; later operations get their own key and
+        // use the returned version. Keep queued appearance edits visible.
+        operations.current.shift();
+        publish();
+      }
+    })().finally(() => {
+      draining.current = null;
+    });
+    return draining.current;
+  };
   const persist = (patch: Partial<Preferences>) => {
-    const previous = latest.current;
-    const optimistic = { ...previous, ...patch };
-    latest.current = optimistic;
-    setSettings(optimistic);
+    operations.current.push({ patch });
+    publish();
     setError("");
-    queue.current = queue.current
-      .then(() =>
-        client.saveSettings(
-          S.settings.parse({ ...latest.current, ...patch }),
-          crypto.randomUUID(),
-        ),
-      )
-      .then((saved) => {
-        latest.current = saved;
-        setSettings(saved);
-      })
-      .catch((e) => {
-        latest.current = previous;
-        setSettings(previous);
-        setError(messageOf(e));
-      });
+    void drain().catch((e) => setError(messageOf(e)));
   };
   const profiles = useQuery(() => client.profiles(), [client]);
   const usage = useQuery(() => client.usage(), [client]);
   const totalTokens = usage.data
     ? usage.data.input_tokens + usage.data.output_tokens
     : 0;
-  const inputShare = totalTokens && usage.data
-    ? (usage.data.input_tokens / totalTokens) * 100
-    : 0;
+  const inputShare =
+    totalTokens && usage.data
+      ? (usage.data.input_tokens / totalTokens) * 100
+      : 0;
   const location = useLocation(),
     navigate = useNavigate();
-  const shortcutsKey = useRef(crypto.randomUUID());
   const shortcutOwner = (chord: string, except: ShortcutAction) =>
     (Object.keys(shortcuts) as ShortcutAction[]).find(
       (k) => k !== except && shortcuts[k] === chord,
@@ -92,13 +129,15 @@ export default function Settings() {
     setBusy(true);
     setError("");
     try {
-      await queue.current;
-      const s = await client.saveSettings(
-        S.settings.parse({ ...latest.current, shortcuts }),
-        shortcutsKey.current,
-      );
-      latest.current = s;
-      setSettings(s);
+      if (
+        !shortcutsOperation.current ||
+        !operations.current.includes(shortcutsOperation.current)
+      ) {
+        shortcutsOperation.current = { patch: { shortcuts } };
+        operations.current.push(shortcutsOperation.current);
+      }
+      await drain();
+      shortcutsOperation.current = null;
       setShortcutsDirty(false);
       notice("Settings saved.");
       if (next) navigate("/simulations/new");
@@ -269,9 +308,10 @@ export default function Settings() {
                   <Field key={k} label={pretty(k)}>
                     <select
                       aria-label={`${pretty(k)} shortcut`}
+                      disabled={busy}
                       value={shortcuts[k]}
                       onChange={(e) => {
-                        shortcutsKey.current = crypto.randomUUID();
+                        shortcutsOperation.current = null;
                         setShortcutsDirty(true);
                         setShortcuts((s) => ({ ...s, [k]: e.target.value }));
                       }}
@@ -342,12 +382,22 @@ export default function Settings() {
                   role="img"
                   aria-label={`Token usage: ${usage.data.input_tokens.toLocaleString()} input tokens and ${usage.data.output_tokens.toLocaleString()} output tokens. ${usage.data.cached_tokens.toLocaleString()} cached tokens are included in input.`}
                 >
-                  <span className="token-meter-input" style={{ width: `${inputShare}%` }} />
-                  <span className="token-meter-output" style={{ width: `${totalTokens ? 100 - inputShare : 0}%` }} />
+                  <span
+                    className="token-meter-input"
+                    style={{ width: `${inputShare}%` }}
+                  />
+                  <span
+                    className="token-meter-output"
+                    style={{ width: `${totalTokens ? 100 - inputShare : 0}%` }}
+                  />
                 </div>
                 <div className="token-meter-legend" aria-hidden="true">
-                  <span><i className="token-meter-input" /> Input</span>
-                  <span><i className="token-meter-output" /> Output</span>
+                  <span>
+                    <i className="token-meter-input" /> Input
+                  </span>
+                  <span>
+                    <i className="token-meter-output" /> Output
+                  </span>
                 </div>
                 <p className="helper-text">
                   {totalTokens === 0

@@ -1,0 +1,309 @@
+{
+  "environment": {
+    "CHOKIDAR_USEPOLLING": "1"
+  },
+  "stats": {
+    "startTime": "2026-10-25T01:57:01.950Z",
+    "duration": 230253.03,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 8,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "life-closeup.spec.ts",
+      "line": 26,
+      "title": "a ten-person cast can be visited, invited into a readable chat, and inspected on mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "life-closeup.spec.ts",
+      "line": 189,
+      "title": "new neighborhoods keep a fixed cast of ten even when an older draft asked for more",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByRole('heading', { name: 'Ten people. A world of little moments.' })\nExpected: visible\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" getByRole('heading', { name: 'Ten people. A world of little moments.' }) with timeout 15000ms\n  - waiting for getByRole('heading', { name: 'Ten people. A world of little moments.' })\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 73,
+      "title": "real create, initial flood, stream, inspector, outcome, undo and saved history",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "TimeoutError: locator.fill: Timeout 15000ms exceeded.\nCall log:\n  - waiting for getByLabel('Your opening scenario')\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 244,
+      "title": "built frontend, HTTP API and WebSocket work on one production origin",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 281,
+      "title": "replay excludes initialization, and a continued branch saves before browser Back",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 336,
+      "title": "citizen details remain readable during slow live refreshes and isolate changed selections",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 470,
+      "title": "an ambiguous confirmed event response retries the same key exactly once",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 525,
+      "title": "a manual pause from another tab invalidates preview and never auto-resumes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 577,
+      "title": "running event editor pauses, cancels safely and resumes only the prior intent",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByRole('dialog')\nExpected substring: \"CITY PAUSED\"\nReceived string:    \"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreview event\"\nTimeout: 15000ms\n\nCall log:\n  - Expect \"toContainText\" getByRole('dialog') with timeout 15000ms\n  - waiting for getByRole('dialog')\n    2 × locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\n      - unexpected value \"Waiting for a safe pauseTrigger a custom eventWaiting for the city to pause safely…\"\n    - locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\n    - unexpected value \"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreparing preview…\"\n    30 × locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\n       - unexpected value \"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreview event\"\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 643,
+      "title": "three failed sockets fall back to real REST polling, then reconnect",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 670,
+      "title": "failed navigation save keeps the running city and retries its original operation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 745,
+      "title": "mobile settings and profiles preserve setup drafts, copy citizens, archive and delete",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Delete all archived', exact: true })\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 846,
+      "title": "dense mixed-use blocks have 3D hover tags and keyboard-accessible 2D purposes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 970,
+      "title": "real 30-citizen 3D world responds while running and supports WebGL fallback",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 970,
+      "title": "real 100-citizen 3D world responds while running and supports WebGL fallback",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)\n\nExpected: >= 4\nReceived:    0\n\nCall Log:\n- Timeout 15000ms exceeded while waiting on the predicate"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 1072,
+      "title": "life sim traits, conversations and open-ended events work on desktop and mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "scenario-scenes.spec.ts",
+      "line": 5,
+      "title": "composed scenario has an orbitable preview and active 3D props",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "TimeoutError: locator.fill: Timeout 15000ms exceeded.\nCall log:\n  - waiting for getByLabel('Your opening scenario')\n"
+        }
+      ]
+    },
+    {
+      "file": "scenario-scenes.spec.ts",
+      "line": 87,
+      "title": "free-form primitive geometry renders on the GPU and can be orbited",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 80,
+      "title": "successful shortcut save ends its operation before save and create",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 104,
+      "title": "retry after connection response loss replays the exact request without duplicate mutation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 104,
+      "title": "retry after json response loss replays the exact request without duplicate mutation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 104,
+      "title": "retry after contract response loss replays the exact request without duplicate mutation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 148,
+      "title": "appearance saves queued before shortcuts use successive versions and preserve all edits",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 198,
+      "title": "appearance queued behind a lost shortcut response retries it before applying its own patch",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 235,
+      "title": "stale settings refresh the version and preserve the shortcut draft for retry",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "walking-buildings.spec.ts",
+      "line": 27,
+      "title": "paused steps visibly walk into a building and leave through its entrance",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: locator('[data-character-id=\"agent_00000041\"]')\nExpected: visible\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" locator('[data-character-id=\"agent_00000041\"]') with timeout 15000ms\n  - waiting for locator('[data-character-id=\"agent_00000041\"]')\n"
+        }
+      ]
+    }
+  ]
+}

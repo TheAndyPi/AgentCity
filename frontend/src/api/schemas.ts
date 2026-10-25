@@ -91,7 +91,7 @@ const configObject = obj({
   tick_seconds: z.literal(10),
   max_ticks: count.min(1).max(10000),
 }).strict();
-export const config: z.ZodType<T.Config> = configObject.refine(
+export const config: z.ZodType<T.Config, T.Config> = configObject.refine(
   (c) => c.custom_agent_ids.length <= c.population,
   {
     message: "Custom citizens must fit within the population.",
@@ -684,7 +684,13 @@ export const command = z.discriminatedUnion("type", [
   }).strict(),
 ]);
 export const commandRequest = obj({
-  request_id: z.string().uuid(),
+  // v1 accepts every canonical hexadecimal UUID, without version/variant limits.
+  // Zod 4's uuid() additionally enforces RFC variant bits, unlike this contract.
+  request_id: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    ),
   expected_control_version: count,
   command,
 }).strict();
@@ -693,8 +699,14 @@ export const commandResult = obj({
   snapshot: snapshot.nullable(),
   affected_agent_ids: recordIds,
 }).strict();
-export const success = <S extends z.ZodTypeAny>(s: S) =>
-  obj({ schema_version: z.literal("1.0.0"), request_id: id, data: s }).strict();
+export function success<T>(s: z.ZodType<T>): z.ZodType<T.Success<T>>;
+export function success(s: z.ZodType): z.ZodType {
+  return obj({
+    schema_version: z.literal("1.0.0"),
+    request_id: id,
+    data: s,
+  }).strict();
+}
 export const serverMessage = z.discriminatedUnion("type", [
   obj({
     schema_version: z.literal("1.0.0"),
