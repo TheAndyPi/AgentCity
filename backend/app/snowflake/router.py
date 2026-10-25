@@ -230,13 +230,27 @@ def create_snowflake_app(parent, config=None, transport=None):
 
 
 def install_snowflake(parent, config=None, transport=None):
-    """Install once, before any SPA catch-all. A can instead compose routers in one child."""
-    child = create_snowflake_app(parent, config, transport)
-    parent.state.integrations = child
-    parent.mount("/api/v1/integrations", child)
-    # Mounts are excluded from parent OpenAPI, preserving the frozen core schema.
-    mount = parent.router.routes.pop()
-    parent.router.routes.insert(0, mount)
+    """Compose with the coordinator's shared child, preserving one prefix mount."""
+    extension = create_snowflake_app(parent, config, transport)
+    child = getattr(parent.state, "integrations", None)
+    if child is not None:
+        previous = getattr(child.state, "comparison", None)
+        if previous is not None and previous.ledger is not None:
+            raise RuntimeError("Cannot replace an active Snowflake integration")
+        path = "/snowflake/comparisons"
+        child.router.routes[:] = [route for route in child.routes if getattr(route, "path", "") != path]
+        child.router.routes.extend(route for route in extension.routes if getattr(route, "path", "") == path)
+        child.state.comparison = extension.state.comparison
+        child.openapi_schema = None
+    else:
+        child = extension
+        parent.state.integrations = child
+        parent.mount("/api/v1/integrations", child)
+        mount = parent.router.routes.pop()
+        parent.router.routes.insert(0, mount)
+    if getattr(parent.state, "snowflake_lifespan_installed", False):
+        return parent
+    parent.state.snowflake_lifespan_installed = True
     original = parent.router.lifespan_context
 
     @asynccontextmanager

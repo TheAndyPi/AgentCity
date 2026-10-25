@@ -2,9 +2,11 @@
 
 import asyncio
 import copy
+import json
 import os
 import time
 from dataclasses import replace
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -360,6 +362,8 @@ def test_extension_openapi_is_separate_and_documented(client):
     assert not any("integrations" in key for key in parent["paths"])
     assert "/tiger/status" in child["paths"]
     assert "TigerStatus" in child["components"]["schemas"]
+    snapshot = Path(__file__).parents[2] / "docs/release/integrations-openapi.json"
+    assert child == json.loads(snapshot.read_text(encoding="utf-8"))
 
 
 def test_child_write_security_and_sanitized_handlers(client):

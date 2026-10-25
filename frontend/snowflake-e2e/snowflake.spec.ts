@@ -1,5 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../e2e/fixtures";
 import type { APIRequestContext } from "@playwright/test";
+
+test.use({ isolatedOrigins: ["http://127.0.0.1:15174"] });
 
 async function setup(request: APIRequestContext) {
   const session = await request.get("/api/v1/session");
@@ -127,4 +129,54 @@ test("S-06 disabled comparison performs no integration request", async ({
     page.getByRole("button", { name: "Compare pinned histories" }),
   ).toHaveCount(0);
   expect(calls).toBe(0);
+});
+
+test("default History comparison uses the shared integration app and shows exact persisted values", async ({
+  page,
+  request,
+}) => {
+  const { a, b } = await setup(request);
+  expect(
+    (await (await request.get("/api/v1/capabilities")).json()).data.snowflake,
+  ).toBe(true);
+  expect(
+    (await (await request.get("/api/v1/integrations/tiger/status")).json()).data
+      .state,
+  ).toBe("disabled");
+  await page.goto("/simulations");
+  await page
+    .getByRole("button", { name: `Compare ${a.name}`, exact: true })
+    .click();
+  await page
+    .getByRole("combobox", { name: /^Compare with/ })
+    .selectOption(b.id);
+  const received = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/integrations/snowflake/comparisons") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Compare pinned histories", exact: true })
+    .click();
+  const response = await received;
+  expect(response.status()).toBe(200);
+  const actual = (await response.json()).data;
+  expect(actual.a.simulation_id).toBe(a.id);
+  expect(actual.b.simulation_id).toBe(b.id);
+  await expect(
+    page.getByText("Snowflake read-back", { exact: true }),
+  ).toBeVisible();
+  for (const metric of actual.differences) {
+    const row = page.getByRole("row").filter({
+      has: page.getByRole("rowheader", { name: metric.metric, exact: true }),
+    });
+    await expect(row.getByRole("cell")).toHaveText([
+      String(metric.a),
+      String(metric.b),
+      String(metric.delta_b_minus_a),
+    ]);
+  }
+  await expect(
+    page.getByRole("img", { name: /Happiness from 0 to 100/ }),
+  ).toBeVisible();
 });

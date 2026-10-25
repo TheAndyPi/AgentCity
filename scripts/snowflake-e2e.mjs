@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import {
   backend,
   frontend,
@@ -33,15 +33,25 @@ const child = spawn(
       DATA_DIR: dataDir ?? "unused",
       AUTH_MODE: "local",
       LLM_MODE: "rules",
+      TIGER_ENABLED: "false",
+      SNOWFLAKE_ENABLED: "false",
       ALLOWED_ORIGINS: "http://127.0.0.1:15174,http://127.0.0.1:10820",
       AGENTCITY_BACKEND_URL: "http://127.0.0.1:10820",
     },
     stdio: "inherit",
+    windowsHide: true,
   },
 );
 for (const signal of ["SIGTERM", "SIGINT"])
   process.on(signal, () => child.kill(signal));
 child.on("exit", (code) => {
-  if (dataDir) rmSync(dataDir, { recursive: true, force: true });
+  if (dataDir) {
+    const directory = resolve(dataDir);
+    if (!directory.startsWith(resolve(temp) + sep))
+      throw new Error(
+        "Refusing to remove a test directory outside backend/.tmp",
+      );
+    rmSync(directory, { recursive: true, force: true });
+  }
   process.exit(code ?? 0);
 });

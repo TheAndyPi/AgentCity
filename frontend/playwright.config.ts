@@ -35,6 +35,7 @@ export default defineConfig({
         AUTH_MODE: "local",
         LLM_MODE: "rules",
         TIGER_ENABLED: "false",
+        SNOWFLAKE_ENABLED: "false",
         DATA_DIR: resolve("../backend/.tmp", `integration-e2e-${process.pid}`),
         ALLOWED_ORIGINS:
           "http://127.0.0.1:15173,http://localhost:15173,http://127.0.0.1:10800",
@@ -50,6 +51,7 @@ export default defineConfig({
         AUTH_MODE: "local",
         LLM_MODE: "rules",
         TIGER_ENABLED: "false",
+        SNOWFLAKE_ENABLED: "false",
         DATA_DIR: resolve("../backend/.tmp", `production-e2e-${process.pid}`),
         ALLOWED_ORIGINS: "http://127.0.0.1:10801",
       },

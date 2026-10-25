@@ -8,11 +8,17 @@ export type { Page, Request } from "@playwright/test";
 
 // Both servers have disposable stores. Isolate server preferences as well as the
 // browser context, and clean up new cities/profiles even when an assertion fails.
-export const test = base.extend<{ isolatedApplication: void }>({
+export const test = base.extend<{
+  isolatedApplication: void;
+  isolatedOrigins: string[];
+}>({
+  isolatedOrigins: [
+    ["http://127.0.0.1:15173", "http://127.0.0.1:10801"],
+    { option: true },
+  ],
   isolatedApplication: [
-    async ({ page }, use) => {
+    async ({ page, isolatedOrigins: origins }, use) => {
       const request = page.request;
-      const origins = ["http://127.0.0.1:15173", "http://127.0.0.1:10801"];
       async function api<T>(
         origin: string,
         path: string,

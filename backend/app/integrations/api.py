@@ -1,5 +1,7 @@
 """Composition seam for independently documented integration routes."""
 
+from typing import Literal
+
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ConfigDict
@@ -19,8 +21,8 @@ class Progress(BaseModel):
 class TigerStatus(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: bool
-    state: str
-    error_code: str | None
+    state: Literal["disabled", "healthy", "catching_up", "unavailable"]
+    error_code: Literal["PROGRESS_INVALID", "PROJECTION_LIMIT", "INGESTION_UNAVAILABLE"] | None
     retry_in_seconds: float
     simulations: list[Progress]
     next_after: str | None
@@ -36,6 +38,7 @@ def integration_app(service, failure):
     child = FastAPI(
         title="AgentCity integrations",
         version="1.0.0",
+        servers=[{"url": "/api/v1/integrations"}],
         responses={
             status: {"model": c.Failure} for status in [400, 401, 403, 404, 409, 410, 422, 429, 501, 503]
         },

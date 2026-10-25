@@ -351,7 +351,7 @@ def test_s05_blocked_vendor_allows_ticks_and_holds_single_comparison_gate(tmp_pa
     with connected(tmp_path, fake) as (client, _, app):
         body = pair(client)
         key = str(uuid4())
-        snow = app.routes[0].app.state.comparison
+        snow = app.state.integrations.state.comparison
 
         async def blocked(request):
             value = json.loads(request.content)
@@ -389,7 +389,7 @@ def test_s05_disconnected_caller_keeps_gate_and_receipt_until_completion(tmp_pat
 
     with connected(tmp_path) as (client, fake, app):
         body = ComparisonRequest.model_validate(pair(client))
-        snow = app.routes[0].app.state.comparison
+        snow = app.state.integrations.state.comparison
         key = str(uuid4())
 
         async def run():
@@ -528,6 +528,36 @@ def test_extension_openapi_snapshot_is_independent_of_core():
     actual = create_snowflake_app(core(), SnowflakeConfig()).openapi()
     saved = json.loads((Path(__file__).parents[2] / "docs/release/snowflake-openapi.json").read_text())
     assert actual == saved
+
+
+def test_default_application_composes_tiger_and_snowflake_once(tmp_path, monkeypatch):
+    from app.main import create_app as default_application
+
+    snow = SnowflakeConfig(
+        enabled=True,
+        account="test-account",
+        user="TEST",
+        database="TEST",
+        schema="TEST",
+        warehouse="TEST",
+        role="TEST",
+        private_key_file=__file__,
+    )
+    fake = SnowflakeFake()
+    monkeypatch.setattr(SnowflakeConfig, "from_env", classmethod(lambda cls: snow))
+    monkeypatch.setattr("app.snowflake.router.SnowflakeTransport", lambda config: fake.transport(config))
+    app = default_application(AppConfig(data_dir=tmp_path / "default-store"))
+    assert sum(getattr(route, "path", "") == "/api/v1/integrations" for route in app.routes) == 1
+    with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        client.headers["X-CSRF-Token"] = client.get("/api/v1/session").json()["data"]["csrf_token"]
+        assert client.get("/api/v1/capabilities").json()["data"]["snowflake"] is True
+        assert client.get("/api/v1/integrations/tiger/status").json()["data"]["state"] == "disabled"
+        schema = client.get("/api/v1/integrations/openapi.json").json()
+        assert {"/tiger/status", "/snowflake/comparisons"} <= schema["paths"].keys()
+        result = compare(client, pair(client))
+        assert result.status_code == 200, result.text
+        assert result.json()["data"]["data_source"] == "snowflake"
+        assert result.json()["data"]["explanation"]["source"] == "cortex_selection"
 
 
 def test_s02_ingestion_sql_request_identity_survives_ambiguous_submission():

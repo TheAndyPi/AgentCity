@@ -5,7 +5,13 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   reporter: [["line"]],
-  use: { baseURL: "http://127.0.0.1:15174", screenshot: "only-on-failure" },
+  use: {
+    baseURL: "http://127.0.0.1:15174",
+    screenshot: "only-on-failure",
+    channel:
+      process.env.PLAYWRIGHT_CHANNEL ||
+      (process.platform === "win32" ? "chrome" : undefined),
+  },
   webServer: [
     {
       command: "node ../scripts/snowflake-e2e.mjs backend",
