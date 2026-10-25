@@ -85,6 +85,8 @@ def known_places(state, citizen, observations):
 
 
 def context_for(state, citizen):
+    from app.simulation.daily import context as daily_context
+
     context = perception(state, citizen)
     facilities, resources, places = known_places(state, citizen, context["facts"])
 
@@ -96,6 +98,7 @@ def context_for(state, citizen):
         "inside_building_id": citizen.inside_building_id,
         "current_activity_reason": citizen.summary.thought_bubble,
         "tick": state.simulation.tick,
+        "daily_life": daily_context(state, citizen),
         "needs": citizen.needs.model_dump(),
         "mental_stability": citizen.condition.mental,
         "learned_rest_rules": [lesson.model_dump() for lesson in citizen.rest_lessons[-8:]],
@@ -205,6 +208,7 @@ def relevance(state, citizen, context=None):
             "memories",
             "mental_stability",
             "city_life",
+            "daily_life",
         }
     }
     if context.get("city_life"):
@@ -212,8 +216,14 @@ def relevance(state, citizen, context=None):
         # Small wallet drift from rent should not invalidate every pending decision.
         life["wallet_credits"] = int(life["wallet_credits"] // 3)
         stable["city_life"] = life
+    if context.get("daily_life"):
+        daily = dict(context["daily_life"])
+        daily.pop("calendar_time_seconds", None)
+        stable["daily_life"] = daily
     stable["observations"] = [
-        fact for fact in context["observed_facts"] if not fact.startswith(("Position (", "Hunger "))
+        fact
+        for fact in context["observed_facts"]
+        if not fact.startswith(("Position (", "Hunger ", "Calendar "))
     ]
     needs = citizen.needs
     stable["condition"] = (
@@ -224,7 +234,7 @@ def relevance(state, citizen, context=None):
         int(needs.hunger // 5),
         int(needs.fatigue // 5),
         int(needs.social // 5),
-        needs.hunger >= 45,
+        needs.hunger >= 70,
         needs.hunger > 80,
         needs.fatigue >= 45,
         needs.fatigue >= 65,

@@ -269,6 +269,11 @@ def perception(state, citizen, index=None):
         f"Position ({p.x:.1f}, {p.y:.1f}) meters",
         f"Hunger {citizen.needs.hunger:.1f}, fatigue {citizen.needs.fatigue:.1f}",
     ]
+    from app.simulation import calendar
+
+    facts.append(
+        f"Calendar Day {int(calendar.now(state) // calendar.DAY) + 1}, {calendar.clock_label(calendar.now(state))}; {calendar.phase(calendar.now(state))}; my activity is {citizen.summary.routine_state}"
+    )
     facts += [
         f"Observed {c.summary.name} ({c.summary.id}) at ({c.summary.position.x:.1f}, {c.summary.position.y:.1f}), {distance(p, c.summary.position):.1f}m away, doing {c.summary.action}; {c.condition.life}; visible injury {c.needs.health < 45}"
         for c in nearby

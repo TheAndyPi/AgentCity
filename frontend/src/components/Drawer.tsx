@@ -318,7 +318,11 @@ function AgentInspector({
         </span>
         <span>
           <Navigation size={15} />
-          {pretty(a.action)}
+          {a.routine_state === "sleeping"
+            ? "Sleeping"
+            : a.routine_state === "returning_home"
+              ? "Heading home"
+              : pretty(a.action)}
         </span>
         <button
           aria-pressed={follow === id}

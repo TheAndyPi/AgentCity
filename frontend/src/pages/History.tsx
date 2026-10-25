@@ -22,6 +22,7 @@ import {
   Field,
 } from "../components/ui";
 import { pretty, simTime } from "../api/defaults";
+import { calendarTime } from "../world/daylight";
 import {
   nameKey,
   simulationNames,
@@ -405,7 +406,7 @@ function WorldCard({
           </span>
           <span>
             <Clock size={14} />
-            {simTime(s.sim_time_seconds)}
+            {simTime(calendarTime(s))}
           </span>
           <span>Tick {s.tick}</span>
         </div>

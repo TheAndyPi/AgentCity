@@ -11,6 +11,7 @@ from app.behavior.models import BehaviorState, Condition
 from app.contracts import (
     AgentSummary,
     Belief,
+    CurfewPolicy,
     Decision,
     Dialogue,
     EventSpec,
@@ -82,6 +83,16 @@ class Citizen(Model):
     blocked_movement_ticks: int = 0
     next_detour_tick: int = 0
     next_social_tick: int = 0
+    home_building_id: str | None = None
+    routine_until: float = 0
+    routine_target_id: str | None = None
+    routine_retry_tick: int = 0
+    nap: bool = False
+    last_meal_slot: int = -1
+    curfew_choice_key: str = ""
+    curfew_complies: bool = False
+    homeward_estimate_key: str = ""
+    homeward_estimate_seconds: float = 0
     profile_template_id: str | None = None
     profile_template_version: int | None = None
     known_locations: dict[str, Vec2] = Field(default_factory=dict)
@@ -124,6 +135,11 @@ class Interaction(Model):
     turns: int = 0
     status: str = "invited"
     proposal: dict[str, Any] = Field(default_factory=dict)
+    accepted_calendar_seconds: float | None = None
+    minimum_end_calendar_seconds: float | None = None
+    next_turn_calendar_seconds: float | None = None
+    end_reason: str | None = None
+    last_benefit_calendar_seconds: float | None = None
 
 
 class State(Model):
@@ -145,6 +161,10 @@ class State(Model):
             self._social_index = EvidenceIndex()
         return self._social_index.update(self.applied_social_evidence)
 
+    calendar_rules_version: str | None = None
+    calendar_activated_tick: int | None = None
+    curfew_controls: dict[str, CurfewPolicy] = Field(default_factory=dict)
+    curfew_revision: int = 0
     behavior: BehaviorState = Field(default_factory=BehaviorState)
     service_changes: list[dict[str, Any]] = Field(default_factory=list)
     conditions: dict[str, BuildingCondition] = Field(default_factory=dict)

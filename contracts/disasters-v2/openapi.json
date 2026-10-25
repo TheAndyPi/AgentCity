@@ -525,6 +525,13 @@
             ],
             "title": "Tick Seconds"
           },
+          "calendar_seconds_per_tick": {
+            "type": "integer",
+            "maximum": 600.0,
+            "minimum": 1.0,
+            "title": "Calendar Seconds Per Tick",
+            "default": 120
+          },
           "max_ticks": {
             "type": "integer",
             "maximum": 100000.0,
@@ -2222,6 +2229,12 @@
             "type": "number",
             "minimum": 0.0,
             "title": "Sim Time Seconds"
+          },
+          "calendar_time_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Calendar Time Seconds",
+            "default": 0
           },
           "speed_multiplier": {
             "enum": [

@@ -9,6 +9,7 @@ from app import contracts as c
 from app.data.repository import encode
 from app.infrastructure.errors import DomainError, require
 from app.simulation.agents import evidence
+from app.simulation.calendar import effective_curfew
 from app.simulation.scenarios import blocked_cells, event_report
 from app.simulation.state import now
 
@@ -137,6 +138,28 @@ def frame(state, include_map=True):
         policies=state.policies,
         metrics=state.metric_points[-1],
         recent_dialogue=state.dialogue[-25:],
+        curfew=effective_curfew(state),
+        conversation_sessions=[
+            c.ConversationSession(
+                **i.model_dump(
+                    include={
+                        "id",
+                        "participant_ids",
+                        "status",
+                        "accepted_calendar_seconds",
+                        "minimum_end_calendar_seconds",
+                        "next_turn_calendar_seconds",
+                        "end_reason",
+                    }
+                )
+            )
+            for i in state.interactions.values()
+            if i.kind == "conversation"
+            and (
+                i.status in {"invited", "accepted"}
+                or any(d.interaction_id == i.id for d in state.dialogue[-25:])
+            )
+        ],
         active_hazards=behavior_hazards(state)
         + [
             c.Hazard(

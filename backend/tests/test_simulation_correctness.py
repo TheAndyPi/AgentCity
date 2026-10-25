@@ -74,6 +74,9 @@ def test_warnings_do_not_accept_or_advance_a_conversation(client):
     assert invitation.turns == 1
     assert any("Watch the road!" in belief.text for belief in b.beliefs)
     for actor, target in [(b, a), (a, b), (b, a)]:
+        from conftest import advance_conversation_turn
+
+        advance_conversation_turn(state, actor)
         assert apply_intent(state, actor, make_intent("talk", target=target.summary.id)).outcome == "accepted"
     assert invitation.status == "ended" and invitation.turns == 4
     assert set(invitation.accepted_ids) == {a.summary.id, b.summary.id}

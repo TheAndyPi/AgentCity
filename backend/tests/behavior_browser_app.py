@@ -4,7 +4,7 @@ import random
 from typing import Literal
 
 from fastapi import Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.behavior.classes import classify, encounter
 from app.behavior.crisis import evaluate_crisis
@@ -20,8 +20,37 @@ class Setup(BaseModel):
     mode: Literal["faint", "fatal", "crisis", "classes", "attack"]
 
 
+class CalendarSetup(BaseModel):
+    hour: float = Field(ge=0, le=72)
+    steps: int = Field(default=0, ge=0, le=60)
+    curfew: bool = False
+
+
 def create_app():
     app = core_app(AppConfig.from_env())
+
+    @app.state.integrations.post("/calendar-test/{sid}")
+    async def calendar_setup(request: Request, sid: str, body: CalendarSetup):
+        from app.scenario_engine.mutations import apply_set_curfew
+        from app.scenario_engine.registry import SetCurfew
+        from app.scenario_engine.world import enable
+        from app.simulation.engine import tick
+
+        service = app.state.service
+        async with service.writer:
+            state = service.owned(request.state.owner, sid).model_copy(deep=True)
+            state.simulation.calendar_time_seconds = body.hour * 3600
+            for citizen in state.citizens.values():
+                citizen.inventory.food = citizen.inventory.water = 30
+            if body.curfew:
+                enable(state)
+                apply_set_curfew(state, SetCurfew(type="set_curfew"), "calendar-browser", True, 0)
+            for _ in range(body.steps):
+                tick(state)
+            service.bump(state, True)
+            update_metrics(state)
+            await service.persist([state])
+        return {"calendar_time_seconds": state.simulation.calendar_time_seconds}
 
     @app.state.integrations.post("/behavior-test/{sid}")
     async def setup(request: Request, sid: str, body: Setup):

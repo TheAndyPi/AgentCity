@@ -77,6 +77,7 @@ export type Config = {
   scenario_description: string;
   custom_agent_ids: ID[];
   tick_seconds: number;
+  calendar_seconds_per_tick?: number;
   max_ticks: number;
 };
 export type Job = {
@@ -112,6 +113,7 @@ export type Simulation = {
   revision: number;
   control_version: number;
   sim_time_seconds: number;
+  calendar_time_seconds?: number;
   speed_multiplier: Speed;
   achieved_ticks_per_second: number;
   agent_count: number;
@@ -190,6 +192,8 @@ export type Intent = {
   emotion: string;
 };
 export type AgentSummary = {
+  routine_state?: string;
+  activity_until_calendar_seconds?: number | null;
   id: ID;
   name: string;
   role: string;
@@ -428,6 +432,8 @@ export type Policies = {
   aid_multiplier: number;
 };
 export type WorldFrame = {
+  curfew?: CurfewPolicy;
+  conversation_sessions?: ConversationSession[];
   ref: Ref;
   simulation: Simulation;
   map: MapData;
@@ -458,6 +464,22 @@ export type MapUpdates = {
 export type FrameDelta = Omit<WorldFrame, "map"> & {
   map?: MapData | null;
   map_updates?: MapUpdates | null;
+};
+export type CurfewPolicy = {
+  enabled: boolean;
+  start_minute: number;
+  end_minute: number;
+  revision: number;
+  informed_agent_ids: ID[];
+};
+export type ConversationSession = {
+  id: ID;
+  participant_ids: ID[];
+  status: string;
+  accepted_calendar_seconds: number | null;
+  minimum_end_calendar_seconds: number | null;
+  next_turn_calendar_seconds: number | null;
+  end_reason: string | null;
 };
 export type Snapshot = {
   id: ID;

@@ -31,7 +31,8 @@
         "scenario_description": "",
         "custom_agent_ids": [],
         "tick_seconds": 10,
-        "max_ticks": 10000
+        "max_ticks": 10000,
+        "calendar_seconds_per_tick": 120
       },
       "created_at": "2026-10-24T10:47:54.120780Z",
       "updated_at": "2026-10-24T10:47:54.120798Z",
@@ -59,7 +60,8 @@
         "message": "Ready complete",
         "error": null
       },
-      "initial_preview": null
+      "initial_preview": null,
+      "calendar_time_seconds": 0.0
     },
     "snapshot": {
       "id": "snapshot_00000042",

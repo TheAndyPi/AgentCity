@@ -35,7 +35,8 @@
         "scenario_description": "",
         "custom_agent_ids": [],
         "tick_seconds": 10,
-        "max_ticks": 10000
+        "max_ticks": 10000,
+        "calendar_seconds_per_tick": 120
       },
       "created_at": "2026-10-24T10:47:53.443454Z",
       "updated_at": "2026-10-24T10:47:53.707609Z",
@@ -60,7 +61,8 @@
         "message": "Ready complete",
         "error": null
       },
-      "initial_preview": null
+      "initial_preview": null,
+      "calendar_time_seconds": 0.0
     },
     "map": {
       "id": "map_00000027",
@@ -33537,7 +33539,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000034",
@@ -33562,7 +33566,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000036",
@@ -33587,7 +33593,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000033",
@@ -33612,7 +33620,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000037",
@@ -33637,7 +33647,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000031",
@@ -33662,7 +33674,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000029",
@@ -33687,7 +33701,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000032",
@@ -33712,7 +33728,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000030",
@@ -33737,7 +33755,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       },
       {
         "id": "agent_00000035",
@@ -33762,7 +33782,9 @@
         "action_target_id": null,
         "latest_decision_id": null,
         "thought_bubble": null,
-        "active": true
+        "active": true,
+        "routine_state": "free",
+        "activity_until_calendar_seconds": null
       }
     ],
     "events": [],
@@ -33788,6 +33810,14 @@
       "exposed_count": 0
     },
     "recent_dialogue": [],
-    "active_hazards": []
+    "active_hazards": [],
+    "curfew": {
+      "enabled": false,
+      "start_minute": 1320,
+      "end_minute": 360,
+      "revision": 0,
+      "informed_agent_ids": []
+    },
+    "conversation_sessions": []
   }
 }

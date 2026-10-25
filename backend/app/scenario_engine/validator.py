@@ -116,7 +116,10 @@ def validate_plan(state, raw):
                 org = organizations.get(audience.organization_id or "")
                 if org is None or not org.active:
                     errors.append(f"{where}: organization {audience.organization_id} does not exist")
-        if op.type == "modify_policy":
+        if op.type == "set_curfew":
+            if op.enabled and op.start_minute == op.end_minute:
+                errors.append(f"{where}: curfew start and end must differ")
+        elif op.type == "modify_policy":
             low, high, unit_name, nullable, _, _ = POLICY_TARGETS[op.target]
             if op.operation == "clear":
                 if not nullable:
@@ -255,7 +258,7 @@ def compile_preview(state, plan, warnings, source="custom"):
         else "festival"
         if any(op.activity == "festival" for op in gatherings)
         else "policy"
-        if any(op.type == "modify_policy" for op in plan.operations)
+        if any(op.type in {"modify_policy", "set_curfew"} for op in plan.operations)
         else recipes[0]["kind"]
         if recipes
         else "custom"

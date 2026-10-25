@@ -78,6 +78,8 @@ def revert(state, entry):
 
 def describe(op):
     t = op.type
+    if t == "set_curfew":
+        return f"{'announce' if op.enabled else 'lift'} curfew {op.start_minute // 60:02d}:{op.start_minute % 60:02d}–{op.end_minute // 60:02d}:{op.end_minute % 60:02d}"
     if t == "modify_policy":
         label = op.target.replace(".", " ").replace("_", " ")
         return f"{op.operation} {label}" + ("" if op.value is None else f" {op.value:g}")
@@ -135,6 +137,56 @@ def apply_modify_policy(state, op, event_id, permanent, repetition):
         significance=3,
     )
     return dict(before=before, after=after)
+
+
+def apply_set_curfew(state, op, event_id, permanent, repetition):
+    from app.contracts import CurfewPolicy
+
+    key = f"{event_id}:{op.id}"
+    before = state.curfew_controls.get(key)
+    informed = [c.summary.id for c in select(state, op.audience, key)]
+    state.curfew_revision += 1
+    state.curfew_controls.pop(key, None)
+    state.curfew_controls[key] = CurfewPolicy(
+        enabled=op.enabled,
+        start_minute=op.start_minute,
+        end_minute=op.end_minute,
+        revision=state.curfew_revision,
+        informed_agent_ids=informed,
+    )
+    for aid in informed:
+        citizen = state.citizens[aid]
+        remember(
+            state,
+            citizen,
+            f"Official announcement: {describe(op)}. Emergency care and evacuation take priority.",
+            "heard",
+            65,
+            proof=evidence("Announced curfew policy", event_ids=[event_id]),
+        )
+        citizen.task_generation += 1
+        citizen.next_deliberation_tick = state.simulation.tick
+    trace(
+        state,
+        "operation",
+        describe(op),
+        event_id=event_id,
+        op_id=op.id,
+        affected=informed,
+        motivation=op.rationale,
+        significance=3,
+    )
+    return dict(before=before.model_dump() if before else None)
+
+
+def revert_set_curfew(state, op, event_id, undo):
+    from app.contracts import CurfewPolicy
+
+    key = f"{event_id}:{op.id}"
+    state.curfew_controls.pop(key, None)
+    if undo.get("before"):
+        state.curfew_controls[key] = CurfewPolicy.model_validate(undo["before"])
+    state.curfew_revision += 1
 
 
 def revert_modify_policy(state, op, event_id, undo):

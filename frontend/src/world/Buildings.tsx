@@ -53,6 +53,7 @@ function Parts({
   roof = false,
   glow = false,
   blink = false,
+  nightBrightness = 1,
   onHover,
   onPick = onHover,
 }: {
@@ -60,6 +61,7 @@ function Parts({
   roof?: boolean;
   glow?: boolean;
   blink?: boolean;
+  nightBrightness?: number;
   onHover: (id: string | null) => void;
   onPick?: (id: string | null) => void;
 }) {
@@ -112,7 +114,8 @@ function Parts({
         <meshBasicMaterial
           ref={beacon}
           toneMapped={false}
-          transparent={blink}
+          opacity={blink ? 1 : 0.3 + nightBrightness * 0.7}
+          transparent
           depthWrite={!blink}
         />
       ) : (
@@ -170,6 +173,7 @@ function PolygonBuilding({
 }
 
 export default function Buildings({
+  nightBrightness = 1,
   buildings,
   cutaway = [],
   theme = "dark",
@@ -177,6 +181,7 @@ export default function Buildings({
   onClick,
   conditions,
 }: {
+  nightBrightness?: number;
   conditions?: DisasterState["conditions"];
   buildings: Building[];
   cutaway?: string[];
@@ -212,6 +217,7 @@ export default function Buildings({
       <Parts
         parts={visible(layout.glows)}
         glow
+        nightBrightness={nightBrightness}
         onHover={setHovered}
         onPick={pick}
       />

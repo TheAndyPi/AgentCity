@@ -167,6 +167,12 @@ def sync_building_location(state, citizen):
             citizen.visit_until_tick = state.simulation.tick + legacy_ticks(
                 state, 6 if inside.kind == "home" else 4
             )
+            from app.simulation import calendar
+            from app.simulation.daily import set_activity
+
+            if citizen.summary.routine_state not in {"returning_home", "seeking_shelter"}:
+                duration = 90 * 60 if inside.kind == "work" else 60 * 60
+                set_activity(citizen, "visiting", calendar.now(state) + duration, inside.id)
             citizen.last_building_id = inside.id
         citizen.entering_building_id = None
         citizen.leaving_building_id = None
@@ -174,3 +180,17 @@ def sync_building_location(state, citizen):
 
 def same_room(a, b):
     return a.inside_building_id == b.inside_building_id
+
+
+def interior_capacity(building):
+    """Available floor positions, bounded by the declared capacity."""
+    xs, ys = [p.x for p in building.footprint], [p.y for p in building.footprint]
+    count = 0
+    x = min(xs) + 0.8
+    while x <= max(xs) - 0.8 + 1e-6:
+        y = min(ys) + 0.8
+        while y <= max(ys) - 0.8 + 1e-6:
+            count += polygon_contains(Vec2(x=x, y=y), building.footprint)
+            y += PERSONAL_SPACE + 0.05
+        x += PERSONAL_SPACE + 0.05
+    return min(building.capacity, count)

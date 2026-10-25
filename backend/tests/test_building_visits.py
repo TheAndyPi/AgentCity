@@ -155,8 +155,14 @@ def test_citizens_keep_moving_after_scenario_outcome_and_resume(client, populati
                 and decision.intent.action
                 in {"rest", "work", "gather", "consume", "help", "talk", "trade", "warn"}
             )
-        # Citizens can legitimately stay put to eat, rest or work. A majority
-        # must still travel, and every other citizen must complete useful actions.
+            acted.update(
+                aid
+                for aid, citizen in state.citizens.items()
+                if citizen.summary.routine_state in {"visiting", "talking"}
+                and citizen.routine_until > state.simulation.calendar_time_seconds
+            )
+        # Scheduled visits and listening are also useful sustained commitments.
+        # A majority still travels; every other citizen acts or honors a commitment.
         assert len(moved) > len(state.citizens) // 2
         assert moved | acted == set(state.citizens), {
             citizen.summary.name: (citizen.summary.position, citizen.summary.path[:2])

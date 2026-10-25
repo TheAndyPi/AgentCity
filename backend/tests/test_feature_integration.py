@@ -116,7 +116,7 @@ def test_combined_tick_applies_baseline_hunger_once(client, monkeypatch):
     citizen.needs.hunger = 20
     citizen.inside_building_id = None
     tick(state, {citizen.summary.id: (make_intent("idle"), None)})
-    assert citizen.needs.hunger == pytest.approx(20.6)
+    assert citizen.needs.hunger == pytest.approx(20 + 4 / 30)
 
 
 def test_both_extensions_share_the_authenticated_integration_mount(client):

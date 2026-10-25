@@ -204,7 +204,9 @@ def background(state, citizen):
     if not living(citizen) or c.last_coupling_tick == state.simulation.tick:
         return
     c.last_coupling_tick = state.simulation.tick
-    outputs = coupling(citizen.summary.metrics.model_copy(), state.simulation.config.tick_seconds)
+    outputs = coupling(
+        citizen.summary.metrics.model_copy(), state.simulation.config.calendar_seconds_per_tick / 60
+    )
     # Clamp the aggregate once, then apportion the actual contribution including meter bounds.
     for meter, parts in outputs.items():
         total = sum(parts.values())
@@ -254,12 +256,24 @@ def passive(state, citizen):
         evaluate(state, citizen, "Passive unconscious recovery")
 
 
-def rest(state, citizen, base=6, phase="activity"):
+def rest(state, citizen, base=None, phase="activity"):
     if not living(citizen):
         return
-    dt = state.simulation.config.tick_seconds / 10
-    impact(state, citizen, "energy", base * rest_multiplier(citizen) * dt, "Rest quality", phase)
-    impact(state, citizen, "mental", RULES["rest_mental"] * dt, "Quiet rest", phase)
+    if base is None:
+        from app.simulation.agents import metric_delta
+        from app.simulation.calendar import hours_per_tick
+        from app.simulation.daily import RATES
+
+        hours = hours_per_tick(state)
+        asleep = citizen.summary.routine_state == "sleeping"
+        base = RATES["sleep_energy" if asleep else "rest_energy"] * hours
+        impact(state, citizen, "mental", RATES["rest_mental"] * hours, "Quiet rest", phase)
+        metric_delta(citizen, "stress", RATES["rest_stress"] * hours, evidence("Time spent resting"))
+    else:
+        dt = state.simulation.config.tick_seconds / 10
+        base *= dt
+        impact(state, citizen, "mental", RULES["rest_mental"] * dt, "Quiet rest", phase)
+    impact(state, citizen, "energy", base * rest_multiplier(citizen), "Rest quality", phase)
 
 
 def share_loss(state, actor, listener, text, proof):

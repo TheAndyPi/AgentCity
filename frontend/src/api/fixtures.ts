@@ -224,6 +224,7 @@ export function fixtureSimulation(
     revision: 0,
     control_version: 0,
     sim_time_seconds: 0,
+    calendar_time_seconds: 8 * 3600,
     speed_multiplier: 1,
     achieved_ticks_per_second: 0,
     agent_count: config.population,
@@ -284,6 +285,14 @@ export function fixtureWorld(
       exposed_count: 0,
     },
     recent_dialogue: [],
+    curfew: {
+      enabled: false,
+      start_minute: 1320,
+      end_minute: 360,
+      revision: 0,
+      informed_agent_ids: [],
+    },
+    conversation_sessions: [],
     active_hazards: [],
   };
 }

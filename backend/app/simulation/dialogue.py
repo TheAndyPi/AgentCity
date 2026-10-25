@@ -219,7 +219,10 @@ def rule_speech(state, actor, target, intent, interaction, previous):
                 f"For me, it was this: {phrase(actor.profile.personal_history)}. Do you feel settled here?",
             ],
         }[kind]
-    elif turn == 2:
+    elif turn == 2 or (
+        interaction.minimum_end_calendar_seconds is not None
+        and state.simulation.calendar_time_seconds < interaction.minimum_end_calendar_seconds
+    ):
         last = previous[-1].text.lower()
         options = {
             "check_in": [

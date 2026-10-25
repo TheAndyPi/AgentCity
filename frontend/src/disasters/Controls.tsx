@@ -83,7 +83,7 @@ export default function DisasterControls({
       {numeric("Duration (ticks)", "duration_ticks", 1, 10000, 1)}
       <p className="helper-text">
         {Number.isFinite(value.duration_ticks)
-          ? `${value.duration_ticks * tickSeconds} simulation seconds`
+          ? `${value.duration_ticks * tickSeconds} physical simulation seconds`
           : "Enter a duration"}{" "}
         · Map meters · Maximum extent is the map diagonal, clipped at city
         edges.

@@ -27,7 +27,7 @@ def test_small_cast_has_a_compact_walkable_neighborhood(client):
         assert any(pathfind(state.map, citizen.home, r.position) is not None for r in state.map.resources)
 
 
-def test_two_people_stop_face_each_other_and_take_one_turn_per_tick(client):
+def test_two_people_stop_face_each_other_and_take_calendar_spaced_turns(client):
     state = city(client)
     a, b = list(state.citizens.values())[:2]
     for citizen in state.citizens.values():
@@ -38,14 +38,20 @@ def test_two_people_stop_face_each_other_and_take_one_turn_per_tick(client):
     positions = a.summary.position.model_copy(), b.summary.position.model_copy()
     apply_intent(state, a, make_intent("talk", target=b.summary.id))
     assert rule_intent(state, b, perception(state, b)).action == "idle"
-    for _ in range(3):
+    for step in range(1, 32):
         before = len(state.dialogue)
         tick(state)
-        assert len(state.dialogue) == before + 1
+        assert len(state.dialogue) == before + (step in {1, 11, 21, 31})
         assert (a.summary.position, b.summary.position) == positions
     assert state.dialogue[-1].end_conversation
-    assert [d.speaker_id for d in state.dialogue] == [a.summary.id, b.summary.id, a.summary.id, b.summary.id]
-    assert [d.tick for d in state.dialogue] == [0, 1, 2, 3]
+    assert [d.speaker_id for d in state.dialogue] == [
+        a.summary.id,
+        b.summary.id,
+        a.summary.id,
+        b.summary.id,
+        a.summary.id,
+    ]
+    assert [d.tick for d in state.dialogue] == [0, 1, 11, 21, 31]
     assert abs((b.summary.heading_rad - a.summary.heading_rad) % (2 * math.pi) - math.pi) < 0.001
     assert all(not c.summary.path for c in (a, b))
 

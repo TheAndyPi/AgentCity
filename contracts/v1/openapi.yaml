@@ -3909,6 +3909,16 @@ components:
         active:
           type: boolean
           title: Active
+        routine_state:
+          type: string
+          title: Routine State
+          default: free
+        activity_until_calendar_seconds:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Activity Until Calendar Seconds
       additionalProperties: false
       type: object
       required:
@@ -4329,6 +4339,12 @@ components:
           - 1
           - 10
           title: Tick Seconds
+        calendar_seconds_per_tick:
+          type: integer
+          maximum: 600.0
+          minimum: 1.0
+          title: Calendar Seconds Per Tick
+          default: 120
         max_ticks:
           type: integer
           maximum: 100000.0
@@ -4414,7 +4430,13 @@ components:
           - 1
           - 10
           title: Tick Seconds
-          default: 1
+          default: 10
+        calendar_seconds_per_tick:
+          type: integer
+          maximum: 600.0
+          minimum: 1.0
+          title: Calendar Seconds Per Tick
+          default: 120
         max_ticks:
           type: integer
           maximum: 100000.0
@@ -4441,6 +4463,57 @@ components:
       - text
       - evidence
       title: Consequence
+    ConversationSession:
+      properties:
+        id:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Id
+        participant_ids:
+          items:
+            type: string
+            maxLength: 200
+            minLength: 1
+          type: array
+          title: Participant Ids
+        status:
+          type: string
+          title: Status
+        accepted_calendar_seconds:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Accepted Calendar Seconds
+        minimum_end_calendar_seconds:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Minimum End Calendar Seconds
+        next_turn_calendar_seconds:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Next Turn Calendar Seconds
+        end_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Reason
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - participant_ids
+      - status
+      - accepted_calendar_seconds
+      - minimum_end_calendar_seconds
+      - next_turn_calendar_seconds
+      - end_reason
+      title: ConversationSession
     CreateSimulation:
       properties:
         config:
@@ -4450,6 +4523,40 @@ components:
       required:
       - config
       title: CreateSimulation
+    CurfewPolicy:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+          default: false
+        start_minute:
+          type: integer
+          maximum: 1439.0
+          minimum: 0.0
+          title: Start Minute
+          default: 1320
+        end_minute:
+          type: integer
+          maximum: 1439.0
+          minimum: 0.0
+          title: End Minute
+          default: 360
+        revision:
+          type: integer
+          maximum: 9007199254740991.0
+          minimum: 0.0
+          title: Revision
+          default: 0
+        informed_agent_ids:
+          items:
+            type: string
+            maxLength: 200
+            minLength: 1
+          type: array
+          title: Informed Agent Ids
+      additionalProperties: false
+      type: object
+      title: CurfewPolicy
     CustomAgent:
       properties:
         id:
@@ -7050,6 +7157,11 @@ components:
           type: number
           minimum: 0.0
           title: Sim Time Seconds
+        calendar_time_seconds:
+          type: number
+          minimum: 0.0
+          title: Calendar Time Seconds
+          default: 0
         speed_multiplier:
           enum:
           - 0.25
@@ -8177,6 +8289,13 @@ components:
             $ref: '#/components/schemas/Hazard'
           type: array
           title: Active Hazards
+        curfew:
+          $ref: '#/components/schemas/CurfewPolicy'
+        conversation_sessions:
+          items:
+            $ref: '#/components/schemas/ConversationSession'
+          type: array
+          title: Conversation Sessions
       additionalProperties: false
       type: object
       required:

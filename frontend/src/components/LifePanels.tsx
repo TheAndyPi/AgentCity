@@ -10,6 +10,7 @@ import {
 import type { Dialogue, Profile, Traits, WorldFrame } from "../api/types";
 import { characterAppearance } from "../world/characterAppearance";
 import { pretty } from "../api/defaults";
+import { clockTime } from "../world/daylight";
 import { useApp, useQuery } from "../state/app";
 import { Busy, Empty, ErrorBox } from "./ui";
 
@@ -330,6 +331,9 @@ export function Conversations({
   const last = conversation?.messages.at(-1);
   const [visibleMessages, setVisibleMessages] = useState(100);
   useEffect(() => setVisibleMessages(100), [conversation?.id]);
+  const session = frame.conversation_sessions?.find(
+    (s) => s.id === conversation?.id,
+  );
   return (
     <>
       <div className="life-panel-heading">
@@ -394,9 +398,13 @@ export function Conversations({
           >
             <header>
               <span className="eyebrow">
-                {last?.end_conversation
-                  ? "CONVERSATION ENDED"
-                  : "RECENT CONVERSATION"}
+                {session?.status === "accepted"
+                  ? `TALKING UNTIL ${clockTime(session.minimum_end_calendar_seconds ?? 0)}`
+                  : session?.end_reason
+                    ? `ENDED: ${pretty(session.end_reason)}`
+                    : last?.end_conversation
+                      ? "CONVERSATION ENDED"
+                      : "RECENT CONVERSATION"}
               </span>
               <span>
                 Tick {conversation.messages[0].tick}
@@ -458,7 +466,7 @@ export function Conversations({
                 </article>
               ))}
             </div>
-            {last?.end_conversation && (
+            {(last?.end_conversation || session?.status === "ended") && (
               <p className="conversation-end">✦ Until next time.</p>
             )}
           </section>

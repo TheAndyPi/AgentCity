@@ -307,9 +307,12 @@ def test_zone_border_counts_each_citizen_once(client):
 
 
 def test_conversations_reuse_invitation_accept_and_end_with_bounded_turns(client):
+    from conftest import advance_conversation_turn
+
     state = world(client)
     a, b = nearby_pair(state)
     for actor, target in [(a, b), (b, a), (a, b), (b, a)]:
+        advance_conversation_turn(state, actor)
         assert apply_intent(state, actor, make_intent("talk", target=target.summary.id)).outcome == "accepted"
     conversations = [i for i in state.interactions.values() if i.kind == "conversation"]
     assert len(conversations) == 1
