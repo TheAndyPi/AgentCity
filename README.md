@@ -70,6 +70,10 @@ Open [the built application](http://127.0.0.1:8000). Direct route reloads are su
 
 `npm run dev:mock` explicitly selects recorded frontend fixtures for UI review. Its visible Mock badge distinguishes it from the live application. There is no automatic fallback from live data to fixtures.
 
+With server-side ElevenLabs configuration, select a citizen or watch a conversation,
+then choose **Enable live voices** for automatic committed dialogue. Sound starts
+with new turns; replay is explicit. See [live voices setup and limits](docs/release/live-voices-handoff.md).
+
 ## Verify
 
 ```sh

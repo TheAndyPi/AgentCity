@@ -74,7 +74,7 @@ export default function Drawer({
   onWatch,
 }: {
   readOnly: boolean;
-  onWatch?: (ids: string[]) => void;
+  onWatch?: (ids: string[], interactionId?: string) => void;
   stack: DrawerNode[];
   frame: WorldFrame;
   revision: number;
@@ -1170,7 +1170,7 @@ function FeedPanel({
   onPush,
   onWatch,
 }: {
-  onWatch?: (ids: string[]) => void;
+  onWatch?: (ids: string[], interactionId?: string) => void;
   queryScope: string;
   frame: WorldFrame;
   revision: number;

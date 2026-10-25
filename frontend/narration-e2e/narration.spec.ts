@@ -148,6 +148,7 @@ test("existing narration control plays the selected record without stale or auto
   request,
 }, info) => {
   const errors: string[] = [];
+  await request.post(`${FAKE}/reset`);
   page.on("pageerror", (error) => errors.push(error.message));
   const narrationPosts: string[] = [];
   page.on("request", (r) => {

@@ -1,0 +1,36 @@
+{
+  "controlledProvider": true,
+  "activePlayerCounts": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "cachedTransitionMs": [
+    75.1,
+    35.7,
+    46.8
+  ],
+  "playedLines": [
+    {
+      "id": "dialogue_00000050",
+      "speaker": "agent_00000044",
+      "text": "Four real turns turn 1."
+    },
+    {
+      "id": "dialogue_00000051",
+      "speaker": "agent_00000038",
+      "text": "Four real turns turn 2."
+    },
+    {
+      "id": "dialogue_00000052",
+      "speaker": "agent_00000044",
+      "text": "Four real turns turn 3."
+    },
+    {
+      "id": "dialogue_00000053",
+      "speaker": "agent_00000038",
+      "text": "Four real turns turn 4."
+    }
+  ]
+}

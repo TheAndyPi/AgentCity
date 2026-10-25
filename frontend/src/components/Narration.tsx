@@ -34,6 +34,9 @@ export default function Narration({
   const key = sourceKey(simulationId, sourceType, sourceId);
   const [view, setView] = useState<View>(() => initial(key));
   const latest = useRef(key);
+  const operation = useRef({ key, id: crypto.randomUUID() });
+  if (operation.current.key !== key)
+    operation.current = { key, id: crypto.randomUUID() };
   latest.current = key;
   // A response for a source that is no longer selected is ignored.
   const current = view.key === key ? view : initial(key);
@@ -59,12 +62,22 @@ export default function Narration({
   }, [key]);
   if (!capabilities?.narration) return null;
   const listen = () => {
+    if (
+      current.status === "unplayable" ||
+      (current.status === "failed" && current.error.includes("expired"))
+    )
+      operation.current = { key, id: crypto.randomUUID() };
     const requested = key;
     setView({ key: requested, status: "loading" });
     void settle(
       requested,
       request(requested, () =>
-        client.narration(simulationId, sourceType, sourceId),
+        client.narration(
+          simulationId,
+          sourceType,
+          sourceId,
+          operation.current.id,
+        ),
       ),
     );
   };

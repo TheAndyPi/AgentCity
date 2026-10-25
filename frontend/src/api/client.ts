@@ -19,6 +19,7 @@ export interface Transport {
     path: string,
     body?: unknown,
     key?: string,
+    signal?: AbortSignal,
   ): Promise<unknown>;
   subscribe?(id: string, cb: (frame: T.WorldFrame) => void): () => void;
 }
@@ -33,12 +34,14 @@ export class AgentCityClient {
     schema: z.ZodType<T>,
     body?: unknown,
     key?: string,
+    signal?: AbortSignal,
   ): Promise<T> {
     const response = await this.transport.request(
       method,
       path,
       body,
       method === "GET" ? undefined : (key ?? crypto.randomUUID()),
+      signal,
     );
     const failed = S.failure.safeParse(response);
     if (failed.success) {
@@ -343,6 +346,7 @@ export class AgentCityClient {
     id: string,
     source_type: "event" | "decision" | "dialogue",
     source_id: string,
+    key?: string,
   ) =>
     this.call(
       "POST",
@@ -354,6 +358,41 @@ export class AgentCityClient {
         })
         .strict(),
       { source_type, source_id },
+      key,
+    );
+  liveDialogue = (
+    id: string,
+    source_id: string,
+    revision: number,
+    key: string,
+    signal?: AbortSignal,
+  ) =>
+    this.call(
+      "POST",
+      `/integrations/narration/v1/simulations/${encodeURIComponent(id)}/dialogue`,
+      z
+        .object({
+          audio_url: z.string().url(),
+          expires_at: z.string().datetime(),
+        })
+        .strict(),
+      { source_id, revision },
+      key,
+      signal,
+    );
+  dialoguePage = (
+    id: string,
+    revision: number,
+    cursor?: string | null,
+    signal?: AbortSignal,
+  ) =>
+    this.call(
+      "GET",
+      `/simulations/${encodeURIComponent(id)}/dialogue${query({ revision, limit: 100, cursor: cursor ?? undefined })}`,
+      S.page(S.dialogue),
+      undefined,
+      undefined,
+      signal,
     );
   exportUrl = (id: string, revision: number) =>
     `${apiBase}/simulations/${encodeURIComponent(id)}/export?format=csv&through_revision=${revision}`;
@@ -401,6 +440,7 @@ export class LiveTransport implements Transport {
     path: string,
     body?: unknown,
     key?: string,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     if (
       method !== "GET" &&
@@ -437,7 +477,9 @@ export class LiveTransport implements Transport {
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         credentials: "include",
-        signal: AbortSignal.timeout(15000),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
+          : AbortSignal.timeout(15000),
       });
     } catch {
       throw new ApiError(

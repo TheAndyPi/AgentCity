@@ -107,7 +107,8 @@ def test_insufficient_pool_never_reuses_a_voice_or_calls_provider(tmp_path, pool
         response = narrate(client, records["sid"], "decision", decision["id"])
         assert response.status_code == 503
         assert "Not enough distinct" in response.json()["error"]["message"]
-        assert assignments(client, records["sid"]) == {}
+        assigned = assignments(client, records["sid"])
+        assert len(assigned) == len(set(assigned.values())) == len(pool)
         assert fake.requests == []
 
 

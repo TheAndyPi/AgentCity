@@ -37,22 +37,6 @@ class VoiceAssignments:
                     (owner, sid),
                 )
             )
-            # A changed pool must not silently change already-established identities.
-            require(
-                all(v in pool for v in assigned.values()),
-                "SERVICE_UNAVAILABLE",
-                "An assigned citizen voice is missing from ELEVENLABS_CHARACTER_VOICE_IDS",
-                503,
-            )
-            missing = [aid for aid in agents if aid not in assigned]
-            available = [voice for voice in pool if voice not in assigned.values()]
-            require(
-                len(available) >= len(missing),
-                "SERVICE_UNAVAILABLE",
-                "Not enough distinct ElevenLabs voices for every citizen; configure more "
-                "ELEVENLABS_CHARACTER_VOICE_IDS or use a smaller city",
-                503,
-            )
             parent = state.simulation.parent_simulation_id
             inherited = (
                 dict(
@@ -64,22 +48,35 @@ class VoiceAssignments:
                 if parent
                 else {}
             )
-            # Copy all inherited assignments first so new citizens cannot take them.
-            for aid in missing:
-                voice = inherited.get(aid)
-                if voice in available:
-                    assigned[aid] = voice
-                    available.remove(voice)
-            for aid in missing:
-                if aid not in assigned:
-                    assigned[aid] = available.pop(0)
+            # Reserve even absent/deceased and removed-pool identities. A child must
+            # never give a historical speaker's voice to a newly added citizen.
+            additions = {aid: voice for aid, voice in inherited.items() if aid not in assigned}
+            assigned.update(additions)
+            available = [voice for voice in pool if voice not in assigned.values()]
+            for aid in agents:
+                if aid not in assigned and available:
+                    additions[aid] = assigned[aid] = available.pop(0)
             try:
                 db.executemany(
                     "INSERT INTO character_voices VALUES (?,?,?,?)",
-                    [(owner, sid, aid, assigned[aid]) for aid in missing],
+                    [(owner, sid, aid, voice) for aid, voice in additions.items()],
                 )
                 db.commit()
             except BaseException:
                 db.rollback()
                 raise
+        require(
+            agent_id in assigned,
+            "SERVICE_UNAVAILABLE",
+            "Not enough distinct ElevenLabs voices; this citizen's voice is unavailable. "
+            "Configure more ELEVENLABS_CHARACTER_VOICE_IDS; existing voices remain usable",
+            503,
+        )
+        require(
+            assigned[agent_id] in pool,
+            "SERVICE_UNAVAILABLE",
+            "This assigned citizen voice is missing from ELEVENLABS_CHARACTER_VOICE_IDS; "
+            "restore authorized access without remapping the citizen",
+            503,
+        )
         return assigned[agent_id]

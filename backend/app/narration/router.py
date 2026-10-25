@@ -7,6 +7,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException
 from starlette.routing import Mount
 
@@ -16,6 +17,18 @@ from app.narration.config import NarrationConfig
 from app.narration.service import MEDIA_PATH, NarrationService
 
 MOUNT_PATH = MEDIA_PATH.removesuffix("/audio")
+
+
+class LiveDialogueRequest(BaseModel):
+    """Versioned extension; frozen core NarrationRequest remains unchanged."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    source_id: str = Field(min_length=1, max_length=128)
+    revision: int = Field(ge=0)
+
+    @property
+    def source_type(self):
+        return "dialogue"
 
 
 def _failure(request, code, message, status, details=None):
@@ -50,13 +63,24 @@ def create_narration_app(narration: NarrationService):
     child = FastAPI(title="AgentCity narration extension", version="1.0.0")
     child.state.narration = narration
 
+    @child.post(
+        "/v1/simulations/{sid}/dialogue",
+        response_model=c.Success[c.NarrationResult],
+        description="Speak only the committed dialogue source at an owned pinned revision. "
+        "Requires the parent session, CSRF token and UUID Idempotency-Key. No client text is accepted.",
+        responses={status: {"model": c.Failure} for status in (400, 401, 403, 404, 409, 429, 501, 503)},
+    )
+    async def live_dialogue(request: Request, sid: str, body: LiveDialogueRequest):
+        return await narration.narrate(request, sid, body, live=True)
+
     @child.exception_handler(DomainError)
     async def domain_error(request, error):
         return _failure(request, error.code, error.message, error.status, error.details)
 
     @child.exception_handler(RequestValidationError)
     async def validation_error(request, error):
-        # Media URLs are opaque; malformed ones are indistinguishable from absent audio.
+        if request.method == "POST":
+            return _failure(request, "INVALID_REQUEST", "Invalid live dialogue request", 400)
         return _failure(request, "NOT_FOUND", "Narration audio not found or expired", 404)
 
     @child.exception_handler(HTTPException)

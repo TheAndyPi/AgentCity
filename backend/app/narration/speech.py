@@ -24,7 +24,7 @@ def _bounded(text, limit):
     return (cut[:space] if space > limit // 2 else cut).rstrip() + "…"
 
 
-def recorded_text(state, source_type, source_id, limit):
+def recorded_text(state, source_type, source_id, limit, *, live=False):
     """Return (speech, source) for an existing record, or raise NOT_FOUND."""
     text = ""
     if source_type == "event":
@@ -43,8 +43,14 @@ def recorded_text(state, source_type, source_id, limit):
         line = next((d for d in state.dialogue if d.id == source_id), None)
         if line:
             speaker = _name(state, line.speaker_id)
-            text = _clean(f"{speaker}:" if speaker else "", line.text)
+            text = _clean(f"{speaker}:" if speaker and not live else "", line.text)
     else:
         raise DomainError("INVALID_REQUEST", "Unsupported narration source type", 400)
     require(text, "NOT_FOUND", "Narration source not found in this simulation", 404)
+    require(
+        not live or len(text) <= limit,
+        "SERVICE_UNAVAILABLE",
+        "Committed dialogue exceeds NARRATION_MAX_CHARACTERS; increase the configured limit",
+        503,
+    )
     return _bounded(text, limit)
