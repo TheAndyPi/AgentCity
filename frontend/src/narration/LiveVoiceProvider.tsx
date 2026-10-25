@@ -1,8 +1,19 @@
 import {
+  AudioLines,
+  Pause,
+  Play,
+  SlidersHorizontal,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
+import {
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
+  useId,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -55,6 +66,11 @@ export default function LiveVoiceProvider({
   );
   const sound = useSyncExternalStore(sounds.subscribe, sounds.getSnapshot);
   const view = useSyncExternalStore(voices.subscribe, voices.getSnapshot);
+  const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
+  const available =
+    capabilities?.narration ||
+    Object.values(sound.categories).some((v) => v !== "unconfigured");
   const dock = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const node = dock.current;
@@ -72,7 +88,7 @@ export default function LiveVoiceProvider({
       observer.disconnect();
       stage.style.removeProperty("--audio-dock-height");
     };
-  }, [capabilities?.narration, sounds]);
+  }, [available, expanded, sounds]);
   const currentAudio = useRef({ view, sound });
   currentAudio.current = { view, sound };
   const scopeKey = JSON.stringify(scope);
@@ -153,145 +169,178 @@ export default function LiveVoiceProvider({
   return (
     <>
       {children}
-      {(capabilities?.narration ||
-        Object.values(sound.categories).some((v) => v !== "unconfigured")) && (
+      {available && (
         <section
           ref={dock}
-          className="live-voices glass"
+          className={`live-voices${expanded ? " is-expanded" : " is-collapsed"}`}
           aria-label="Live voices"
           data-sound-enabled={sound.enabled}
           data-sound-events={
             disasters?.events.filter((e) => e.phase === "active").length ?? 0
           }
         >
-          <div className="live-voice-controls">
-            <button
-              onClick={() => {
-                sounds.enable();
-                voices.enable();
-              }}
-            >
-              Enable sound
-            </button>
-            <details className="sound-mix">
-              <summary>Sound mix</summary>
-              <div className="sound-mix-options">
-                {(["effects", "music", "voices"] as const).map((category) => (
-                  <label key={category}>
-                    <input
-                      type="checkbox"
-                      checked={sound[category]}
-                      onChange={() => {
-                        sounds.toggle(category);
-                        if (category === "voices")
-                          document.querySelectorAll("audio").forEach((a) => {
-                            a.pause();
-                            a.muted = sound.voices;
-                          });
-                      }}
-                    />
-                    {category}
-                  </label>
-                ))}
-                <small>
-                  Effects: {sound.categories.effects} · Music:{" "}
-                  {sound.categories.music} · Reactions:{" "}
-                  {sound.categories.reactions}
-                </small>
-                {sound.error && <span role="status">{sound.error}</span>}
+          <button
+            className="audio-dock-toggle"
+            aria-label={expanded ? "Hide city radio" : "Show city radio"}
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            onClick={() => setExpanded((open) => !open)}
+          >
+            {expanded ? <X size={16} /> : <AudioLines size={16} />}
+            <span>{expanded ? "Hide radio" : "City radio"}</span>
+            {!expanded && (
+              <span
+                className="audio-status-dot"
+                data-active={view.enabled && !view.paused && !view.muted}
+              />
+            )}
+          </button>
+          <div id={panelId} hidden={!expanded}>
+            <div className="live-voice-controls">
+              <div className="audio-identity">
+                <span className="audio-emblem">
+                  <AudioLines size={20} />
+                </span>
+                <div>
+                  <strong>City radio</strong>
+                  <span>
+                    {view.speaking
+                      ? `On air · ${speaker}`
+                      : view.enabled && !view.paused && !view.muted
+                        ? "Listening to the city"
+                        : "Your city, in sound"}
+                  </span>
+                </div>
               </div>
-            </details>
-            {!view.enabled ? (
               <button
+                className="audio-play"
+                aria-label={
+                  !view.enabled
+                    ? "Enable live voices"
+                    : view.paused
+                      ? "Resume listening"
+                      : "Pause audio"
+                }
+                disabled={view.hidden}
                 onClick={() => {
-                  sounds.enable();
-                  voices.enable();
+                  if (!view.enabled || view.paused) {
+                    sounds.enable();
+                    voices.enable();
+                  } else {
+                    sounds.stop();
+                    voices.pause();
+                  }
                 }}
               >
-                Enable live voices
+                {!view.enabled || view.paused ? (
+                  <Play size={18} fill="currentColor" />
+                ) : (
+                  <Pause size={18} fill="currentColor" />
+                )}
               </button>
-            ) : (
-              <>
-                <button
-                  aria-label={view.muted ? "Unmute voices" : "Mute voices"}
-                  onClick={() => {
-                    sounds.stop();
-                    document.querySelectorAll("audio").forEach((a) => {
-                      a.pause();
-                      a.muted = !view.muted;
-                    });
-                    voices.mute(!view.muted);
-                  }}
-                >
-                  {view.muted ? "Master unmute" : "Master mute"}
-                </button>
-                <button
-                  disabled={view.hidden}
-                  onClick={() => {
-                    if (view.paused) {
-                      sounds.enable();
-                      voices.enable();
-                    } else {
-                      sounds.stop();
-                      voices.pause();
-                    }
-                  }}
-                >
-                  {view.paused ? "Resume listening" : "Pause audio"}
-                </button>
-              </>
-            )}
-            <label>
-              Master volume{" "}
-              <input
-                aria-label="Voice volume"
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={view.volume}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
+              <button
+                className="audio-mute"
+                aria-label={view.muted ? "Unmute voices" : "Mute voices"}
+                aria-pressed={view.muted}
+                onClick={() => {
+                  sounds.stop();
                   document.querySelectorAll("audio").forEach((a) => {
-                    a.volume = value;
+                    a.pause();
+                    a.muted = !view.muted;
                   });
-                  voices.setVolume(value);
+                  voices.mute(!view.muted);
                 }}
-              />
-            </label>
-            {scope.subject?.kind === "interaction" && (
-              <button disabled={view.hidden} onClick={() => voices.replay()}>
-                Replay this conversation
+              >
+                {view.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
+              <label className="audio-volume">
+                <span className="audio-sr-only">Master volume</span>
+                <input
+                  aria-label="Voice volume"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={view.volume}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    document.querySelectorAll("audio").forEach((a) => {
+                      a.volume = value;
+                    });
+                    voices.setVolume(value);
+                  }}
+                />
+                <output>{Math.round(view.volume * 100)}%</output>
+              </label>
+              <details className="sound-mix">
+                <summary>
+                  <SlidersHorizontal size={16} />
+                  <span>Sound mix</span>
+                </summary>
+                <div className="sound-mix-options">
+                  {(["effects", "music", "voices"] as const).map((category) => (
+                    <label key={category}>
+                      <input
+                        type="checkbox"
+                        checked={sound[category]}
+                        onChange={() => {
+                          sounds.toggle(category);
+                          if (category === "voices")
+                            document.querySelectorAll("audio").forEach((a) => {
+                              a.pause();
+                              a.muted = sound.voices;
+                            });
+                        }}
+                      />
+                      {category}
+                    </label>
+                  ))}
+                  <small>
+                    Effects: {sound.categories.effects} · Music:{" "}
+                    {sound.categories.music} · Reactions:{" "}
+                    {sound.categories.reactions}
+                  </small>
+                  {sound.error && <span role="status">{sound.error}</span>}
+                </div>
+              </details>
+              {scope.subject?.kind === "interaction" && (
+                <button disabled={view.hidden} onClick={() => voices.replay()}>
+                  Replay this conversation
+                </button>
+              )}
+              {(view.queued > 1 || view.blocked || view.missed) && (
+                <button onClick={() => voices.catchUp()}>Catch up live</button>
+              )}
+            </div>
+            <span className="audio-status" role="status">
+              <span
+                className="audio-status-dot"
+                data-active={view.enabled && !view.paused && !view.muted}
+              />
+              {view.status}
+              {view.queued > 0 &&
+                ` · ${view.queued} lines · ~${Math.ceil(view.seconds)}s behind`}
+              {view.missed && " · Missed/backlogged dialogue requires catch up"}
+            </span>
+            {view.speaking && (
+              <p
+                className="spoken-caption"
+                aria-live="polite"
+                data-dialogue-id={view.speaking.id}
+              >
+                <strong>Now speaking: {speaker}</strong>
+                <small>Conversation {view.speaking.interaction_id}</small>
+                <span>{view.speaking.text}</span>
+              </p>
             )}
-            {(view.queued > 1 || view.blocked || view.missed) && (
-              <button onClick={() => voices.catchUp()}>Catch up live</button>
+            {view.error && (
+              <p role="alert">
+                {view.error}{" "}
+                <button onClick={() => voices.retry()}>Retry voice</button>
+                <button onClick={() => voices.skip()}>Skip this line</button>
+              </p>
             )}
           </div>
-          <span role="status">
-            {view.status}
-            {view.queued > 0 &&
-              ` · ${view.queued} lines · ~${Math.ceil(view.seconds)}s behind`}
-            {view.missed && " · Missed/backlogged dialogue requires catch up"}
-          </span>
-          {view.speaking && (
-            <p
-              className="spoken-caption"
-              aria-live="polite"
-              data-dialogue-id={view.speaking.id}
-            >
-              <strong>Now speaking: {speaker}</strong>
-              <small>Conversation {view.speaking.interaction_id}</small>
-              <span>{view.speaking.text}</span>
-            </p>
-          )}
-          {view.error && (
-            <p role="alert">
-              {view.error}{" "}
-              <button onClick={() => voices.retry()}>Retry voice</button>
-              <button onClick={() => voices.skip()}>Skip this line</button>
-            </p>
-          )}
           {view.enabled && (
             <span
               hidden

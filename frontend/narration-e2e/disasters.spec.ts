@@ -183,7 +183,10 @@ test("DA decoded effects and music stop at cancellation; reload stays silent", a
   await page
     .getByRole("button", { name: "Confirm event", exact: true })
     .click();
-  await page.getByRole("button", { name: "Enable sound", exact: true }).click();
+  await page.getByRole("button", { name: "Show city radio" }).click();
+  await page
+    .getByRole("button", { name: "Enable live voices", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Play simulation", exact: true })
     .click();
@@ -246,8 +249,9 @@ test("DA decoded effects and music stop at cancellation; reload stays silent", a
     )
     .toBe(0);
   await page.reload();
+  await page.getByRole("button", { name: "Show city radio" }).click();
   await expect(
-    page.getByRole("button", { name: "Enable sound", exact: true }),
+    page.getByRole("button", { name: "Enable live voices", exact: true }),
   ).toBeVisible();
   expect((await media()).filter((p) => !p.paused)).toHaveLength(0);
   expect(errors).toEqual([]);
