@@ -10,7 +10,7 @@ from app.main import create_app
 
 @pytest.fixture
 def client(tmp_path):
-    app = create_app(AppConfig(data_dir=tmp_path / "store", base_tps=5))
+    app = create_app(AppConfig(data_dir=tmp_path / "store", base_tps=50))
     with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
         client.headers["X-CSRF-Token"] = client.get("/api/v1/session").json()["data"]["csrf_token"]
         yield client
@@ -24,7 +24,7 @@ def write(client, path, body, method="POST", key=None):
 
 def create_city(client, **config):
     response = write(
-        client, "/simulations", dict(config=dict(name="Test city", seed=42, population=10) | config)
+        client, "/simulations", dict(config=dict(name="Test city", seed=42, population=10, tick_seconds=10) | config)
     )
     assert response.status_code == 202, response.text
     sid = response.json()["data"]["id"]

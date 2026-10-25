@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: Contract 1.0.0. Private single-owner demo. Local mode permits loopback
     only; session mode uses the server-set agentcity_session HttpOnly Secure SameSite=Lax
-    cookie. All writes require Idempotency-Key and CSRF (except login). Full-frame
-    WebSocket protocol is in contracts/v1/stream.schema.json.
+    cookie. All writes require Idempotency-Key and CSRF (except login). Snapshot and
+    map-delta WebSocket protocol is in contracts/v1/stream.schema.json.
 paths:
   /health/live:
     get:
@@ -1694,6 +1694,22 @@ paths:
           minimum: 1
           default: 25
           title: Limit
+      - name: agent_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Agent Id
+      - name: interaction_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Interaction Id
       responses:
         '200':
           description: Successful Response
@@ -4309,11 +4325,13 @@ components:
           title: Custom Agent Ids
         tick_seconds:
           type: integer
-          const: 10
+          enum:
+          - 1
+          - 10
           title: Tick Seconds
         max_ticks:
           type: integer
-          maximum: 10000.0
+          maximum: 100000.0
           minimum: 1.0
           title: Max Ticks
       additionalProperties: false
@@ -4392,15 +4410,17 @@ components:
           title: Custom Agent Ids
         tick_seconds:
           type: integer
-          const: 10
+          enum:
+          - 1
+          - 10
           title: Tick Seconds
-          default: 10
+          default: 1
         max_ticks:
           type: integer
-          maximum: 10000.0
+          maximum: 100000.0
           minimum: 1.0
           title: Max Ticks
-          default: 10000
+          default: 100000
       additionalProperties: false
       type: object
       required:
@@ -4903,7 +4923,7 @@ components:
           title: Severity
         duration_ticks:
           type: integer
-          maximum: 1000.0
+          maximum: 10000.0
           minimum: 1.0
           title: Duration Ticks
         effects:
@@ -8127,6 +8147,12 @@ components:
           $ref: '#/components/schemas/Simulation'
         map:
           $ref: '#/components/schemas/MapData'
+        map_version:
+          type: integer
+          maximum: 9007199254740991.0
+          minimum: 0.0
+          title: Map Version
+          default: 0
         agents:
           items:
             $ref: '#/components/schemas/AgentSummary'

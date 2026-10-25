@@ -1,3 +1,4 @@
+import { useDialoguePages } from "../state/dialogue";
 import BehaviorEvidencePanel from "../behavior/BehaviorEvidencePanel";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -203,9 +204,8 @@ export default function Drawer({
         ) : top.type === "feed" ? (
           <FeedPanel
             onWatch={onWatch}
-            queryScope={queryScope}
             frame={frame}
-            revision={revision}
+            revision={readOnly ? revision : undefined}
             onPush={onPush}
           />
         ) : (
@@ -1201,38 +1201,70 @@ function AgentPicker({
   );
 }
 function FeedPanel({
-  queryScope,
   frame,
   revision,
   onPush,
   onWatch,
 }: {
   onWatch?: (ids: string[], interactionId?: string) => void;
-  queryScope: string;
   frame: WorldFrame;
-  revision: number;
+  revision: number | undefined;
   onPush: (n: DrawerNode) => void;
 }) {
   const { client } = useApp();
-  const r = useQuery(
-    () => client.dialogue(frame.simulation.id, revision),
-    [frame.simulation.id, revision],
-    queryScope,
+  const pages = useDialoguePages(
+    client,
+    frame.simulation.id,
+    revision,
+    frame.recent_dialogue,
   );
+  const sentinel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (
+      !pages.hasOlder ||
+      pages.loading ||
+      !sentinel.current ||
+      typeof IntersectionObserver === "undefined"
+    )
+      return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting))
+          void pages.loadOlder();
+      },
+      { rootMargin: "150px" },
+    );
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, [pages.hasOlder, pages.loading, pages.loadOlder]);
   return (
-    <>
-      {r.error && <ErrorBox error={r.error} retry={r.reload} />}
-      {!r.data && !r.error ? (
-        <Busy text="Listening in…" />
-      ) : (
-        <Conversations
-          onWatch={onWatch}
-          dialogue={r.data ?? frame.recent_dialogue}
-          frame={frame}
-          onAgent={(id) => onPush({ type: "agent", id })}
-        />
+    <div
+      onScroll={(event) => {
+        const el = event.currentTarget;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 200)
+          void pages.loadOlder();
+      }}
+    >
+      {pages.error && <p role="alert">{pages.error}</p>}
+      <Conversations
+        onWatch={onWatch}
+        dialogue={pages.messages}
+        frame={frame}
+        onAgent={(id) => onPush({ type: "agent", id })}
+      />
+      <div ref={sentinel} />
+      {pages.hasOlder && (
+        <Button
+          kind="secondary"
+          disabled={pages.loading}
+          onClick={() => void pages.loadOlder()}
+        >
+          {pages.loading
+            ? "Loading older conversations…"
+            : "Load older conversations"}
+        </Button>
       )}
-    </>
+    </div>
   );
 }
 export function ComparePanel({

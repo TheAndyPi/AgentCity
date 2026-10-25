@@ -26,7 +26,7 @@ class VoiceAssignments:
             record = next((r for r in state.reactions if r.id == source_id), None)
             agent_id = record.agent_id if record else None
         else:
-            record = next((d for d in state.dialogue if d.id == source_id), None)
+            record = state.dialogue_index().by_id.get(source_id)
             agent_id = record.speaker_id if record else None
         require(agent_id in state.citizens, "NOT_FOUND", "Recorded speaker not found in this simulation", 404)
         pool = config.character_voice_ids

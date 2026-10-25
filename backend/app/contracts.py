@@ -226,8 +226,8 @@ class Config(Model):
     environment: Environment
     scenario_description: Annotated[str, Field(max_length=4000)]
     custom_agent_ids: IDs
-    tick_seconds: Literal[10]
-    max_ticks: Annotated[int, Field(ge=1, le=10000), BeforeValidator(integer_number)]
+    tick_seconds: Literal[1, 10]
+    max_ticks: Annotated[int, Field(ge=1, le=100000), BeforeValidator(integer_number)]
 
     @model_validator(mode="after")
     def profile_count(self):
@@ -245,8 +245,8 @@ class ConfigRequest(Config):
     environment: EnvironmentRequest = Field(default_factory=EnvironmentRequest)
     scenario_description: Annotated[str, Field(max_length=4000)] = ""
     custom_agent_ids: IDs = Field(default_factory=list)
-    tick_seconds: Literal[10] = 10
-    max_ticks: Annotated[int, Field(ge=1, le=10000), BeforeValidator(integer_number)] = 10000
+    tick_seconds: Literal[1, 10] = 1
+    max_ticks: Annotated[int, Field(ge=1, le=100000), BeforeValidator(integer_number)] = 100000
 
     def normalized(self):
         return Config.model_validate(self.model_dump())
@@ -580,7 +580,7 @@ class EventSpec(Model):
     origin: Vec2
     affected_polygon: Polygon
     severity: Pct
-    duration_ticks: Annotated[int, Field(ge=1, le=1000), BeforeValidator(integer_number)]
+    duration_ticks: Annotated[int, Field(ge=1, le=10000), BeforeValidator(integer_number)]
     effects: Annotated[list[EffectSpec], Field(max_length=20)]
     success_condition: Literal["duration_elapsed", "all_safe_or_duration"]
     scene: Annotated[list[SceneObject], Field(max_length=24)] = Field(default_factory=list)
@@ -688,12 +688,43 @@ class WorldFrame(Model):
     ref: Ref
     simulation: Simulation
     map: MapData
+    map_version: Counter = 0
     agents: list[AgentSummary]
     events: list[EventSummary]
     policies: Policies
     metrics: MetricPoint
     recent_dialogue: list[Dialogue]
     active_hazards: list[Hazard]
+
+
+class ZoneUpdate(Model):
+    id: ID
+    metrics: Metrics
+    population: Counter
+    population_density_per_km2: Units
+
+
+class BuildingUpdate(Model):
+    id: ID
+    capacity: Counter
+    occupancy: Counter
+    functional: bool
+
+
+class ResourceUpdate(Model):
+    id: ID
+    available_units: Units
+
+
+class MapUpdates(Model):
+    zones: list[ZoneUpdate]
+    buildings: list[BuildingUpdate]
+    resources: list[ResourceUpdate]
+
+
+class FrameDelta(WorldFrame):
+    map: MapData | None = None
+    map_updates: MapUpdates | None = None
 
 
 class Snapshot(Model):
@@ -1060,8 +1091,13 @@ class StreamBase(Model):
 
 
 class SnapshotMessage(StreamBase):
-    type: Literal["snapshot", "frame"]
+    type: Literal["snapshot"]
     data: WorldFrame
+
+
+class FrameMessage(StreamBase):
+    type: Literal["frame"]
+    data: FrameDelta
 
 
 class InitializationMessage(StreamBase):
@@ -1085,5 +1121,6 @@ class ErrorMessage(StreamBase):
 
 
 ServerMessage = Annotated[
-    SnapshotMessage | InitializationMessage | HeartbeatMessage | ErrorMessage, Field(discriminator="type")
+    SnapshotMessage | FrameMessage | InitializationMessage | HeartbeatMessage | ErrorMessage,
+    Field(discriminator="type"),
 ]

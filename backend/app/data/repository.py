@@ -4,7 +4,6 @@ The manifest is the sole commit point. Orphan objects are never visible. A proce
 lock prevents competing workers. Branches own independent lists of immutable refs.
 """
 
-import copy
 import hashlib
 import json
 import os
@@ -16,7 +15,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.contracts import SHORTCUTS, Settings
+from app.contracts import SHORTCUTS, Decision, MetricPoint, Settings
 from app.simulation.state import State
 
 
@@ -147,10 +146,21 @@ class Repository:
         verified = {}
         for sid, entries in self.meta["simulations"].items():
             valid = 0
-            for index, entry in enumerate(entries):
+            previous_revision = -1
+            bad_segment_revision = None
+            for segment in self.meta.get("history", {}).get(sid, ()):
                 try:
-                    if entry["revision"] != index:
-                        raise ValueError("non-contiguous revision journal")
+                    json.loads(self._checked_data(segment))
+                except (OSError, ValueError, zlib.error):
+                    bad_segment_revision = segment["revision"]
+                    break
+            for entry in entries:
+                try:
+                    if bad_segment_revision is not None and entry["revision"] >= bad_segment_revision:
+                        raise ValueError("damaged history segment")
+                    if entry["revision"] <= previous_revision:
+                        raise ValueError("unordered revision journal")
+                    previous_revision = entry["revision"]
                     digest = entry["sha256"]
                     if digest not in verified:
                         ref = _StoredReference.model_validate_json(self._checked_data(entry)).simulation
@@ -171,9 +181,16 @@ class Repository:
                     valid -= 1
             if valid < len(entries):
                 self.degraded.append(
-                    f"Recovered {sid} through revision {valid - 1}; damaged journal requires operator review"
+                    f"Recovered {sid} through revision {entries[valid - 1]['revision'] if valid else -1}; damaged journal requires operator review"
                 )
                 self.meta["simulations"][sid] = entries[:valid]
+                through = entries[valid - 1]["revision"] if valid else -1
+                if "history" in self.meta:
+                    self.meta["history"][sid] = [
+                        segment
+                        for segment in self.meta["history"].get(sid, ())
+                        if segment["revision"] <= through
+                    ]
 
     def read(self, sid, revision=None):
         with self.lock:
@@ -181,9 +198,15 @@ class Repository:
             if not entries:
                 raise KeyError(sid)
             revision = entries[-1]["revision"] if revision is None else revision
-            if revision < 0 or revision >= len(entries):
+            if revision < 0 or revision > entries[-1]["revision"]:
                 raise KeyError(revision)
-            state = self._read(entries[revision])
+            # Revisions between durable checkpoints replay from the preceding commit.
+            from bisect import bisect_right
+
+            index = bisect_right(entries, revision, key=lambda item: item["revision"]) - 1
+            if index < 0:
+                raise KeyError(revision)
+            state = self._read(entries[index])
             # A branch's inherited bytes retain provenance, but projections belong to the branch.
             state.simulation.id = sid
             if state.simulation.initial_preview:
@@ -200,24 +223,73 @@ class Repository:
         with self.lock:
             if self.degraded:
                 raise OSError("Persistence store is degraded")
-            staged = copy.deepcopy(self.meta)
-            if branches:
-                for target, (source, revision) in branches.items():
-                    staged["simulations"][target] = copy.deepcopy(
-                        staged["simulations"][source][: revision + 1]
-                    )
+            staged = dict(self.meta)
+            staged["simulations"] = dict(self.meta["simulations"])
+            staged["history"] = dict(self.meta.get("history", {}))
+            staged["history_watermarks"] = dict(self.meta.get("history_watermarks", {}))
             for state in states:
-                entries = staged["simulations"].setdefault(state.simulation.id, [])
-                if state.simulation.revision != len(entries):
-                    raise ValueError("revision must append exactly once")
+                sid = state.simulation.id
+                if branches and sid in branches:
+                    target = sid
+                    source, revision = branches[sid]
+                    staged["simulations"][target] = [
+                        entry for entry in staged["simulations"][source] if entry["revision"] <= revision
+                    ]
+                    staged["history"][target] = [
+                        entry for entry in staged["history"].get(source, ()) if entry["revision"] <= revision
+                    ]
+                    staged["history_watermarks"][target] = {
+                        kind: max(
+                            (
+                                entry["through"]
+                                for entry in staged["history"][target]
+                                if entry["kind"] == kind
+                            ),
+                            default=-1,
+                        )
+                        for kind in ("decisions", "metric_points")
+                    }
+                entries = list(staged["simulations"].get(sid, ()))
+                if entries and state.simulation.revision <= entries[-1]["revision"]:
+                    raise ValueError("revision must append exactly once in increasing order")
+                if not entries and state.simulation.revision != 0:
+                    raise ValueError("revision journal must begin at zero")
+                segments = list(staged["history"].get(sid, ()))
+                for kind in ("decisions", "metric_points"):
+                    pending = getattr(state, "pending_" + kind, ())
+                    previous = max((item["through"] for item in segments if item["kind"] == kind), default=-1)
+                    records = [item for item in pending if self.history_key(kind, item) > previous]
+                    if records:
+                        raw = zlib.compress(encode([item.model_dump(mode="json") for item in records]), 3)
+                        digest = hashlib.sha256(raw).hexdigest()
+                        path = self.directory / "objects" / (digest + ".json.z")
+                        if not path.exists():
+                            self._atomic(path, raw)
+                        segments.append(
+                            dict(
+                                kind=kind,
+                                revision=state.simulation.revision,
+                                through=self.history_key(kind, records[-1]),
+                                sha256=digest,
+                            )
+                        )
+                staged["history"][sid] = segments
+                staged["history_watermarks"][sid] = {
+                    kind: max((entry["through"] for entry in segments if entry["kind"] == kind), default=-1)
+                    for kind in ("decisions", "metric_points")
+                }
                 entries.append(self._object(state))
+                staged["simulations"][sid] = entries
             if delete:
                 staged["simulations"].pop(delete, None)
+                staged["history"].pop(delete, None)
+                staged["history_watermarks"].pop(delete, None)
             if metadata:
                 for key, value in metadata.items():
                     staged[key] = value
             if idempotency:
                 key, value = idempotency
+                staged["idempotency"] = dict(staged["idempotency"])
                 staged["idempotency"][key] = value
             try:
                 self._manifest(staged)
@@ -225,6 +297,22 @@ class Repository:
                 self.degraded.append("Commit manifest write failed; last committed state remains readable")
                 raise
             self.meta = staged
+
+    @staticmethod
+    def history_key(kind, record):
+        return int(record.id.rsplit("_", 1)[-1]) if kind == "decisions" else record.revision
+
+    def history(self, sid, kind, through_revision=None):
+        """Read cold history only on demand; hot ticks never deserialize segments."""
+        model = Decision if kind == "decisions" else MetricPoint
+        result = []
+        for entry in self.meta.get("history", {}).get(sid, ()):
+            if entry["kind"] != kind or (
+                through_revision is not None and entry["revision"] > through_revision
+            ):
+                continue
+            result.extend(model.model_validate(item) for item in json.loads(self._checked_data(entry)))
+        return result
 
     def settings(self, owner):
         return Settings.model_validate(

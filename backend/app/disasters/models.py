@@ -23,7 +23,7 @@ class Parameters(Model):
     extent_m: float = Field(gt=0)  # radius, or full tornado width
     origin: Vec2
     track_end: Vec2 | None = None
-    duration_ticks: int = Field(ge=1, le=1000)
+    duration_ticks: int = Field(ge=1, le=10000)
     seed: int = Field(ge=0, le=2147483647)
     rule_version: Literal["disasters-2.0.0"] = RULE_VERSION
 

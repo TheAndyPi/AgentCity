@@ -6,6 +6,7 @@ from app.behavior.vitals import conscious, emit, evaluate, impact, living, stop
 from app.simulation.agents import evidence, hazard_severity, metric_delta, perception, social_delta
 from app.simulation.building_visits import same_room
 from app.simulation.navigation import distance, line_of_sight, polygon_contains
+from app.simulation.timing import legacy_ticks
 
 
 def act(state, actor, action, target_id, context=None):
@@ -72,7 +73,8 @@ def act(state, actor, action, target_id, context=None):
             )
             check(
                 episode.acted_tick < 0
-                or state.simulation.tick - episode.acted_tick >= RULES["attack_cooldown"],
+                or state.simulation.tick - episode.acted_tick
+                >= legacy_ticks(state, RULES["attack_cooldown"]),
                 "COOLDOWN",
                 "Attack is cooling down",
             )
@@ -143,7 +145,7 @@ def act(state, actor, action, target_id, context=None):
                 radius=RULES["fire_radius"],
                 severity=RULES["fire_severity"],
                 start_tick=state.simulation.tick,
-                end_tick=state.simulation.tick + RULES["fire_ticks"],
+                end_tick=state.simulation.tick + legacy_ticks(state, RULES["fire_ticks"]),
             )
             state.behavior.fires[f.id] = f
             episode.ignited = True

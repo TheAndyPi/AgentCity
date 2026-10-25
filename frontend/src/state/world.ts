@@ -1,4 +1,4 @@
-import type { WorldFrame } from "../api/types";
+import type { FrameDelta, WorldFrame } from "../api/types";
 import { AgentCityClient, websocketUrl } from "../api/client";
 import * as S from "../api/schemas";
 export type Connection =
@@ -15,6 +15,7 @@ export class WorldStore {
     error: string | null;
   } = { frame: null, connection: "connecting", error: null };
   private listeners = new Set<() => void>();
+  private notification: number | null = null;
   generation = 0;
   private expectedId: string | null = null;
   subscribe = (listener: () => void) => {
@@ -24,7 +25,14 @@ export class WorldStore {
   getSnapshot = () => this.state;
   update(patch: Partial<typeof this.state>) {
     this.state = { ...this.state, ...patch };
-    this.listeners.forEach((l) => l());
+    if (typeof requestAnimationFrame === "undefined") {
+      this.listeners.forEach((l) => l());
+    } else if (this.notification === null) {
+      this.notification = requestAnimationFrame(() => {
+        this.notification = null;
+        this.listeners.forEach((l) => l());
+      });
+    }
   }
   accept(frame: WorldFrame, generation = this.generation) {
     if (generation !== this.generation) return false;
@@ -35,6 +43,44 @@ export class WorldStore {
     if (current && frame.ref.revision <= current.ref.revision) return false;
     this.update({ frame, error: null });
     return true;
+  }
+  acceptDelta(frame: FrameDelta, generation = this.generation) {
+    if (generation !== this.generation) return false;
+    const current = this.state.frame;
+    if (current && frame.ref.revision <= current.ref.revision) return false;
+    if (
+      !frame.map &&
+      (!current ||
+        current.simulation.id !== frame.simulation.id ||
+        (current.map_version ?? 0) !== (frame.map_version ?? 0))
+    )
+      throw new Error("Stream map version needs a snapshot");
+    let map = frame.map ?? current!.map;
+    if (frame.map_updates) {
+      const zones = new Map(
+        frame.map_updates.zones.map((zone) => [zone.id, zone]),
+      );
+      const buildings = new Map(
+        frame.map_updates.buildings.map((building) => [building.id, building]),
+      );
+      const resources = new Map(
+        frame.map_updates.resources.map((resource) => [resource.id, resource]),
+      );
+      map = {
+        ...map,
+        zones: map.zones.map((zone) => ({ ...zone, ...zones.get(zone.id) })),
+        buildings: map.buildings.map((building) => ({
+          ...building,
+          ...buildings.get(building.id),
+        })),
+        resources: map.resources.map((resource) => ({
+          ...resource,
+          ...resources.get(resource.id),
+        })),
+      };
+    }
+    const { map_updates: _updates, ...world } = frame;
+    return this.accept({ ...world, map }, generation);
   }
   start(id: string, client: AgentCityClient) {
     this.generation++;
@@ -88,7 +134,8 @@ export class WorldStore {
           const m = S.serverMessage.parse(JSON.parse(e.data));
           if (m.simulation_id !== id) return;
           if (m.type === "snapshot" || m.type === "frame") {
-            this.accept(m.data, gen);
+            if (m.type === "snapshot") this.accept(m.data, gen);
+            else this.acceptDelta(m.data, gen);
             attempts = 0;
             this.update({ connection: "live" });
             if (poll) {

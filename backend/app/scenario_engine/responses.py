@@ -29,6 +29,7 @@ from app.scenario_engine.world import (
 )
 from app.simulation.agents import clamp, evidence, metric_delta, remember
 from app.simulation.navigation import distance
+from app.simulation.timing import legacy_ticks
 
 BASELINE = PolicyState()
 MODE_LABEL = {"walk": "on foot", "transit": "by public transit", "car": "by car"}
@@ -714,7 +715,9 @@ def staying_for_care(state, citizen):
 
 
 def rallying(state, org):
-    return (state.simulation.tick - org.created_tick) % org.rally_every < 6
+    return (state.simulation.tick - org.created_tick) % legacy_ticks(state, org.rally_every) < legacy_ticks(
+        state, 6
+    )
 
 
 def seek_alternative(state, citizen, building, event_id, op_id):
@@ -776,7 +779,7 @@ def review(state, citizen):
     agent = systems.agents[citizen.summary.id]
     if state.simulation.tick < agent.next_review_tick:
         return
-    agent.next_review_tick = state.simulation.tick + 12
+    agent.next_review_tick = state.simulation.tick + legacy_ticks(state, 12)
     review_housing(state, citizen, agent)
     for org in list(systems.organizations.values()):
         if org.active and citizen.summary.id not in org.members and eligible(state, citizen, agent, org):

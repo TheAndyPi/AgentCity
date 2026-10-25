@@ -668,6 +668,7 @@ export default function ScenarioDialog({
                           map.width_m,
                           map.height_m,
                           simulation.config.seed,
+                          simulation.config.tick_seconds,
                         ),
                       );
                       edit();
@@ -688,6 +689,7 @@ export default function ScenarioDialog({
                               map.width_m,
                               map.height_m,
                               simulation.config.seed,
+                              simulation.config.tick_seconds,
                             )
                           : null,
                       );
@@ -740,6 +742,7 @@ export default function ScenarioDialog({
                             map.width_m,
                             map.height_m,
                             simulation.config.seed,
+                            simulation.config.tick_seconds,
                           ),
                         );
                         edit();

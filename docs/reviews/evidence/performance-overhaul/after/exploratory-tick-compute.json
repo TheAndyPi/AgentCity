@@ -1,0 +1,13 @@
+{
+  "population": 100,
+  "ticks": 500,
+  "tick_seconds": 1,
+  "p95_tick_ms": 121.68333400040865,
+  "mean_tick_ms": 81.56324228778249,
+  "max_tick_ms": 160.47512499790173,
+  "final_tick": 1000,
+  "live_citizens": 100,
+  "decisions": 1000,
+  "dialogue": 657,
+  "metrics": 600
+}

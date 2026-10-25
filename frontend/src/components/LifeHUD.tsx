@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -22,6 +22,7 @@ import { readBehavior } from "../behavior/client";
 import { insideBuilding } from "../world/buildingAccess";
 import { pretty } from "../api/defaults";
 import { messageOf, useApp, useQuery } from "../state/app";
+import { useDialoguePages } from "../state/dialogue";
 import { CitizenPortrait, groupConversations } from "./LifePanels";
 
 export function lifeIntent(
@@ -104,19 +105,12 @@ export default function LifeHUD({
     `${frame.simulation.id}:${selected?.id}:${frame.ref.revision}`,
   );
   const condition = selected ? behavior.data?.citizens[selected.id] : undefined;
-  const archive = useQuery(
-    () =>
-      selected
-        ? client.dialogue(frame.simulation.id, frame.ref.revision)
-        : Promise.resolve([]),
-    [
-      client,
-      frame.simulation.id,
-      selected?.id,
-      second?.id,
-      readOnly ? frame.ref.revision : null,
-    ],
-    `${frame.simulation.id}:${selected?.id}:${second?.id}:${readOnly ? frame.ref.revision : "live"}`,
+  const archive = useDialoguePages(
+    client,
+    frame.simulation.id,
+    readOnly ? frame.ref.revision : undefined,
+    frame.recent_dialogue,
+    selected?.id,
   );
   const remembered = useRef<{
     id: string;
@@ -134,7 +128,7 @@ export default function LifeHUD({
     };
   }
   remembered.current.revision = frame.ref.revision;
-  const savedLines = (archive.data ?? [])
+  const savedLines = archive.messages
     .filter(
       (line) =>
         selected &&
@@ -145,7 +139,10 @@ export default function LifeHUD({
     .slice(0, 200);
   for (const line of [...savedLines, ...frame.recent_dialogue])
     remembered.current.messages.set(line.id, line);
-  const groups = groupConversations([...remembered.current.messages.values()]);
+  const groups = useMemo(
+    () => groupConversations([...remembered.current.messages.values()]),
+    [archive.messages, frame.recent_dialogue, frame.simulation.id],
+  );
   const conversation = groups.find(
     (group) =>
       selected &&
@@ -165,7 +162,9 @@ export default function LifeHUD({
   const lines = conversation?.messages ?? [];
   const last = lines.at(-1);
   const liveChat =
-    last && !last.end_conversation && frame.ref.tick - last.tick <= 5;
+    last &&
+    !last.end_conversation &&
+    (frame.ref.tick - last.tick) * frame.simulation.config.tick_seconds <= 50;
   const neighbors = selected
     ? frame.agents
         .filter(
@@ -539,6 +538,14 @@ export default function LifeHUD({
                 aria-live="polite"
                 aria-relevant="additions"
               >
+                {archive.hasOlder && (
+                  <button
+                    disabled={archive.loading}
+                    onClick={() => void archive.loadOlder()}
+                  >
+                    Load older messages
+                  </button>
+                )}
                 {lines.length ? (
                   lines.map((line) => (
                     <article

@@ -80,7 +80,7 @@ export default function DisasterControls({
         Math.floor(Math.hypot(width, height)),
         0.1,
       )}
-      {numeric("Duration (ticks)", "duration_ticks", 1, 1000, 1)}
+      {numeric("Duration (ticks)", "duration_ticks", 1, 10000, 1)}
       <p className="helper-text">
         {Number.isFinite(value.duration_ticks)
           ? `${value.duration_ticks * tickSeconds} simulation seconds`

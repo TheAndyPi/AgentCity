@@ -431,6 +431,7 @@ export type WorldFrame = {
   ref: Ref;
   simulation: Simulation;
   map: MapData;
+  map_version?: number;
   agents: AgentSummary[];
   events: EventSummary[];
   policies: Policies;
@@ -442,6 +443,21 @@ export type WorldFrame = {
     polygon: Vec2[];
     severity: Pct;
   }[];
+};
+export type MapUpdates = {
+  zones: Pick<
+    MapData["zones"][number],
+    "id" | "metrics" | "population" | "population_density_per_km2"
+  >[];
+  buildings: Pick<
+    MapData["buildings"][number],
+    "id" | "capacity" | "occupancy" | "functional"
+  >[];
+  resources: Pick<MapData["resources"][number], "id" | "available_units">[];
+};
+export type FrameDelta = Omit<WorldFrame, "map"> & {
+  map?: MapData | null;
+  map_updates?: MapUpdates | null;
 };
 export type Snapshot = {
   id: ID;

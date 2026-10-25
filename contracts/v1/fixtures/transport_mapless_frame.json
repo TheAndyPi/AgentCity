@@ -1,0 +1,348 @@
+{
+  "model": "ServerMessage",
+  "valid": true,
+  "data": {
+    "type": "frame",
+    "schema_version": "1.0.0",
+    "simulation_id": "simulation_7267ab9c6ae642a3a0f4f63f88819b25",
+    "sent_at": "2026-10-24T10:47:53.615279Z",
+    "data": {
+      "ref": {
+        "tick": 0,
+        "revision": 6
+      },
+      "simulation": {
+        "id": "simulation_7267ab9c6ae642a3a0f4f63f88819b25",
+        "name": "Fixture city",
+        "config": {
+          "name": "Fixture city",
+          "seed": 24,
+          "mode": "sandbox",
+          "population": 10,
+          "population_traits": {
+            "curiosity": 50.0,
+            "empathy": 50.0,
+            "sociability": 50.0,
+            "trust": 50.0,
+            "cooperation": 50.0,
+            "risk_tolerance": 50.0
+          },
+          "household_supplies": 50.0,
+          "personality_diversity": 50.0,
+          "environment": {
+            "resource_availability": 50.0,
+            "population_density": 50.0,
+            "infrastructure_capacity": 50.0,
+            "initial_community_trust": 50.0,
+            "settlement": "suburb"
+          },
+          "scenario_description": "",
+          "custom_agent_ids": [],
+          "tick_seconds": 1,
+          "max_ticks": 100000
+        },
+        "created_at": "2026-10-24T10:47:53.443454Z",
+        "updated_at": "2026-10-24T10:47:53.615279Z",
+        "status": "paused",
+        "pause_reason": "manual",
+        "archived": false,
+        "tick": 0,
+        "revision": 6,
+        "control_version": 0,
+        "sim_time_seconds": 0.0,
+        "speed_multiplier": 1,
+        "achieved_ticks_per_second": 0.0,
+        "agent_count": 10,
+        "parent_simulation_id": null,
+        "fork_ref": null,
+        "latest_snapshot_id": "snapshot_00000038",
+        "saved_at": "2026-10-24T10:47:53.616811Z",
+        "pending_outcome_event_ids": [],
+        "initialization": {
+          "stage": "ready",
+          "progress": 100.0,
+          "message": "Ready complete",
+          "error": null
+        },
+        "initial_preview": null
+      },
+      "agents": [
+        {
+          "id": "agent_00000028",
+          "name": "Alex 1",
+          "role": "teacher",
+          "position": {
+            "x": 49.0,
+            "y": 35.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 46.53670699102718,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000034",
+          "name": "Avery 7",
+          "role": "gardener",
+          "position": {
+            "x": 49.0,
+            "y": 99.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 50.19927203962199,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000036",
+          "name": "Cameron 9",
+          "role": "teacher",
+          "position": {
+            "x": 49.0,
+            "y": 35.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 54.520841464707416,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000033",
+          "name": "Casey 6",
+          "role": "student",
+          "position": {
+            "x": 65.0,
+            "y": 83.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 50.10975518681536,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000037",
+          "name": "Drew 10",
+          "role": "medic",
+          "position": {
+            "x": 97.0,
+            "y": 83.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 50.580606898846526,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000031",
+          "name": "Jordan 4",
+          "role": "shopkeeper",
+          "position": {
+            "x": 65.0,
+            "y": 67.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 56.976255766848816,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000029",
+          "name": "Morgan 2",
+          "role": "medic",
+          "position": {
+            "x": 97.0,
+            "y": 83.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 58.3345754428679,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000032",
+          "name": "Riley 5",
+          "role": "engineer",
+          "position": {
+            "x": 113.0,
+            "y": 99.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 54.05918589878624,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000030",
+          "name": "Sam 3",
+          "role": "builder",
+          "position": {
+            "x": 65.0,
+            "y": 115.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 48.85064547470393,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        },
+        {
+          "id": "agent_00000035",
+          "name": "Taylor 8",
+          "role": "driver",
+          "position": {
+            "x": 97.0,
+            "y": 99.0
+          },
+          "heading_rad": 0.0,
+          "path": [],
+          "movement_speed_mps": 1.4,
+          "metrics": {
+            "happiness": 60.0,
+            "safety": 100.0,
+            "trust": 53.54953522694383,
+            "resources": 75.0,
+            "stress": 20.0
+          },
+          "emotion": "calm",
+          "action": "idle",
+          "action_target_id": null,
+          "latest_decision_id": null,
+          "thought_bubble": null,
+          "active": true
+        }
+      ],
+      "events": [],
+      "policies": {
+        "evacuation_order": false,
+        "ration_units_per_agent": null,
+        "aid_multiplier": 1.0
+      },
+      "metrics": {
+        "tick": 0,
+        "revision": 6,
+        "values": {
+          "happiness": 60.0,
+          "safety": 100.0,
+          "trust": 52.37173803911692,
+          "resources": 75.0,
+          "stress": 20.0
+        },
+        "cooperation_count": 0,
+        "conflict_count": 0,
+        "resources_consumed": 0.0,
+        "evacuated_count": 0,
+        "exposed_count": 0
+      },
+      "recent_dialogue": [],
+      "active_hazards": [],
+      "map_version": 0
+    }
+  }
+}

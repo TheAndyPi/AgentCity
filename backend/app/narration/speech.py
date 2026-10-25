@@ -40,7 +40,7 @@ def recorded_text(state, source_type, source_id, limit, *, live=False):
                 decision.outcome_description,
             )
     elif source_type == "dialogue":
-        line = next((d for d in state.dialogue if d.id == source_id), None)
+        line = state.dialogue_index().by_id.get(source_id)
         if line:
             speaker = _name(state, line.speaker_id)
             text = _clean(f"{speaker}:" if speaker and not live else "", line.text)

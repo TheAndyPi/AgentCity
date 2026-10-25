@@ -3,6 +3,7 @@
 from app.behavior.rules import RULES
 from app.behavior.vitals import conscious, emit
 from app.simulation.agents import evidence, social_delta
+from app.simulation.timing import legacy_ticks
 
 
 def wealth(c):
@@ -56,7 +57,7 @@ def encounter(state, actor, context):
             for d in state.decisions[-100:]
             if (
                 d.agent_id == aid
-                and d.tick >= state.simulation.tick - 1
+                and d.tick >= state.simulation.tick - legacy_ticks(state, 1)
                 and d.outcome == "accepted"
                 and d.intent.action in {"gather", "trade", "work"}
             )
@@ -64,9 +65,8 @@ def encounter(state, actor, context):
         if other.summary.action not in {"gather", "trade", "work"} or not observed:
             continue
         key = f"signal:{aid}"
-        if (
-            state.simulation.tick - actor.condition.class_evidence_tick.get(key, -10000)
-            < RULES["class_cadence"]
+        if state.simulation.tick - actor.condition.class_evidence_tick.get(key, -10000) < legacy_ticks(
+            state, RULES["class_cadence"]
         ):
             continue
         actor.condition.class_evidence_tick[key] = state.simulation.tick

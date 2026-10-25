@@ -165,7 +165,7 @@ export class MockTransport implements Transport {
     )
       return;
     s.tick++;
-    s.sim_time_seconds = s.tick * 10;
+    s.sim_time_seconds = s.tick * s.config.tick_seconds;
     s.achieved_ticks_per_second =
       s.status === "running" ? 2 * s.speed_multiplier : 0;
     const sample =
@@ -311,10 +311,20 @@ export class MockTransport implements Transport {
       this.listeners.set(id, set);
     }
     set.add(cb);
+    let lastTick = performance.now();
     const timer = setInterval(() => {
       const r = this.worlds.get(id);
-      if (r?.frame.simulation.status === "running") this.tick(r);
-    }, 500);
+      if (r?.frame.simulation.status === "running") {
+        const now = performance.now();
+        const interval =
+          (1000 * r.frame.simulation.config.tick_seconds) /
+          (20 * r.frame.simulation.speed_multiplier);
+        if (now - lastTick >= interval) {
+          this.tick(r);
+          lastTick = now;
+        }
+      }
+    }, 50);
     return () => {
       clearInterval(timer);
       set.delete(cb);
@@ -650,7 +660,26 @@ export class MockTransport implements Transport {
             : [],
       };
     }
-    if (resource === "dialogue") return page(selected.recent_dialogue);
+    if (resource === "dialogue") {
+      const agentId = url.searchParams.get("agent_id"),
+        interactionId = url.searchParams.get("interaction_id");
+      const lines = [...selected.recent_dialogue]
+        .reverse()
+        .filter(
+          (line) =>
+            (!agentId ||
+              line.speaker_id === agentId ||
+              line.recipient_ids.includes(agentId)) &&
+            (!interactionId || line.interaction_id === interactionId),
+        );
+      const offset = Number(url.searchParams.get("cursor") ?? 0),
+        limit = Math.min(100, Number(url.searchParams.get("limit") ?? 25));
+      return {
+        items: lines.slice(offset, offset + limit),
+        next_cursor:
+          offset + limit < lines.length ? String(offset + limit) : null,
+      };
+    }
     if (resource === "timeline")
       return page(
         r.frames.map((f) => ({

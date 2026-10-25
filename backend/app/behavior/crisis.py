@@ -5,6 +5,7 @@ from app.behavior.rules import RULES, VERSION
 from app.behavior.vitals import conscious, emit, living
 from app.simulation.agents import hazard_severity
 from app.simulation.navigation import distance
+from app.simulation.timing import legacy_ticks
 
 
 def weights(citizen):
@@ -55,9 +56,9 @@ def evaluate_crisis(state, citizen, rng=None, recovery=True):
             c.mental >= RULES["mental_exit"] and citizen.summary.metrics.stress <= RULES["stress_exit"]
         )
         episode.stable_ticks = episode.stable_ticks + 1 if recovered else 0
-        if episode.stable_ticks >= RULES["exit_ticks"]:
+        if episode.stable_ticks >= legacy_ticks(state, RULES["exit_ticks"]):
             episode.end_tick = state.simulation.tick
-            c.cooldown_until = state.simulation.tick + RULES["cooldown_ticks"]
+            c.cooldown_until = state.simulation.tick + legacy_ticks(state, RULES["cooldown_ticks"])
             emit(
                 state,
                 "crisis_end",
@@ -116,7 +117,7 @@ def crisis_intent(state, citizen, context):
                 return make_intent(
                     "consume", kind=kind, amount=1, motivation="Meet basic needs during distress"
                 ), True
-    if state.simulation.tick >= episode.start_tick + RULES["episode_ticks"]:
+    if state.simulation.tick >= episode.start_tick + legacy_ticks(state, RULES["episode_ticks"]):
         return make_intent(
             "rest",
             motivation="Crisis active phase ended; continue recovery until both thresholds are sustained",
