@@ -150,3 +150,11 @@ keyboard selection), cross-test fake request history, Chrome idle activation,
 and a cache sweep racing an active audio write (exposed by Windows file locking).
 No design replacement, core contract
 change, mortality/crisis work or public deployment is part of this branch.
+
+## Verification note
+
+Tested source and executable test commit: **`c12e898`**. The final **165 frontend,
+54 focused backend and 34 browser** passes, build and contract/lint gates listed
+above cover these source files. Subsequent reporting changes affect documentation
+only. The remaining external acceptance gate is real ElevenLabs synthesis and
+cold-latency verification with supplied authorized credentials/voice access.
