@@ -1,0 +1,184 @@
+.observations-panel {
+  margin-block: 1.5rem;
+  border-block: 1px solid var(--line, #635473);
+  padding-block: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.observations-panel h3,
+.observations-panel h4 {
+  font-family: var(--font-display, "Chakra Petch", sans-serif);
+  margin-block: 0.75rem;
+}
+.observations-panel p {
+  line-height: 1.6;
+}
+.observations-panel button {
+  font: inherit;
+  cursor: pointer;
+}
+.observations-panel button:focus-visible,
+.observations-panel circle:focus-visible {
+  outline: 2px solid var(--cyan, #9acfd9);
+  outline-offset: 3px;
+}
+.observations-status {
+  border-left: 2px solid var(--cyan, #9acfd9);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+.observations-status small,
+.observations-table small {
+  display: block;
+  margin-top: 0.3rem;
+}
+.observations-provenance {
+  color: var(--cyan, #9acfd9);
+  font-size: 0.78rem;
+}
+.observations-notice {
+  border: 1px solid var(--line, #635473);
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 0.3rem;
+}
+.observations-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1rem;
+  align-items: end;
+}
+.observations-filters label {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+.observations-filters input,
+.observations-filters select {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--panel, #211d2b);
+  border: 1px solid var(--line, #635473);
+  border-radius: 0.25rem;
+  padding: 0.6rem;
+}
+.observations-filters button,
+.observations-refresh {
+  padding: 0.6rem;
+  border: 1px solid var(--line, #635473);
+  background: transparent;
+  color: inherit;
+  border-radius: 0.25rem;
+}
+.observations-refresh {
+  margin-top: 0.75rem;
+}
+.observations-chart {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  overflow: visible;
+}
+.observations-chart text {
+  font-size: 9px;
+  fill: currentColor;
+}
+.observations-grid {
+  fill: none;
+  stroke: var(--line, #635473);
+  stroke-width: 0.5;
+}
+.observations-interval {
+  fill: #c4a4ff;
+  opacity: 0.1;
+}
+.observations-marker {
+  stroke: #c4a4ff;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+.observations-chart circle[role="button"] {
+  fill: #c4a4ff;
+  cursor: pointer;
+}
+.observations-range {
+  fill: #7ce9ba;
+  opacity: 0.15;
+}
+.observations-line {
+  fill: none;
+  stroke: #7ce9ba;
+  stroke-width: 2;
+}
+.observations-point {
+  fill: #7ce9ba;
+}
+.observations-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.observations-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.observations-table caption {
+  text-align: left;
+  line-height: 1.5;
+  margin-block: 0.75rem;
+}
+.observations-table th,
+.observations-table td {
+  border-bottom: 1px solid var(--line, #63547366);
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.3rem;
+}
+.observations-table pre {
+  white-space: pre-wrap;
+  max-width: 22rem;
+  font-size: 0.7rem;
+}
+.observations-panel details {
+  margin-block: 1rem;
+}
+.observations-panel summary {
+  cursor: pointer;
+  line-height: 1.5;
+}
+.observations-panel li {
+  margin-block: 0.6rem;
+  line-height: 1.5;
+}
+.observations-panel li > button {
+  margin-right: 0.5rem;
+}
+.observations-event {
+  border-top: 1px solid var(--line, #635473);
+  margin-top: 1.2rem;
+  padding-top: 0.5rem;
+}
+.observations-distribution ul {
+  list-style: none;
+  padding: 0;
+}
+.observations-distribution li {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) 2fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+.observations-distribution meter {
+  width: 100%;
+  accent-color: #7ce9ba;
+}
+@media (max-width: 360px) {
+  .observations-filters {
+    grid-template-columns: 1fr;
+  }
+}
