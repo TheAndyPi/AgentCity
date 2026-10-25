@@ -42,9 +42,9 @@ it("starts with ten neighbors and builds normal validated social intents", () =>
     target_id: "neighbor",
     parameters: { message: null },
   });
-  expect(lifeIntent("consume").parameters).toEqual({
-    resource_kind: "food",
-    amount: 1,
+  expect(lifeIntent("move").parameters).toEqual({
+    resource_kind: null,
+    amount: null,
     message: null,
   });
 });

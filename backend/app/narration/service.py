@@ -92,7 +92,7 @@ class NarrationService:
 
     async def narrate(self, request, sid, body, *, live=False):
         owner, key = request.state.owner, request.state.request_id
-        state = self.core.owned(owner, sid, body.revision if live else None)
+        state = self.core.published_state(owner, sid, body.revision) if live else self.core.owned(owner, sid)
         require(self.enabled, "FEATURE_UNAVAILABLE", UNAVAILABLE, 501)
         fingerprint = hashlib.sha256(
             encode({"route": f"POST {request.url.path}", "body": body.model_dump(mode="json")})

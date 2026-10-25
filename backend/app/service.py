@@ -7,6 +7,7 @@ import copy
 import hashlib
 import random
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -170,6 +171,7 @@ class Service:
         self.config = config
         self.repo = Repository(config.data_dir, recover=False)
         self.heads = {}
+        self.recent_heads = OrderedDict()
         self.saved_summaries = None
         self.load_locks = {}
         self.writer = asyncio.Lock()
@@ -297,6 +299,16 @@ class Service:
         require(state.owner_id == owner, "NOT_FOUND", "Simulation not found", 404)
         return state
 
+    def published_state(self, owner, sid, revision=None):
+        """Resolve a recently displayed frame before falling back to disk checkpoints."""
+        head = self.owned(owner, sid)
+        if revision is None or revision == head.simulation.revision:
+            return head
+        recent = self.recent_heads.get((sid, revision))
+        if recent is not None and recent.owner_id == owner:
+            return recent
+        return self.owned(owner, sid, revision)
+
     def bump(self, state, control=False):
         state.simulation.revision += 1
         state.simulation.updated_at = now()
@@ -379,6 +391,15 @@ class Service:
         return self.head_events.setdefault(sid, asyncio.Event())
 
     def publish_head(self, sid, state):
+        previous = self.heads.get(sid)
+        if previous is not None:
+            key = (sid, previous.simulation.revision)
+            # Published worlds are isolated from runner staging. Retain references,
+            # not deep copies, with one bounded cache shared by all cities.
+            self.recent_heads[key] = previous
+            self.recent_heads.move_to_end(key)
+            while len(self.recent_heads) > 16:
+                self.recent_heads.popitem(last=False)
         self.heads[sid] = state
         event = self.head_events.pop(sid, None)
         if event:

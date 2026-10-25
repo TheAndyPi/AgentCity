@@ -535,10 +535,6 @@ function OverviewCard({
         }
         onClose={onClose}
         onCommand={async () => {}}
-        overlay={null}
-        setOverlay={() => {}}
-        hazards={false}
-        setHazards={() => {}}
         follow={null}
         setFollow={() => {}}
       />

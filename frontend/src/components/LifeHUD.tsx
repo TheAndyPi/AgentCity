@@ -2,17 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
-  Coffee,
   Heart,
   MessageCircle,
   Pause,
   Play,
   SkipForward,
-  Utensils,
   X,
 } from "lucide-react";
 import type {
-  ActionName,
   CommandBody,
   Dialogue,
   Intent,
@@ -28,7 +25,7 @@ import { useDialoguePages } from "../state/dialogue";
 import { CitizenPortrait, groupConversations } from "./LifePanels";
 
 export function lifeIntent(
-  action: ActionName,
+  action: "talk" | "move",
   target: string | null = null,
 ): Intent {
   return {
@@ -36,16 +33,14 @@ export function lifeIntent(
     target_id: target,
     destination: null,
     parameters: {
-      resource_kind: action === "consume" ? "food" : null,
-      amount: action === "consume" ? 1 : null,
+      resource_kind: null,
+      amount: null,
       message: null,
     },
     motivation:
-      {
-        talk: "I'd like to get to know my neighbor",
-        rest: "Take a little time to recharge",
-        consume: "Have something to eat",
-      }[action as "talk" | "rest" | "consume"] ?? "Follow an invitation",
+      action === "talk"
+        ? "I'd like to get to know my neighbor"
+        : "Follow an invitation",
     emotion: "calm",
   };
 }
@@ -107,7 +102,7 @@ export default function LifeHUD({
           )
         : Promise.resolve(null),
     [client, frame.simulation.id, selected?.id, frame.ref.revision],
-    `${frame.simulation.id}:${selected?.id}:${frame.ref.revision}`,
+    `${frame.simulation.id}:${selected?.id}:${readOnly ? frame.ref.revision : "live"}`,
   );
   const condition = selected ? behavior.data?.citizens[selected.id] : undefined;
   const archive = useDialoguePages(
@@ -210,10 +205,7 @@ export default function LifeHUD({
       behavior: "auto",
     });
   }, [last?.id]);
-  const perform = async (
-    action: "talk" | "rest" | "consume" | "move",
-    message?: string,
-  ) => {
+  const perform = async (action: "talk" | "move", message?: string) => {
     if (
       !selected ||
       (action === "talk" && !target) ||
@@ -425,7 +417,7 @@ export default function LifeHUD({
                     </p>
                   )}
                   {condition.impacts
-                    .filter((item) => item.tick === frame.ref.tick)
+                    .filter((item) => item.tick === behavior.data?.ref.tick)
                     .slice(-5)
                     .map((item, i) => (
                       <small key={i} style={{ display: "block" }}>
@@ -459,26 +451,6 @@ export default function LifeHUD({
               )}
               {!second && (
                 <>
-                  <div className="life-small-actions">
-                    <button
-                      disabled={disabled}
-                      onClick={() => void perform("rest")}
-                    >
-                      <Coffee size={15} />
-                      Take a break
-                    </button>
-                    <button
-                      disabled={
-                        disabled ||
-                        !detail.data ||
-                        detail.data.inventory.food < 1
-                      }
-                      onClick={() => void perform("consume")}
-                    >
-                      <Utensils size={15} />
-                      Have a snack
-                    </button>
-                  </div>
                   <label className="meet-picker">
                     <span>SPEND TIME WITH</span>
                     <select

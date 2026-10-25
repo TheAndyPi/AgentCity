@@ -57,7 +57,7 @@ export default function LiveVoiceProvider({
 }) {
   const { client, capabilities } = useApp();
   const voices = useMemo(
-    () => new LiveVoices(client, new Audio(), preferences()),
+    () => new LiveVoices(client, new Audio(), preferences(), () => new Audio()),
     [client, store],
   );
   const sounds = useMemo(

@@ -74,8 +74,7 @@ def activate_plan(state, record, runtime):
     record.activated_tick = now
     record.status = "active"
     record.cohort = [aid for aid, c in state.citizens.items() if c.summary.active]
-    # Plan timings are authored in ten-second steps.
-    k = legacy_ticks(state, 1)
+    # Prompt and preview timings count actual simulation ticks.
     for op in plan.operations:
         timing = op.timing
         every = timing.repeat_every or 0
@@ -86,7 +85,7 @@ def activate_plan(state, record, runtime):
         for repetition in range(repetitions):
             systems.schedule.append(
                 Scheduled(
-                    tick=now + (timing.start_tick + repetition * every) * k,
+                    tick=now + (timing.start_tick + repetition * every),
                     event_id=record.event_id,
                     op=data,
                     action="apply",
@@ -97,7 +96,7 @@ def activate_plan(state, record, runtime):
         if duration and op.type not in IRREVERSIBLE:
             systems.schedule.append(
                 Scheduled(
-                    tick=now + (timing.start_tick + (repetitions - 1) * every + duration) * k,
+                    tick=now + (timing.start_tick + (repetitions - 1) * every + duration),
                     event_id=record.event_id,
                     op=data,
                     action="revert",

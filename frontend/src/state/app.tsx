@@ -212,7 +212,7 @@ export function useQuery<T>(
         retainKey !== undefined && current.scope === scope
           ? current.data
           : null,
-      error: "",
+      error: current.scope === scope ? current.error : "",
       sequence: current.scope === scope ? current.sequence : 0,
     }));
     const settle = (data: T | null, error: string) => {

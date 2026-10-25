@@ -81,9 +81,9 @@ test("AB-17 faint -> physical rescue -> hospital -> recovery in the existing UI"
   await expect(card.getByLabel("Survival and care")).toContainText(
     "UNCONSCIOUS",
   );
-  await expect(
-    card.getByRole("button", { name: "Take a break" }),
-  ).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Take a break" })).toHaveCount(
+    0,
+  );
   const start = (await api(page, `/simulations/${sid}/state`)).data.agents.find(
     (a: { id: string }) => a.id === patient,
   ).position;
@@ -125,9 +125,9 @@ test("AB-17 fatal fullness shows exact cause and disables impossible commands", 
   const card = await focus(page, sid, patient);
   await expect(card.getByLabel("Survival and care")).toContainText("DEAD");
   await expect(card.getByLabel("Survival and care")).toContainText("fullness");
-  await expect(
-    card.getByRole("button", { name: "Have a snack" }),
-  ).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Have a snack" })).toHaveCount(
+    0,
+  );
 });
 
 test("AB-17 two seeded crisis modes and public class encounter are visible", async ({
@@ -170,4 +170,57 @@ test("v2 attack evidence opens from historical citizen memories", async ({
   await expect(proof).toContainText("Accepted");
   await expect(proof).toContainText("Health: -1.00");
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("survival stats stay visible while the next live revision loads", async ({
+  page,
+}) => {
+  const { sid, helper } = await setup(page, "classes");
+  const card = await focus(page, sid, helper);
+  const survival = card.getByLabel("Survival and care");
+  await expect(survival).toContainText("ALIVE");
+  await step(page, sid);
+  await expect(survival).toContainText("Daily");
+  const beforeRefresh = (await survival.textContent())!;
+  let release!: () => void;
+  let requested!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const pending = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  await page.route(
+    `**/integrations/behavior/v2/simulations/${sid}?*`,
+    async (route) => {
+      requested();
+      await gate;
+      await route.continue();
+    },
+  );
+  try {
+    await step(page, sid);
+    await pending;
+    await expect(survival).toBeVisible();
+    await expect(survival).toHaveText(beforeRefresh);
+    await expect(survival).toContainText("ALIVE");
+    await expect(survival).toContainText("Rich resource class");
+  } finally {
+    release();
+  }
+  await expect(card.getByRole("button", { name: "Take a break" })).toHaveCount(
+    0,
+  );
+  await expect(card.getByRole("button", { name: "Have a snack" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "World overlays", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Simulation overview", exact: true })
+    .click();
+  await expect(
+    page.getByRole("complementary", { name: "The bigger picture" }),
+  ).toBeVisible();
 });

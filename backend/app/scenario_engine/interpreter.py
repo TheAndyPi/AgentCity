@@ -229,7 +229,7 @@ def build_prompt(state, prompt, mode):
         "they are secret or unannounced. Rumors use channel rumor with accurate false.\n"
         "- public_description is only what residents can directly observe; do not reveal secret changes.\n"
         "- agent_knowledge says which citizens know what at the start.\n"
-        "- Timing is in ticks relative to the start of the scenario (one tick is 10 seconds of town time). "
+        f"- Timing is in actual simulation ticks relative to the start of the scenario (one tick is {state.simulation.config.tick_seconds} seconds of town time). Preserve explicit tick counts from the request without rescaling. "
         "duration permanent keeps changes after the measurement window; temporary reverts them.\n"
         "- Choose metrics that measure the consequences the user cares about.\n"
         "- Each operation has type, id, rationale and a parameters object. Put all action arguments in "

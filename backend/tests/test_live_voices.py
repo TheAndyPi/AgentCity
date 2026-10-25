@@ -258,3 +258,40 @@ def test_lv06_blocked_live_synthesis_keeps_physical_controls_independent(tmp_pat
             fake.gate.set()
             worker.join(5)
         assert finished.is_set()
+
+
+def test_recent_published_revision_serves_behavior_and_speech_before_disk_checkpoint(tmp_path):
+    fake = ElevenLabsFake()
+    with narration_client(tmp_path / "store", fake) as client:
+        records = city_with_records(client)
+        sid = records["sid"]
+        core = client.app.state.service
+        original = core.heads[sid]
+        published = original.model_copy(deep=True)
+        published.simulation.revision += 1
+        published.simulation.tick += 1
+        line = published.dialogue[0].model_copy(
+            update={
+                "id": "dialogue_live_uncheckpointed",
+                "tick": published.simulation.tick,
+                "text": "This live line is not in the disk checkpoint yet.",
+            }
+        )
+        published.dialogue.append(line)
+        published.citizens[line.speaker_id].condition.mental = 61
+        core.publish_head(sid, published)
+        next_frame = published.model_copy(deep=True)
+        next_frame.simulation.revision += 1
+        next_frame.simulation.tick += 1
+        next_frame.citizens[line.speaker_id].condition.mental = 62
+        core.publish_head(sid, next_frame)
+        revision = published.simulation.revision
+        assert core.owned(original.owner_id, sid, revision).simulation.revision < revision
+        behavior = client.get(f"/api/v1/integrations/behavior/v2/simulations/{sid}?revision={revision}")
+        assert behavior.status_code == 200, behavior.text
+        assert behavior.json()["data"]["ref"]["revision"] == revision
+        assert behavior.json()["data"]["citizens"][line.speaker_id]["mental"] == 61
+        audio = live(client, sid, line.id, revision)
+        assert audio.status_code == 200, audio.text
+        assert fake.texts == [line.text]
+        assert fetch(client, audio.json()["data"]["audio_url"]).status_code == 200

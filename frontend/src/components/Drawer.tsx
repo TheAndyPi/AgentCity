@@ -26,7 +26,6 @@ import type {
   Metric,
   WorldFrame,
 } from "../api/types";
-import type { Overlay } from "../world/World";
 import * as S from "../api/schemas";
 import Narration from "./Narration";
 import { SnowflakeComparison } from "../snowflake/SnowflakeComparison";
@@ -48,7 +47,6 @@ export type DrawerNode =
   | { type: "event"; id: string }
   | { type: "overview" }
   | { type: "observations"; agentId?: string; eventId?: string }
-  | { type: "overlays" }
   | { type: "agents" }
   | { type: "feed" }
   | { type: "compare"; otherId?: string };
@@ -61,7 +59,6 @@ const titles = {
   event: "A turning point",
   overview: "The bigger picture",
   observations: "Observations",
-  overlays: "A different perspective",
   agents: "Bring someone new",
   feed: "Conversations",
   compare: "Two paths, one beginning",
@@ -74,10 +71,6 @@ export default function Drawer({
   onBack,
   onClose,
   onCommand,
-  overlay,
-  setOverlay,
-  hazards,
-  setHazards,
   follow,
   setFollow,
   readOnly,
@@ -92,10 +85,6 @@ export default function Drawer({
   onBack: () => void;
   onClose: () => void;
   onCommand: (c: CommandBody) => Promise<void>;
-  overlay: Overlay;
-  setOverlay: (o: Overlay) => void;
-  hazards: boolean;
-  setHazards: (b: boolean) => void;
   follow: string | null;
   setFollow: (id: string | null) => void;
 }) {
@@ -212,13 +201,6 @@ export default function Drawer({
             frame={frame}
             revision={revision}
             onPush={onPush}
-          />
-        ) : top.type === "overlays" ? (
-          <OverlayPanel
-            overlay={overlay}
-            setOverlay={setOverlay}
-            hazards={hazards}
-            setHazards={setHazards}
           />
         ) : top.type === "agents" ? (
           <AgentPicker onCommand={onCommand} />
@@ -1106,69 +1088,6 @@ function OverviewPanel({
           <EvidenceLinks evidence={r.evidence} onPush={onPush} />
         </details>
       ))}
-    </>
-  );
-}
-function OverlayPanel({
-  overlay,
-  setOverlay,
-  hazards,
-  setHazards,
-}: {
-  overlay: Overlay;
-  setOverlay: (o: Overlay) => void;
-  hazards: boolean;
-  setHazards: (b: boolean) => void;
-}) {
-  return (
-    <>
-      <p className="muted">
-        One measure at a time, with zone values supplied by the server.
-      </p>
-      <div className="overlay-options">
-        {([null, "safety", "happiness", "density", "resources"] as const).map(
-          (o) => (
-            <button
-              key={o ?? "none"}
-              aria-pressed={overlay === o}
-              className={overlay === o ? "active" : ""}
-              onClick={() => setOverlay(o)}
-            >
-              <span>
-                {o === "density"
-                  ? "Population density"
-                  : o
-                    ? metricLabels[o]
-                    : "No heatmap"}
-              </span>
-              <i />
-            </button>
-          ),
-        )}
-      </div>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={hazards}
-          onChange={(e) => setHazards(e.target.checked)}
-        />{" "}
-        Show affected area and hazard outlines
-      </label>
-      {overlay && (
-        <div className="overlay-legend">
-          <div className="legend-gradient" />
-          <span>
-            {overlay === "density" ? "0 people/km²" : "0 /100"}
-            <span>
-              {overlay === "density" ? "10,000+ people/km²" : "100 /100"}
-            </span>
-          </span>
-          <p>
-            Display scale only. Values above the density maximum use the same
-            maximum color.
-          </p>
-        </div>
-      )}
     </>
   );
 }

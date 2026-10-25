@@ -33,7 +33,7 @@ class NarrationConfig:
     retry_backoff: float = 0.5
     concurrency: int = 2
     queue_limit: int = 8
-    requests_per_minute: int = 10
+    requests_per_minute: int = 120
     max_characters: int = 2500
     max_audio_bytes: int = 4 * MIB
     cache_max_bytes: int = 64 * MIB
@@ -62,7 +62,7 @@ class NarrationConfig:
             public_origin=os.getenv("NARRATION_PUBLIC_ORIGIN", "").rstrip("/"),
             deadline=_number("NARRATION_DEADLINE_SECONDS", 20),
             concurrency=_number("NARRATION_MAX_CONCURRENCY", 2, int),
-            requests_per_minute=_number("NARRATION_REQUESTS_PER_MINUTE", 10, int),
+            requests_per_minute=_number("NARRATION_REQUESTS_PER_MINUTE", 120, int),
             max_characters=_number("NARRATION_MAX_CHARACTERS", 2500, int),
             max_audio_bytes=_number("NARRATION_MAX_AUDIO_BYTES", 4 * MIB, int),
             cache_max_bytes=_number("NARRATION_CACHE_MAX_BYTES", 64 * MIB, int),

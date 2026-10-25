@@ -7,28 +7,28 @@
     1
   ],
   "cachedTransitionMs": [
-    75.1,
-    35.7,
-    46.8
+    23.9,
+    32.4,
+    21.3
   ],
   "playedLines": [
     {
-      "id": "dialogue_00000050",
+      "id": "dialogue_00000052",
       "speaker": "agent_00000044",
       "text": "Four real turns turn 1."
     },
     {
-      "id": "dialogue_00000051",
+      "id": "dialogue_00000053",
       "speaker": "agent_00000038",
       "text": "Four real turns turn 2."
     },
     {
-      "id": "dialogue_00000052",
+      "id": "dialogue_00000054",
       "speaker": "agent_00000044",
       "text": "Four real turns turn 3."
     },
     {
-      "id": "dialogue_00000053",
+      "id": "dialogue_00000055",
       "speaker": "agent_00000038",
       "text": "Four real turns turn 4."
     }

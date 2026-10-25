@@ -217,3 +217,20 @@ def test_corrupt_cold_segment_recovers_only_complete_checkpoint(client, tmp_path
         assert recovered.history(sid, "decisions") == []
     finally:
         recovered.close()
+
+
+def test_recent_published_frames_are_bounded_and_owner_checked(client):
+    sid = create_city(client)["id"]
+    service = client.app.state.service
+    for _ in range(20):
+        frame = staging_copy(service.heads[sid])
+        frame.simulation.revision += 1
+        service.publish_head(sid, frame)
+    assert len(service.recent_heads) == 16
+    previous = service.heads[sid].simulation.revision - 1
+    assert service.published_state("demo_owner", sid, previous).simulation.revision == previous
+    from app.infrastructure.errors import DomainError
+    import pytest
+
+    with pytest.raises(DomainError):
+        service.published_state("different_owner", sid, previous)

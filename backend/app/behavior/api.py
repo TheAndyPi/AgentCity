@@ -91,7 +91,7 @@ def install(child, service):
     @child.get("/behavior/v2/simulations/{sid}", response_model=BehaviorResponse)
     @child.get("/behavior/v2/simulations/{sid}/export", response_model=BehaviorResponse)
     async def read(request: Request, sid: str, revision: int | None = Query(default=None, ge=0)):
-        state = service().owned(request.state.owner, sid, revision)
+        state = service().published_state(request.state.owner, sid, revision)
         return BehaviorResponse(
             schema_version="2.0.0", request_id=request.state.request_id, data=snapshot(state)
         )

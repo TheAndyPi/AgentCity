@@ -414,5 +414,15 @@ test("LV-06/09 overload is visible, replay is explicit, and mobile controls rema
   await expect(voices).not.toContainText("Missed/backlogged");
   const bounds = await voices.boundingBox();
   expect(bounds!.width).toBeLessThanOrEqual(390);
+  expect(844 - (bounds!.y + bounds!.height)).toBeCloseTo(8, 0);
+  const palette = await voices.evaluate((radio) => {
+    const root = getComputedStyle(document.documentElement);
+    const dock = getComputedStyle(radio);
+    return ["--bg", "--panel", "--cyan", "--pink"].map((token) => ({
+      root: root.getPropertyValue(token).trim(),
+      dock: dock.getPropertyValue(token).trim(),
+    }));
+  });
+  for (const token of palette) expect(token.dock).toBe(token.root);
   await page.screenshot({ path: "artifacts/narration/live-voices-mobile.png" });
 });

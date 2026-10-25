@@ -7,7 +7,7 @@
 .live-voices {
   position: absolute;
   z-index: 25;
-  bottom: 52px;
+  bottom: max(12px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   width: min(600px, calc(100% - 32px));
@@ -45,8 +45,8 @@
   height: 38px;
   border-radius: 2px;
   color: var(--cyan);
-  background: #73e9ed10;
-  border: 1px solid #73e9ed22;
+  background: var(--glow);
+  border: 1px solid var(--line);
 }
 .audio-identity strong {
   display: block;
@@ -80,7 +80,7 @@
   border: 0;
   border-radius: 2px;
   background: var(--cyan);
-  color: #111328;
+  color: var(--on-neon);
   box-shadow: 0 3px 12px #0003;
 }
 .live-voice-controls .audio-mute {
@@ -185,12 +185,12 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #6f6481;
+  background: var(--faint);
   flex-shrink: 0;
 }
 .audio-status-dot[data-active="true"] {
   background: var(--cyan);
-  box-shadow: 0 0 7px #73e9ed44;
+  box-shadow: 0 0 7px color-mix(in srgb, var(--cyan) 30%, transparent);
 }
 .spoken-caption {
   display: grid;
@@ -224,7 +224,7 @@
 }
 @media (max-width: 650px) {
   .live-voices {
-    bottom: 48px;
+    bottom: max(8px, env(safe-area-inset-bottom));
     padding: 12px;
     max-height: 30vh;
     border-radius: 2px;
@@ -297,14 +297,14 @@
     linear-gradient(var(--cyan), var(--cyan)),
     linear-gradient(var(--pink), var(--pink)),
     linear-gradient(120deg, var(--panel), var(--bg));
-  background-size: 22px 2px, 22px 2px, 100% 100%;
-  background-position: 10px 0, calc(100% - 10px) 100%, 0 0;
+  background-size:
+    22px 2px,
+    22px 2px,
+    100% 100%;
+  background-position:
+    10px 0,
+    calc(100% - 10px) 100%,
+    0 0;
   background-repeat: no-repeat;
-  font-family: "Rajdhani", var(--font-tech);
-}
-:root:not([data-theme="light"]) .live-voices {
-  --bg: #0d0d11;
-  --panel: #101016f5;
-  --cyan: #00f0ff;
-  --pink: #ff0055;
+  font-family: var(--font-tech);
 }

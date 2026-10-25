@@ -704,10 +704,58 @@ def test_initial_setup_scenario_uses_the_engine(client, monkeypatch):
     assert head.systems.enabled and head.systems.plans and head.systems.initial_plan is None
 
 
-def test_one_second_cities_keep_plan_timings_in_simulated_seconds(client):
-    for tick_seconds in (10, 1):
-        state = city(client, tick_seconds=tick_seconds)
-        plan, errors, warnings = validate_plan(state, plan_from(state, transit_hospital_draft()))
-        assert plan is not None, errors
-        preview = compile_preview(state, plan, warnings)
-        assert preview.spec.duration_ticks * tick_seconds == plan.measurement_ticks * 10
+@pytest.mark.parametrize("tick_seconds", [1, 10])
+def test_prompt_ticks_are_actual_ticks_in_preview_and_schedule(client, tick_seconds):
+    state = city(client, tick_seconds=tick_seconds)
+    raw = plan_from(
+        state,
+        draft(
+            [
+                op(
+                    "modify_policy",
+                    "fare",
+                    target="transportation.transit_fare",
+                    operation="multiply",
+                    value=2,
+                    timing=dict(start_tick=1, duration_ticks=4),
+                ),
+            ],
+            measurement_ticks=8,
+        ),
+    )
+    plan, errors, warnings = validate_plan(state, raw)
+    assert plan is not None, errors
+    preview = compile_preview(state, plan, warnings)
+    assert preview.spec.duration_ticks == 8
+    event_id = queue(state, raw)
+    run(state, 1)
+    start = state.events[event_id].summary.start_tick
+    schedule = [item for item in state.systems.schedule if item.event_id == event_id]
+    assert {(item.action, item.tick) for item in schedule} == {("apply", start + 1), ("revert", start + 5)}
+
+
+@pytest.mark.parametrize("tick_seconds", [1, 10])
+def test_flood_resolves_after_the_requested_tick_count(client, tick_seconds):
+    state = city(client, tick_seconds=tick_seconds)
+    event_id = queue(
+        state,
+        plan_from(
+            state,
+            draft(
+                [
+                    op("physical_hazard", "flood", hazard="flood", region="west", severity=30),
+                ],
+                category="environmental",
+                measurement_ticks=4,
+            ),
+        ),
+    )
+    run(state, 1)
+    event = state.events[event_id]
+    assert event.summary.status == "active"
+    assert event.physical.duration_ticks == 4
+    run(state, 3)
+    assert event.summary.status == "active"
+    run(state, 1)
+    assert event.summary.status == "resolved"
+    assert event.summary.end_tick - event.summary.start_tick == 4

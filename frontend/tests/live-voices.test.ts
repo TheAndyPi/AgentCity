@@ -95,7 +95,7 @@ class Player {
     this.onended?.();
   }
 }
-function setup() {
+function setup(createPreloader?: () => HTMLAudioElement) {
   const calls: {
     id: string;
     revision: number;
@@ -118,6 +118,8 @@ function setup() {
       dialoguePage: async () => page(),
     },
     player as unknown as HTMLAudioElement,
+    undefined,
+    createPreloader,
   );
   voices.configure(scope(), frame(0, []));
   return {
@@ -134,6 +136,26 @@ function setup() {
 }
 
 describe("live conversation voices", () => {
+  it("downloads upcoming audio before its turn and releases it on a scope change", async () => {
+    const preloaders: Player[] = [];
+    const s = setup(() => {
+      const audio = new Player();
+      preloaders.push(audio);
+      return audio as unknown as HTMLAudioElement;
+    });
+    s.voices.enable();
+    await flush();
+    s.voices.ingest(frame(1, [line(1), line(2), line(3)]));
+    await flush();
+    expect(s.player.played).toEqual([result(line(1).id).audio_url]);
+    expect(preloaders.map((p) => p.src)).toEqual([
+      result(line(2).id).audio_url,
+      result(line(3).id).audio_url,
+    ]);
+    expect(preloaders.every((p) => p.played.length === 0)).toBe(true);
+    s.voices.configure(scope("b"), frame(1, []));
+    expect(preloaders.every((p) => p.src === "")).toBe(true);
+  });
   it("LV-06 drains admitted replies without further prefetch when newer turns overflow", async () => {
     const s = setup();
     s.voices.enable();
@@ -163,6 +185,18 @@ describe("live conversation voices", () => {
       blocked: true,
       missed: true,
     });
+  });
+  it("pins delayed live synthesis to a recent displayed revision", async () => {
+    const s = setup();
+    s.voices.enable();
+    await flush();
+    s.voices.pause();
+    s.voices.ingest(frame(1, [line(1), line(2)]));
+    s.voices.ingest(frame(20, [line(1), line(2)]));
+    s.voices.enable();
+    await flush();
+    expect(s.calls).toHaveLength(2);
+    expect(s.calls.every((c) => c.revision === 20)).toBe(true);
   });
   it("LV-03 reconciles frames arriving during a slow gap reconciliation", async () => {
     const s = setup();
@@ -364,6 +398,7 @@ describe("live conversation voices", () => {
     s.voices.ingest(frame(1, [line(1)]));
     await flush();
     expect(s.voices.getSnapshot().queued).toBe(1);
+    s.voices.ingest(frame(2, [line(1)]));
     s.voices.retry();
     await flush();
     expect(s.calls).toHaveLength(2);

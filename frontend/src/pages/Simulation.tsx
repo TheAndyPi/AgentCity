@@ -17,7 +17,6 @@ import {
   GitBranch,
   HelpCircle,
   History,
-  Layers3,
   Maximize2,
   MessageSquare,
   Minus,
@@ -35,7 +34,6 @@ import {
   X,
   FileText,
   Info,
-  SlidersHorizontal,
 } from "lucide-react";
 import { WorldStore } from "../state/world";
 import { useApp, messageOf } from "../state/app";
@@ -53,7 +51,7 @@ import {
   curfewActive,
   dayPhase,
 } from "../world/daylight";
-import World, { type CameraAction, type Overlay } from "../world/World";
+import World, { type CameraAction } from "../world/World";
 import { Brand, Button, Busy, ErrorBox, Modal } from "../components/ui";
 import { formatChord } from "../platform";
 import Drawer, { type DrawerNode } from "../components/Drawer";
@@ -79,8 +77,6 @@ export default function Simulation() {
     [eventMenu, setEventMenu] = useState(false),
     [source, setSource] = useState<ScenarioSource | null>(null),
     [help, setHelp] = useState(false),
-    [overlay, setOverlay] = useState<Overlay>(null),
-    [hazards, setHazards] = useState(true),
     [follow, setFollow] = useState<string | null>(null),
     [fallback, setFallback] = useState(false),
     [busy, setBusy] = useState(false),
@@ -534,8 +530,8 @@ export default function Simulation() {
             setMenu(false);
             setStack([]);
           }}
-          overlay={overlay}
-          hazards={hazards}
+          overlay={null}
+          hazards={true}
           follow={follow}
           onUnfollow={unfollow}
           reducedMotion={settings.reduce_motion}
@@ -677,10 +673,6 @@ export default function Simulation() {
             <button onClick={() => open({ type: "search" })}>
               <Search size={16} />
               Search agent
-            </button>
-            <button onClick={() => open({ type: "overlays" })}>
-              <Layers3 size={16} />
-              World overlays
             </button>
             <button onClick={() => open({ type: "compare" })}>
               <GitBranch size={16} />
@@ -876,10 +868,10 @@ export default function Simulation() {
         </button>
         <button
           className="icon-button glass"
-          aria-label="World overlays"
-          onClick={() => open({ type: "overlays" })}
+          aria-label="Simulation overview"
+          onClick={() => open({ type: "overview" })}
         >
-          <SlidersHorizontal size={19} />
+          <Activity size={19} />
         </button>
         <button
           className="icon-button glass"
@@ -1090,19 +1082,6 @@ export default function Simulation() {
           </button>
         </span>
       </div>
-      {overlay && (
-        <div className="map-legend glass">
-          <span>
-            {overlay === "density"
-              ? "Population / km²"
-              : `${metricLabels[overlay]} /100`}
-          </span>
-          <div className="legend-gradient" />
-          <small>
-            0 <span>{overlay === "density" ? "10,000+" : "100"}</span>
-          </small>
-        </div>
-      )}
       {stack.length > 0 && (
         <Drawer
           onWatch={(ids, interactionId) => {
@@ -1125,10 +1104,6 @@ export default function Simulation() {
             restoreFocus.current?.focus();
           }}
           onCommand={execute}
-          overlay={overlay}
-          setOverlay={setOverlay}
-          hazards={hazards}
-          setHazards={setHazards}
           follow={follow}
           setFollow={setFollow}
         />

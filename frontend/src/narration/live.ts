@@ -64,6 +64,7 @@ type Entry = {
   loading?: boolean;
   error?: string;
   controller?: AbortController;
+  preload?: HTMLAudioElement;
 };
 export type VoiceView = {
   enabled: boolean;
@@ -115,6 +116,7 @@ export class LiveVoices {
     private client: Pick<AgentCityClient, "liveDialogue" | "dialoguePage">,
     player: HTMLAudioElement,
     preferences?: { muted: boolean; volume: number },
+    private createPreloader?: () => HTMLAudioElement,
   ) {
     this.player = player;
     if (preferences) {
@@ -204,7 +206,10 @@ export class LiveVoices {
   }
   private clear() {
     this.generation++;
-    this.queue.forEach((e) => e.controller?.abort());
+    this.queue.forEach((e) => {
+      e.controller?.abort();
+      this.releasePreload(e);
+    });
     this.reconciliation?.abort();
     this.reconciling = false;
     this.queue = [];
@@ -392,6 +397,7 @@ export class LiveVoices {
     const head = this.queue[0];
     if (!head || !head.result || this.speaking || this.starting) return;
     if (Date.parse(head.result.expires_at) <= Date.now() + 1000) {
+      this.releasePreload(head);
       head.result = undefined;
       head.key = crypto.randomUUID();
       this.pump();
@@ -423,9 +429,20 @@ export class LiveVoices {
         this.emit();
       });
   }
+  private releasePreload(entry: Entry) {
+    if (!entry.preload) return;
+    entry.preload.removeAttribute("src");
+    entry.preload.load();
+    entry.preload = undefined;
+  }
   private async prepare(entry: Entry) {
     const scope = this.scope!,
       generation = this.generation;
+    // Queued text is immutable, but an old live revision may have fallen between
+    // durable checkpoints. Pin the first request to the newest displayed frame.
+    // Retries keep that exact revision and idempotency key.
+    if (!entry.controller && scope.revision === null && this.latest)
+      entry.revision = this.latest.ref.revision;
     entry.loading = true;
     entry.controller = new AbortController();
     this.emit();
@@ -437,6 +454,15 @@ export class LiveVoices {
         entry.key,
         entry.controller.signal,
       );
+      if (generation !== this.generation) return;
+      // Fetch upcoming audio while the current line plays, rather than waiting
+      // for its turn to start the media download. Never play this element.
+      if (this.createPreloader && this.queue[0] !== entry) {
+        entry.preload = this.createPreloader();
+        entry.preload.preload = "auto";
+        entry.preload.src = entry.result.audio_url;
+        entry.preload.load();
+      }
     } catch (e) {
       if (generation !== this.generation) return;
       entry.error = e instanceof Error ? e.message : "Voice unavailable";
@@ -454,7 +480,8 @@ export class LiveVoices {
   }
   private finish() {
     if (!this.speaking) return;
-    this.queue.shift();
+    const finished = this.queue.shift();
+    if (finished) this.releasePreload(finished);
     // Keep this media element's browser permission while idle. Source/focus
     // changes still remove its source immediately through clear().
     this.playback++;
@@ -583,7 +610,8 @@ export class LiveVoices {
   }
   skip() {
     this.stopPlayer();
-    this.queue.shift();
+    const finished = this.queue.shift();
+    if (finished) this.releasePreload(finished);
     this.error = "";
     this.paused = false;
     this.emit();
@@ -595,6 +623,7 @@ export class LiveVoices {
       head.error = undefined;
       // Expired response needs a new receipt. Response loss retains exact body/key.
       if (head.result) {
+        this.releasePreload(head);
         head.result = undefined;
         head.key = crypto.randomUUID();
       }
