@@ -575,3 +575,32 @@ is claimed here. Fire spread is deliberately zero, simultaneous fires are capped
 at three and active destructive behavior is time bounded. Existing opt-in live
 SQL, warehouse privilege and deployed-host gates remain external/unverified by
 this task. No live ElevenLabs/Tiger/Snowflake verification or deployment was run.
+
+## 2026-10-25 - Merge scenario, survival and live conversation branches into dev
+
+Integrated `scenario-engine` (`0164bf9`),
+`codex/agent-survival-and-class-conflict` (`e062bcf`) and
+`codex/live-conversation-voices` (`97cdf12`) through normal merges. The user
+explicitly excluded `codex/disaster-controls-damage`; its `16bed98` tip is not
+an ancestor of the resulting integration. That tip contained voice integration,
+not implemented disaster controls. Existing dev design and frozen v1 contracts
+remain the base.
+
+Candidate `7c3815a` combines scenario lifecycle/decision hooks with survival
+ordering, one need-decay phase, consciousness checks and canonical care. Resolved
+the shared transport's timeout-versus-cancellation conflict. Fixed unconscious
+scenario shopping/reviews/social decisions, immediate scenario-health death
+evaluation and duplicate/free hospital healing. Kept the existing crowd recovery
+changes in `1279297`, with a retained safety snapshot of the original working diff.
+Added eight backend and two transport integration cases plus a real manual-policy
+composer browser flow. Updated the integration-child OpenAPI, not frozen v1.
+
+Final root `npm test`: **175 frontend, 483 backend passed, 2 opt-in SQL skips**;
+all 43 frozen hashes/DTO/OpenAPI/streams and Ruff checks passed. Production build
+passed. Browser suites: **28 core + 4 behavior + 5 narration + 3 Snowflake = 40
+passed**. Tests use disposable stores and controlled/disabled providers. No paid
+provider, public hosting or live warehouse verification is claimed.
+
+See [combined feature merge evidence](release/feature-merge-2026-10-25.md) for
+branch/merge commits, resolved conflicts, initial failures, exact test boundaries,
+preserved local evidence and remaining external gates.

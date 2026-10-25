@@ -3,7 +3,7 @@
 Current development coordination: [shared dev log](docs/dev-log.md),
 [release integration handoff](docs/release/integration-handoff.md), and
 [functional acceptance cases](docs/release/acceptance-cases.md).
-Latest combined integration evidence: [dev merge verification](docs/release/dev-merge-2026-10-25.md).
+Latest combined integration evidence: [scenario, survival and live-voice verification](docs/release/feature-merge-2026-10-25.md).
 
 AgentCity runs a persistent society simulation with a React/Three.js interface and a FastAPI backend. The interface uses real HTTP and WebSocket data by default. Rules mode works locally without an API key.
 
