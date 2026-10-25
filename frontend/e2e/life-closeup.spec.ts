@@ -70,7 +70,7 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
   await select3DCitizen(page, a.position);
   const focus = page.getByRole("complementary", { name: "Character focus" });
   await expect(focus).toContainText(a.name);
-  await expect(focus.getByRole("meter")).toHaveCount(4);
+  await expect(focus.getByRole("meter")).toHaveCount(5);
   await expect(
     focus.getByLabel("Choose a neighbor to meet").locator("option"),
   ).toHaveCount(9);

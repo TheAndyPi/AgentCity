@@ -6,6 +6,8 @@ from uuid import uuid4
 
 from pydantic import Field
 
+from app.behavior.learning import RestLesson
+from app.behavior.models import BehaviorState, Condition
 from app.contracts import (
     AgentSummary,
     Belief,
@@ -50,6 +52,8 @@ def uid(prefix):
 
 
 class Citizen(Model):
+    rest_lessons: list[RestLesson] = Field(default_factory=list)
+    condition: Condition = Field(default_factory=Condition)
     summary: AgentSummary
     profile: Profile
     home: Vec2
@@ -112,6 +116,7 @@ class Interaction(Model):
 
 
 class State(Model):
+    behavior: BehaviorState = Field(default_factory=BehaviorState)
     schema_version: str = "1.0.0"
     rule_version: str = "1.0.0"
     owner_id: str

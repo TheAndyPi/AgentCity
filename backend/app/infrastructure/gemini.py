@@ -94,6 +94,13 @@ def context_for(state, citizen):
         "current_activity_reason": citizen.summary.thought_bubble,
         "tick": state.simulation.tick,
         "needs": citizen.needs.model_dump(),
+        "mental_stability": citizen.condition.mental,
+        "learned_rest_rules": [lesson.model_dump() for lesson in citizen.rest_lessons[-8:]],
+        "life_state": citizen.condition.life,
+        "perceived_classes": dict(citizen.condition.class_beliefs),
+        "crisis_mode": citizen.condition.episode.mode
+        if citizen.condition.episode and citizen.condition.episode.end_tick is None
+        else None,
         "inventory": citizen.inventory.model_dump(),
         "goals": list(citizen.goals),
         "plan": copy.deepcopy(citizen.plan),
@@ -186,7 +193,8 @@ def relevance(state, citizen, context=None):
     stable = {
         key: value
         for key, value in context.items()
-        if key not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories", "city_life"}
+        if key
+        not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories", "mental_stability", "city_life"}
     }
     if context.get("city_life"):
         life = dict(context["city_life"])
@@ -199,6 +207,9 @@ def relevance(state, citizen, context=None):
     needs = citizen.needs
     stable["condition"] = (
         float(needs.health),
+        int(citizen.condition.mental // 5),
+        citizen.condition.mental <= 10,
+        citizen.condition.care,
         int(needs.hunger // 5),
         int(needs.fatigue // 5),
         int(needs.social // 5),

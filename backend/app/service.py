@@ -13,6 +13,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from app import contracts as c
+from app.behavior.vitals import conscious
 from app.data.repository import Repository, encode
 from app.infrastructure.errors import DomainError, require
 from app.infrastructure.gemini import Gateway, context_for, relevance
@@ -494,6 +495,9 @@ class Service:
                             citizen = spawn(state, profile, position, template)
                             citizen.home = home.model_copy()
                             citizen.next_deliberation_tick = i % 8
+                        from app.behavior.classes import initialize_distribution
+
+                        initialize_distribution(state)
                         state.simulation.agent_count = len(state.citizens)
                     elif stage == "relationships":
                         people = list(state.citizens.values())
@@ -734,6 +738,11 @@ class Service:
             )
             citizen = state.citizens.get(cmd.agent_id)
             require(citizen is not None, "NOT_FOUND", "Citizen not found", 404)
+            require(
+                conscious(citizen) and citizen.condition.care == "none",
+                "INVALID_STATE",
+                "Citizen cannot accept commands while dead, unconscious or in care",
+            )
             self.bump(state, True)
             proof = evidence("Explicit owner override")
             # Derived scores are changed via their underlying state to retain metric invariants.
@@ -870,6 +879,9 @@ class Service:
                 50,
                 proof=proof,
             )
+            from app.behavior.vitals import evaluate
+
+            evaluate(state, citizen, "Owner changed canonical condition", proof)
             affected = [cmd.agent_id]
             update_metrics(state)
         elif cmd.type == "acknowledge_outcome":
@@ -1219,7 +1231,7 @@ class Service:
         citizen = state.citizens.get(aid)
         return (
             citizen is not None
-            and citizen.summary.active
+            and conscious(citizen)
             and result.context_tick <= state.simulation.tick
             and time.monotonic() <= result.expires_at
             and result.tag is not None
@@ -1229,7 +1241,7 @@ class Service:
     def discard_proposal(self, state, aid):
         self.gateway.diagnostics["discarded"] += 1
         citizen = state.citizens.get(aid)
-        if citizen and citizen.summary.active:
+        if citizen and conscious(citizen):
             citizen.next_deliberation_tick = min(citizen.next_deliberation_tick, state.simulation.tick)
 
     def prepare_deliberation(self, state):
@@ -1239,7 +1251,9 @@ class Service:
             (
                 citizen
                 for citizen in state.citizens.values()
-                if citizen.summary.active
+                if conscious(citizen)
+                and citizen.condition.care == "none"
+                and not (citizen.condition.episode and citizen.condition.episode.end_tick is None)
                 and not citizen.summary.path
                 and citizen.next_deliberation_tick <= state.simulation.tick
             ),

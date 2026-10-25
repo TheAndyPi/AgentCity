@@ -1,3 +1,4 @@
+import BehaviorEvidencePanel from "../behavior/BehaviorEvidencePanel";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -749,7 +750,19 @@ function EvidenceLinks({
     </div>
   );
 }
-function DecisionPanel({
+function DecisionPanel(props: Parameters<typeof LegacyDecisionPanel>[0]) {
+  return props.id.startsWith("behavior_") ? (
+    <BehaviorEvidencePanel
+      frame={props.frame}
+      revision={props.revision}
+      id={props.id}
+      onAgent={(id) => props.onPush({ type: "agent", id })}
+    />
+  ) : (
+    <LegacyDecisionPanel {...props} />
+  );
+}
+function LegacyDecisionPanel({
   queryScope,
   frame,
   revision,

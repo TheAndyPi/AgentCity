@@ -83,6 +83,27 @@ def opening_topic(state, actor, target, reason=""):
 
 def rule_speech(state, actor, target, intent, interaction, previous):
     name = target.summary.name.split()[0]
+    if intent.action == "talk" and not previous:
+        for memory in reversed(actor.memories):
+            if (
+                memory.source not in {"observed", "heard"}
+                or not memory.text.startswith(("I witnessed ", "I heard about "))
+                or "death" not in memory.text.lower()
+            ):
+                continue
+            for aid in memory.subject_ids:
+                deceased = state.citizens.get(aid)
+                if deceased and not deceased.summary.active:
+                    report = (
+                        f"{name}, I learned that {deceased.summary.name} has died. I could use some support."
+                    )
+                    if not any(
+                        line.speaker_id == actor.summary.id
+                        and target.summary.id in line.recipient_ids
+                        and line.text == report
+                        for line in state.dialogue
+                    ):
+                        return report
     if intent.action == "warn":
         events = [m for m in actor.memories if m.text.startswith("World event:")]
         detail = f"{phrase(events[-1].text.removeprefix('World event: '))}. " if events else ""

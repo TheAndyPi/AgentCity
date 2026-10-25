@@ -93,7 +93,8 @@ def frame(state):
         policies=state.policies,
         metrics=state.metric_points[-1],
         recent_dialogue=state.dialogue[-25:],
-        active_hazards=[
+        active_hazards=behavior_hazards(state)
+        + [
             c.Hazard(
                 event_id=runtime.summary.id,
                 kind=effect.hazard,
@@ -214,3 +215,29 @@ def overview(state):
         improvements=improvements,
         metric_reasons=reasons,
     )
+
+
+def behavior_hazards(state):
+    import math
+
+    return [
+        c.Hazard(
+            event_id=f.id,
+            kind="fire",
+            severity=f.severity,
+            polygon=[
+                c.Vec2(
+                    x=max(
+                        0, min(state.map.width_m - 0.001, f.position.x + f.radius * math.cos(i * math.pi / 8))
+                    ),
+                    y=max(
+                        0,
+                        min(state.map.height_m - 0.001, f.position.y + f.radius * math.sin(i * math.pi / 8)),
+                    ),
+                )
+                for i in range(16)
+            ],
+        )
+        for f in state.behavior.fires.values()
+        if not f.extinguished and f.end_tick > state.simulation.tick
+    ]

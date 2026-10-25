@@ -963,6 +963,11 @@ function World2D(props: Props) {
               />
             )}
             <circle r="2.6" fill="transparent" />
+            {(!a.active || a.emotion === "unconscious") && (
+              <text y={-2} textAnchor="middle" fontSize={1.5} fill={neon.cyan}>
+                {!a.active ? "Dead" : "Unconscious"}
+              </text>
+            )}
             <ellipse
               cy=".55"
               rx=".7"

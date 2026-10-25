@@ -53,11 +53,14 @@ def speak(state, actor, target, intent, decision_id, interaction):
     text = (intent.parameters.message or rule_speech(state, actor, target, intent, interaction, previous))[
         :2000
     ]
+    from app.behavior.vitals import conscious, share_loss
+
     # Physical filtering occurs independently for each message, including overhearers.
     audible = [
         c.summary.id
         for c in SpatialIndex(state.citizens).nearby(actor.summary.position, 8)
-        if same_room(actor, c)
+        if conscious(c)
+        and same_room(actor, c)
         and (actor.inside_building_id or line_of_sight(state.map, actor.summary.position, c.summary.position))
     ]
     dialogue = Dialogue(
@@ -113,6 +116,7 @@ def speak(state, actor, target, intent, decision_id, interaction):
             subjects=[actor.summary.id],
             proof=proof,
         )
+        share_loss(state, actor, citizen, text, proof)
         if intent.action == "warn":
             citizen.beliefs.append(
                 Belief(

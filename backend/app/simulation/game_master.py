@@ -75,7 +75,11 @@ def check(condition, code, message):
 
 
 def apply_intent(state, citizen, intent, source="rules", context=None):
+    from app.behavior.vitals import conscious, evaluate
+
+    evaluate(state, citizen, "Before ordinary action")
     context = context or perception(state, citizen)
+    before_energy = 100 - citizen.needs.fatigue
     did = state.next_id("decision")
     decision = Decision(
         id=did,
@@ -106,6 +110,12 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
         change(actor.summary.id, "inventory." + kind, before, getattr(actor.inventory, kind))
 
     try:
+        check(
+            conscious(citizen)
+            and citizen.condition.care not in {"hospital", "claimed", "carried", "escorted"},
+            "INCAPACITATED",
+            "Only a conscious free citizen can perform ordinary actions",
+        )
         registry = ACTION_REGISTRY[intent.action]
         if registry.get("amount"):
             check(
@@ -119,6 +129,8 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             )
         kind, amount = intent.parameters.resource_kind, intent.parameters.amount
         target = state.citizens.get(intent.target_id)
+        if target:
+            evaluate(state, target, "Before interaction")
         if registry.get("target") == "agent":
             check(
                 target is not None and target.summary.active and target.summary.id != citizen.summary.id,
@@ -136,6 +148,16 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 "Physical interactions require a distance of at most 3 meters",
             )
         action = intent.action
+        if action in {"talk", "trade", "warn"}:
+            check(conscious(target), "INCAPACITATED", "Target cannot participate while unconscious")
+        if action in {"help", "trade"}:
+            from app.behavior.classes import affinity
+
+            check(
+                affinity(citizen, target) >= -1,
+                "CLASS_REFUSAL",
+                "Perceived class and prior treatment reduced willingness to share",
+            )
         if registry.get("target") == "agent":
             check(
                 same_room(citizen, target),
@@ -219,8 +241,10 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 citizen.plan = intent.model_dump()
             decision.outcome_description = "Path accepted; movement is bounded by speed and tick duration"
         elif action == "rest":
+            from app.behavior.vitals import rest
+
             before = citizen.needs.fatigue
-            citizen.needs.fatigue = clamp(before - 6)
+            rest(state, citizen)
             change(citizen.summary.id, "needs.fatigue", before, citizen.needs.fatigue)
             metric_delta(citizen, "stress", -0.6, proof)
         elif action == "consume":
@@ -315,6 +339,13 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 "SELF_SAFETY_REQUIRED",
                 "Reach safety before offering optional help; no exception applies during an evacuation order",
             )
+            from app.behavior.care import eligible
+
+            check(
+                eligible(state, citizen),
+                "HELPER_INELIGIBLE",
+                "Helper must meet own health, energy, fullness, mobility and Mental thresholds",
+            )
             check(citizen.inventory.supplies >= 1, "INSUFFICIENT_INVENTORY", "Help requires one supply unit")
             inventory_delta(citizen, "supplies", -1)
             state.counters["resources_consumed"] += 1
@@ -406,7 +437,29 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 decision.outcome_description = "Conversation invited; awaiting explicit recipient acceptance"
             else:
                 decision.outcome_description = "Both participants accepted the conversation"
-                citizen.needs.social = clamp(citizen.needs.social - 5)
+                from app.behavior.rules import RULES as BEHAVIOR_RULES
+                from app.behavior.rules import social_multiplier
+                from app.behavior.vitals import impact
+
+                tie = citizen.relationships.get(target.summary.id)
+                if not tie or tie.conflict < 50:
+                    impact(
+                        state,
+                        citizen,
+                        "social",
+                        5 * social_multiplier(citizen, target),
+                        "Accepted friendly conversation",
+                        proof=proof,
+                    )
+                    impact(
+                        state,
+                        citizen,
+                        "mental",
+                        BEHAVIOR_RULES["comfort_mental"],
+                        "Accepted social support",
+                        proof=proof,
+                    )
+                    metric_delta(citizen, "stress", BEHAVIOR_RULES["comfort_stress"], proof)
                 metric_delta(citizen, "happiness", 0.3, proof)
         citizen.summary.action = action
         citizen.summary.action_target_id = intent.target_id
@@ -422,6 +475,10 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
     decision.effects = changes
     citizen.summary.latest_decision_id = did
     state.decisions.append(decision)
+    if decision.outcome == "accepted":
+        from app.behavior.learning import applied
+
+        applied(state, citizen, intent, did, before_energy)
     if decision.outcome != "rejected" and intent.action not in {"idle", "move", "rest"}:
         remember(
             state,
@@ -430,14 +487,23 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             importance=40,
             proof=proof,
         )
+    for affected in (citizen, state.citizens.get(intent.target_id)):
+        if affected is not None:
+            evaluate(state, affected, "After ordinary action", proof)
     return decision
 
 
 def advance_movement(state, citizen):
+    from app.behavior.vitals import conscious, evaluate
+
+    evaluate(state, citizen, "Before movement")
+    if not conscious(citizen) or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}:
+        return
     # Pause at a greeting long enough to answer it. Urgent evacuation/help still
     # takes precedence; an invitation never teleports or accepts for its recipient.
     if (
-        citizen.summary.action not in {"evacuate", "help"}
+        not citizen.condition.patient_id
+        and citizen.summary.action not in {"evacuate", "help"}
         and hazard_severity(state, citizen.summary.position) == 0
     ):
         for interaction in state.interactions.values():
@@ -453,7 +519,11 @@ def advance_movement(state, citizen):
                 )
                 if other and distance(citizen.summary.position, other.summary.position) <= 3:
                     return
-    remaining = citizen.summary.movement_speed_mps * state.simulation.config.tick_seconds
+    speed = citizen.summary.movement_speed_mps
+    patient = state.citizens.get(citizen.condition.patient_id)
+    if patient:
+        speed = min(speed, patient.summary.movement_speed_mps) * 0.5
+    remaining = speed * state.simulation.config.tick_seconds
     blocked = blocked_cells(state)
     while remaining > 1e-8 and citizen.summary.path:
         destination = citizen.summary.path[0]
@@ -482,7 +552,9 @@ def advance_movement(state, citizen):
             y=origin.y + (destination.y - origin.y) * step / length,
         )
         occupied = [
-            c.summary.position for c in state.citizens.values() if c.summary.active and c is not citizen
+            c.summary.position
+            for c in state.citizens.values()
+            if c.summary.active and c is not citizen and c.summary.id != citizen.condition.patient_id
         ]
         fraction = clear_travel(origin, candidate, occupied)
         citizen.summary.position = Vec2(
@@ -544,7 +616,12 @@ def advance_movement(state, citizen):
 
 def rule_intent(state, citizen, context):
     p = citizen.summary.position
-    nearby = [state.citizens[aid] for aid in context["nearby_ids"]]
+    from app.behavior.care import eligible
+    from app.behavior.vitals import conscious
+
+    if not conscious(citizen):
+        return None
+    nearby = [state.citizens[aid] for aid in context["nearby_ids"] if conscious(state.citizens[aid])]
     threatened = hazard_severity(state, p) > 0 or (
         state.policies.evacuation_order
         and (not state.systems.enabled or responses.complies_with_evacuation(state, citizen))
@@ -583,6 +660,7 @@ def rule_intent(state, citizen, context):
         and citizen.inventory.supplies >= 1
         and citizen.needs.health > 60
         and citizen.profile.traits.empathy >= responses.help_threshold(state, citizen)
+        and eligible(state, citizen)
     ):
         victim = max(
             visible_victims,
@@ -603,13 +681,20 @@ def rule_intent(state, citizen, context):
         for kind in ("food", "water"):
             if getattr(citizen.inventory, kind) >= 1:
                 return make_intent("consume", kind=kind, amount=1, motivation="I need to eat or drink")
-    if citizen.needs.fatigue >= 65:
+    from app.behavior.learning import rest_reason, threshold
+
+    if 100 - citizen.needs.fatigue <= threshold(citizen):
         home_trip = routine_destination(state, citizen)
         if home_trip and home_trip[0].kind == "home" and not citizen.summary.path:
             building, reason = home_trip
-            return make_intent("move", target=building.id, destination=building.entrance, motivation=reason)
+            return make_intent(
+                "move",
+                target=building.id,
+                destination=building.entrance,
+                motivation=rest_reason(citizen, reason),
+            )
         if not citizen.summary.path:
-            return make_intent("rest", motivation="I need to recover my energy")
+            return make_intent("rest", motivation=rest_reason(citizen, "I need to recover my energy"))
     # Explicit recipient acceptance of a remembered nearby invitation.
     for invitation in state.interactions.values():
         if (

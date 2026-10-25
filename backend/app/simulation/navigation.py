@@ -199,10 +199,16 @@ def restore_personal_space(state):
     """Repair overlapping positions in existing saves on nearby walkable ground."""
     citizens = sorted((c for c in state.citizens.values() if c.summary.active), key=lambda c: c.summary.id)
     for citizen in citizens:
+        if citizen.condition.life != "alive" or citizen.condition.helper_id:
+            continue
         if citizen.inside_building_id or citizen.entering_building_id or citizen.leaving_building_id:
             continue
         origin = citizen.summary.position
-        occupied = [c.summary.position for c in citizens if c is not citizen]
+        occupied = [
+            c.summary.position
+            for c in citizens
+            if c is not citizen and c.summary.id != citizen.condition.patient_id
+        ]
         if all(distance(origin, p) >= PERSONAL_SPACE - 1e-6 for p in occupied):
             continue
         # Search locally; never place a citizen in a building or across a wall.

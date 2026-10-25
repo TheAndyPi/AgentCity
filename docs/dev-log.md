@@ -455,3 +455,82 @@ honestly and never calls a paid vendor without `--live`. No mortality/crisis
 mechanics, frozen contract changes, secret changes or public deployment were made.
 Configuration, limits, acceptance evidence and commands:
 [live voices handoff](release/live-voices-handoff.md).
+
+## 2026-10-25 - Survival, personality, care and class behavior v2
+
+Branch `codex/agent-survival-and-class-conflict`, based on fetched dev `720ecab`.
+Implementation `4bca86b` (engine/state/contracts/tests) and `4e198a2`
+(UI/consumers/browser evidence). Merge `4267187` preserves dev's subsequent
+`61f286c`/`bf3be19` assignment documentation. No force push or direct dev push.
+Rules **2.0.0**, balance seed **42**, no dependency/environment additions.
+Detailed formulas, limits, migration, API and integration ownership are in
+[the behavior handoff](release/agent-behavior-handoff.md).
+
+Delivered independent persisted Mental; raw independent fatal and crisis
+thresholds; life/episode/care transitions; once-per-physical-tick attributed
+metric/need coupling; deterministic passive wake and bounded crisis behavior;
+Game Master attacks/real bounded fires/suppression; observed physical pickup,
+transport, reservations, cooperative first aid, hospital stock/treatment/release;
+conserved unequal inventories, public class beliefs, directed hostility/solidarity,
+local communicated grief and a structured collapse lesson that changes later rest
+choices. Death preserves identities/possessions/history and invalidates actor work.
+The existing voluntary rest baseline remains Energy 35; personal collapse lessons
+raise it to 40 then at most 45, independently of the physical Energy 0 boundary.
+The companion learning task owns broader topics/progression and its 20->25 reference.
+
+The strict behavior extension is under the existing guarded integration mount,
+with a separate `contracts/v2` producer/consumer schema and pinned export.
+Core DTO/enums, v1 snapshots/hashes and streams remain unchanged. Mental is a
+fifth life meter; Social keeps its existing inverse-need meaning. World markers,
+care/cause/explanation displays, population labels, impossible-command guards and
+v2 evidence navigation use the existing design. Narration/audio coordination,
+voices, scenarios and provider powers are preserved; providers receive own bounded
+condition/learning context only.
+
+Final commands/results on the committed integrated source:
+
+- `npm test`: **156 frontend passed; 446 backend passed / 2 opt-in SQL skips**;
+  all **43 frozen v1 hashes**, DTO/OpenAPI/stream snapshots, Ruff lint and full
+  formatting passed. The extra indoor pickup case traverses a real room floor
+  before the existing doorway route. No external paid providers were used.
+- `npm run build`: TypeScript and production bundle passed.
+- `npm run test:e2e -- --output=../backend/.tmp/behavior-core-final`:
+  **26/26 core browser passed**.
+- `npm exec --prefix frontend -- playwright test --config=frontend/playwright.behavior.config.ts`:
+  **4/4** actual faint/rescue/hospital/recovery, fatal Fullness, seeded crisis/class
+  displays and v2 memory-evidence navigation passed.
+- Same Playwright invocation with `playwright.snowflake.config.ts`
+  (`--output=../backend/.tmp/behavior-snowflake-final`): **3/3** passed; with
+  `playwright.narration.config.ts`
+  (`--output=../backend/.tmp/behavior-narration-final`): **1/1** passed. External
+  transports are controlled fixtures, separate from live vendor verification.
+- Pure and actual-engine **300-tick** curves, unchanged initial coupling weights,
+  rate table and seed are committed under `backend/artifacts/behavior-*.json`.
+  Supported routines recover Mental/Energy/Social while resource consumption is
+  conserved. The feature screenshot was visually inspected. `git diff --check`
+  and focused schema, persistence/branch/source-delete/security cases passed.
+
+Issues found and resolved: initial poor-household weights left less than one
+food unit (redistribution adjusted from 0.3/0.8/1.9 to 0.4/0.8/1.8 without changing
+total stock); conserved hospital ledger needed the shared event-key shape; urgent
+safety routing bypassed the old stale-proposal discard hook; v2 routes required an
+updated **non-frozen child** OpenAPI snapshot. Test setup errors in checkpoint
+revision numbers/idempotency and browser selection/artifact locations were fixed
+without weakening behavioral assertions.
+
+A later full run exposed a Tiger journal-deletion/publication race. Reconcile
+could return pending=true without reading any revision, spinning before the
+service could remove the deleted head. It now returns actual advancement; a
+controlled publication-gap regression and the full Tiger branch/restart/deletion
+suite pass. That hung run was stopped and is not claimed as a passing gate.
+The final fresh full gate above passed after the fix.
+
+**Handoff limits:** Tiger and Snowflake continue their existing v1 read models;
+they explicitly do not claim new v2 behavior/learning analytics. The versioned
+local export has the new records. The relationship/learning assignment should
+consume these IDs/outcomes and extend its own structured learning, relationship
+stages and warehouse ingestion; no complete marriage/enmity/learning-decay system
+is claimed here. Fire spread is deliberately zero, simultaneous fires are capped
+at three and active destructive behavior is time bounded. Existing opt-in live
+SQL, warehouse privilege and deployed-host gates remain external/unverified by
+this task. No live ElevenLabs/Tiger/Snowflake verification or deployment was run.

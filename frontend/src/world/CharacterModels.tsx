@@ -379,7 +379,12 @@ export default function CharacterModels({
   };
   const speech = speechBySpeaker(frame, focus);
   const labeled = frame.agents.filter(
-    (a) => speech.has(a.id) || focus.includes(a.id) || a.id === selected,
+    (a) =>
+      !a.active ||
+      a.emotion === "unconscious" ||
+      speech.has(a.id) ||
+      focus.includes(a.id) ||
+      a.id === selected,
   );
   return (
     <>
@@ -439,7 +444,9 @@ export default function CharacterModels({
                 data-character-id={a.id}
               >
                 {line && <span>{a.name.split(" ")[0]}</span>}
-                {line ? line.text : a.name.split(" ")[0]}
+                {line
+                  ? line.text
+                  : `${a.name.split(" ")[0]}${!a.active ? " · Dead" : a.emotion === "unconscious" ? " · Unconscious" : ""}`}
               </div>
             </Html>
           </group>

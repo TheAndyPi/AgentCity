@@ -18,6 +18,7 @@ import type {
   Intent,
   WorldFrame,
 } from "../api/types";
+import { readBehavior } from "../behavior/client";
 import { insideBuilding } from "../world/buildingAccess";
 import { pretty } from "../api/defaults";
 import { messageOf, useApp, useQuery } from "../state/app";
@@ -88,6 +89,19 @@ export default function LifeHUD({
     [client, frame.simulation.id, selected?.id, frame.ref.revision],
     `${frame.simulation.id}:${selected?.id}`,
   );
+  const behavior = useQuery(
+    () =>
+      selected
+        ? readBehavior(
+            client.transport,
+            frame.simulation.id,
+            frame.ref.revision,
+          )
+        : Promise.resolve(null),
+    [client, frame.simulation.id, selected?.id, frame.ref.revision],
+    `${frame.simulation.id}:${selected?.id}:${frame.ref.revision}`,
+  );
+  const condition = selected ? behavior.data?.citizens[selected.id] : undefined;
   const archive = useQuery(
     () =>
       selected
@@ -152,7 +166,10 @@ export default function LifeHUD({
     last && !last.end_conversation && frame.ref.tick - last.tick <= 5;
   const neighbors = selected
     ? frame.agents
-        .filter((a) => a.id !== selected.id)
+        .filter(
+          (a) =>
+            a.id !== selected.id && a.active && a.emotion !== "unconscious",
+        )
         .sort(
           (a, b) =>
             Math.hypot(
@@ -227,7 +244,13 @@ export default function LifeHUD({
       setWorking(false);
     }
   };
-  const disabled = working || locked || readOnly;
+  const disabled =
+    working ||
+    locked ||
+    readOnly ||
+    !selected?.active ||
+    condition?.life === "unconscious" ||
+    (condition?.care !== undefined && condition.care !== "none");
   return (
     <>
       {!selected && (
@@ -314,6 +337,9 @@ export default function LifeHUD({
                     ["Fullness", 100 - detail.data.needs.hunger],
                     ["Health", detail.data.needs.health],
                     ["Social", 100 - detail.data.needs.social],
+                    ...(condition
+                      ? [["Mental", condition.mental] as const]
+                      : []),
                   ] as const
                 ).map(([label, value]) => (
                   <div key={label}>
@@ -323,6 +349,64 @@ export default function LifeHUD({
                   </div>
                 ))}
               </div>
+            )}
+            {condition && (
+              <div className="focus-thought" aria-label="Survival and care">
+                <span>
+                  {condition.life === "dead"
+                    ? "DEAD"
+                    : condition.life === "unconscious"
+                      ? "UNCONSCIOUS"
+                      : condition.care === "hospital"
+                        ? "HOSPITALIZED"
+                        : condition.episode &&
+                            condition.episode.end_tick === null
+                          ? condition.episode.mode.toUpperCase()
+                          : "ALIVE"}
+                </span>
+                <p>
+                  {condition.life === "dead"
+                    ? `Tick ${condition.transition_tick}: ${condition.causes.join(" and ")}`
+                    : `${condition.care === "none" ? "No active care" : condition.care === "hospital" ? "Hospital care" : pretty(condition.care) + " rescue"} · ${pretty(condition.wealth_band)} resource class`}
+                </p>
+                {condition.episode && condition.episode.end_tick === null && (
+                  <p>
+                    {condition.episode.causes.join(" and ")} · episode since
+                    tick {condition.episode.start_tick}
+                  </p>
+                )}
+                {condition.impacts
+                  .filter((item) => item.tick === frame.ref.tick)
+                  .slice(-5)
+                  .map((item, i) => (
+                    <small key={i} style={{ display: "block" }}>
+                      {item.reason}: {item.delta >= 0 ? "+" : ""}
+                      {item.delta.toFixed(2)} {pretty(item.meter)}
+                    </small>
+                  ))}
+              </div>
+            )}
+            {condition && (
+              <div className="focus-thought" aria-label="Behavior evidence">
+                {(behavior.data?.events ?? [])
+                  .filter(
+                    (event) =>
+                      event.actor_id === selected.id ||
+                      event.target_id === selected.id,
+                  )
+                  .slice(-3)
+                  .map((event) => (
+                    <small key={event.id} style={{ display: "block" }}>
+                      {pretty(event.kind)} · Tick {event.tick}:{" "}
+                      {event.description}
+                    </small>
+                  ))}
+              </div>
+            )}
+            {behavior.error && (
+              <p role="alert" className="field-error">
+                Behavior details: {behavior.error}
+              </p>
             )}
             {!second && (
               <>
