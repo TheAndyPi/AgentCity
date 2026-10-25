@@ -312,7 +312,7 @@ export function Conversations({
   dialogue: Dialogue[];
   frame: WorldFrame;
   onAgent: (id: string) => void;
-  onWatch?: (ids: string[]) => void;
+  onWatch?: (ids: string[], interactionId?: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -400,7 +400,12 @@ export function Conversations({
             {onWatch && (
               <button
                 className="watch-world-button"
-                onClick={() => onWatch(conversation.participants.slice(0, 2))}
+                onClick={() =>
+                  onWatch(
+                    conversation.participants.slice(0, 2),
+                    conversation.id,
+                  )
+                }
               >
                 <ArrowUpRight size={15} />
                 See them up close

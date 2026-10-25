@@ -44,6 +44,7 @@ class NarrationService:
         self.tasks = set()
         self.reserved_bytes = 0
         self.reserved_entries = 0
+        self.capacity = asyncio.Lock()
 
     @property
     def enabled(self):
@@ -89,9 +90,9 @@ class NarrationService:
         head = self.core.heads.get(entry.simulation_id)
         return entry.owner == owner and head is not None and head.owner_id == owner
 
-    async def narrate(self, request, sid, body):
+    async def narrate(self, request, sid, body, *, live=False):
         owner, key = request.state.owner, request.state.request_id
-        state = self.core.owned(owner, sid)
+        state = self.core.owned(owner, sid, body.revision if live else None)
         require(self.enabled, "FEATURE_UNAVAILABLE", UNAVAILABLE, 501)
         fingerprint = hashlib.sha256(
             encode({"route": f"POST {request.url.path}", "body": body.model_dump(mode="json")})
@@ -123,10 +124,13 @@ class NarrationService:
             )
             return await asyncio.shield(task)
         # Resolve and reject before any capacity reservation or vendor request.
-        text = recorded_text(state, body.source_type, body.source_id, self.config.max_characters)
+        text = recorded_text(state, body.source_type, body.source_id, self.config.max_characters, live=live)
         voice_id = self.voices.resolve(state, body.source_type, body.source_id, self.config)
         origin = self.config.public_origin or str(request.base_url).rstrip("/")
-        task = asyncio.create_task(self._produce(owner, key, fingerprint, sid, text, origin, voice_id))
+        source = ("live-dialogue-v1", body.source_id) if live else None
+        task = asyncio.create_task(
+            self._produce(owner, key, fingerprint, sid, text, origin, voice_id, source)
+        )
         self.tasks.add(task)
         self.pending[identity] = (fingerprint, task)
 
@@ -139,8 +143,19 @@ class NarrationService:
         # A disconnected caller does not cancel work whose receipt a retry can replay.
         return await asyncio.shield(task)
 
-    async def _produce(self, owner, key, fingerprint, sid, text, origin, voice_id):
-        entry = await self._audio(owner, sid, text, voice_id)
+    async def _produce(self, owner, key, fingerprint, sid, text, origin, voice_id, source=None):
+        try:
+            async with asyncio.timeout(self.config.deadline):
+                if source is not None:
+                    await self.transport.validate_voice(voice_id)
+                entry = await self._audio(owner, sid, text, voice_id, source)
+        except (ProviderFailure, TimeoutError) as failure:
+            message = (
+                str(failure)
+                if isinstance(failure, ProviderFailure)
+                else "The speech provider did not respond in time"
+            )
+            raise DomainError("SERVICE_UNAVAILABLE", message, 503) from None
         now = self.clock()
         expires = int(now + self.config.url_ttl)
         self.store.issue(entry, expires)
@@ -152,14 +167,14 @@ class NarrationService:
         self.store.record(owner, key, fingerprint, entry.audio_id, response, now + self.config.cache_ttl)
         return response
 
-    def content_key(self, sid, text, voice_id):
+    def content_key(self, sid, text, voice_id, source=None):
         config = self.config
         return hashlib.sha256(
-            encode([sid, voice_id, config.model_id, config.output_format, text])
+            encode([sid, voice_id, config.model_id, config.output_format, text, source])
         ).hexdigest()
 
-    async def _audio(self, owner, sid, text, voice_id):
-        content_key = self.content_key(sid, text, voice_id)
+    async def _audio(self, owner, sid, text, voice_id, source=None):
+        content_key = self.content_key(sid, text, voice_id, source)
         entry = self.store.find(owner, content_key, self.clock())
         if entry:
             self.store.count("cache_hits")
@@ -178,17 +193,18 @@ class NarrationService:
 
     async def _synthesize(self, owner, sid, content_key, text, voice_id):
         size = self.config.max_audio_bytes
-        room = await asyncio.to_thread(
-            self.store.make_room, self.clock(), size, self.reserved_bytes, self.reserved_entries
-        )
-        require(
-            room,
-            "RATE_LIMITED",
-            "The narration cache is full of unexpired audio; retry later",
-            429,
-        )
-        self.reserved_bytes += size
-        self.reserved_entries += 1
+        async with self.capacity:
+            room = await asyncio.to_thread(
+                self.store.make_room, self.clock(), size, self.reserved_bytes, self.reserved_entries
+            )
+            require(
+                room,
+                "RATE_LIMITED",
+                "The narration cache is full of unexpired audio; retry later",
+                429,
+            )
+            self.reserved_bytes += size
+            self.reserved_entries += 1
         try:
             self.store.count("syntheses_started")
             try:
@@ -199,7 +215,14 @@ class NarrationService:
                 raise DomainError(
                     "RATE_LIMITED" if local else "SERVICE_UNAVAILABLE", str(failure), 429 if local else 503
                 ) from None
-            entry = await asyncio.to_thread(self.store.insert, owner, content_key, sid, audio, self.clock())
+            try:
+                entry = await asyncio.to_thread(
+                    self.store.insert, owner, content_key, sid, audio, self.clock()
+                )
+            except OSError:
+                raise DomainError(
+                    "SERVICE_UNAVAILABLE", "Narration audio could not be saved; retry later", 503
+                ) from None
             self.store.count("syntheses_cached")
             return entry
         finally:

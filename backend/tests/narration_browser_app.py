@@ -4,9 +4,12 @@ All AgentCity routes are the real application; only the ElevenLabs HTTP endpoint
 is the controlled fake. The `/__fake-elevenlabs` control routes exist only here.
 """
 
+import asyncio
+
 from fastapi import FastAPI
 from narration_fake import API_KEY, ElevenLabsFake, config
 
+from app import contracts as c
 from app.infrastructure.config import AppConfig
 from app.main import create_app as create_core_app
 
@@ -16,6 +19,14 @@ def create_app():
     narration_config = config(deadline=10, attempt_timeout=10)
     app = create_core_app(AppConfig.from_env(), narration_config, fake.transport(narration_config))
     control = FastAPI()
+
+    @control.post("/reset")
+    async def reset():
+        fake.gate.set()
+        fake.requests.clear()
+        fake.script.clear()
+        fake.voice_checks.clear()
+        return {"reset": True}
 
     @control.post("/hold")
     async def hold():
@@ -44,6 +55,35 @@ def create_app():
             )
             for r in fake.requests
         ]
+
+    @control.post("/dialogue/{sid}")
+    async def committed_dialogue(sid: str, body: dict):
+        # Test-only producer. Persist real records through the actual repository;
+        # production has no such route and the client still consumes WorldStore.
+        service = app.state.service
+        async with service.writer, service.locks.setdefault(sid, asyncio.Lock()):
+            state = service.owned("demo_owner", sid).model_copy(deep=True)
+            state.simulation.tick += 1
+            service.bump(state)
+            speakers = body["participants"]
+            records = []
+            for index in range(body.get("count", 1)):
+                line = c.Dialogue(
+                    id=state.next_id("dialogue"),
+                    interaction_id=body["interaction"],
+                    tick=state.simulation.tick,
+                    speaker_id=speakers[index % len(speakers)],
+                    recipient_ids=[a for a in speakers if a != speakers[index % len(speakers)]],
+                    audible_to_ids=body.get("audible_to_ids", []),
+                    text=f"{body.get('prefix', 'Committed exchange')} turn {index + 1}.",
+                    intent="talk",
+                    emotion="calm",
+                    end_conversation=index == body.get("count", 1) - 1,
+                )
+                state.dialogue.append(line)
+                records.append(line.model_dump(mode="json"))
+            await service.persist([state])
+            return {"lines": records, "revision": state.simulation.revision}
 
     app.mount("/__fake-elevenlabs", control)
     app.router.routes.insert(0, app.router.routes.pop())

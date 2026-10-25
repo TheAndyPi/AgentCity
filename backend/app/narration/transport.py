@@ -24,6 +24,7 @@ MESSAGES = {
     "rejected": "The speech provider rejected the configured narration request",
     "malformed": "The speech provider returned invalid audio",
     "oversized": "The speech provider returned audio larger than the configured limit",
+    "voice_unavailable": "The assigned citizen voice is unauthorized or unavailable; restore ElevenLabs voice access",
 }
 
 
@@ -82,9 +83,48 @@ class ElevenLabsTransport:
         self.waiting = 0
         self.attempts = deque()
         self.calls = 0
+        self.verified_voices = {}
+        self.voice_checks = {}
 
     async def close(self):
+        for task in self.voice_checks.values():
+            task.cancel()
+        await asyncio.gather(*self.voice_checks.values(), return_exceptions=True)
         await self.client.aclose()
+
+    async def validate_voice(self, voice_id):
+        """Bounded server-only authorization check; no cloning or catalog exposure."""
+        if self.verified_voices.get(voice_id, 0) > self.clock():
+            return
+        task = self.voice_checks.get(voice_id)
+        if task is None:
+            if len(self.voice_checks) >= self.config.concurrency + self.config.queue_limit:
+                raise ProviderFailure("busy")
+            task = asyncio.create_task(self._check_voice(voice_id))
+            self.voice_checks[voice_id] = task
+            task.add_done_callback(lambda _: self.voice_checks.pop(voice_id, None))
+        return await asyncio.shield(task)
+
+    async def _check_voice(self, voice_id):
+        try:
+            async with asyncio.timeout(self.config.deadline):
+                async with self.slots:
+                    self._admit_attempt()
+                    async with self.client.stream(
+                        "GET",
+                        f"{self.config.base_url.rstrip('/')}/v1/voices/{quote(voice_id, safe='')}",
+                        headers={"xi-api-key": self.config.api_key},
+                        timeout=httpx.Timeout(self.config.attempt_timeout),
+                    ) as response:
+                        if response.status_code != 200:
+                            raise ProviderFailure("voice_unavailable")
+                        # Status is sufficient for this voice-specific authorized
+                        # endpoint. Do not read an unbounded provider catalog/body.
+            if len(self.verified_voices) >= 1000:
+                self.verified_voices.pop(next(iter(self.verified_voices)))
+            self.verified_voices[voice_id] = self.clock() + 300
+        except (TimeoutError, httpx.HTTPError):
+            raise ProviderFailure("voice_unavailable") from None
 
     def _admit_attempt(self):
         now = self.clock()

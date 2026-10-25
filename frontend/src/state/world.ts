@@ -95,7 +95,11 @@ export class WorldStore {
               clearInterval(poll);
               poll = undefined;
             }
-          } else if (m.type === "error") this.update({ error: m.data.message });
+          } else if (m.type === "error") {
+            this.update({ error: m.data.message });
+            if (m.data.code === "UNAUTHENTICATED")
+              window.dispatchEvent(new Event("agentcity:session-expired"));
+          }
         } catch {
           this.update({
             connection: "error",
