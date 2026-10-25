@@ -688,3 +688,17 @@ disaster cases passed again with the final cancellation/scenery and voice-error
 isolation code. All **43** frozen core checks and Ruff/format gates passed.
 The following evidence update waits for the reloaded damaged map before taking
 its screenshot; it changes test readiness and reporting only.
+
+### 2026-10-25 — Machine A: disaster controls/damage/audio merged with current dev
+
+User explicitly requested merging `codex/disaster-controls-damage` (`0d60ed5`) and
+restarting the local app. Read controls/audio handoffs and shared log. Normal merge
+`5fc0083`, service composition fix `5f9575c`, and browser readiness fix `664df38`
+preserve current scenario, survival, care/rescue, behavior and live voice systems.
+Added eleven cross-feature regressions. Final gates: 184 frontend and 538 backend
+passes (2 opt-in skips); both real disposable PostgreSQL cases separately passed;
+43 browser passes (28 core, 8 narration/disaster, 4 behavior, 3 Snowflake); production
+build, 43 frozen core hashes and Ruff/format passed. Initial failures and fixes,
+10/30/100-agent performance measurements, evidence paths and external limitations
+are recorded in [the disaster merge report](release/disaster-merge-2026-10-25.md).
+No paid provider calls or real disaster-audio listening audition claimed.
