@@ -55,10 +55,13 @@ def known_cost(state, agent, mode):
     changed = state.systems.counters.get(f"changed:{target}")
     if changed is None:
         return actual
-    informed = any(
-        belief.topic in {"transport", "policy_change", "prices"} and belief.tick >= changed
-        for belief in agent.beliefs.values()
-    ) or agent.last_paid.get(f"{mode}_tick", -1) >= changed
+    informed = (
+        any(
+            belief.topic in {"transport", "policy_change", "prices"} and belief.tick >= changed
+            for belief in agent.beliefs.values()
+        )
+        or agent.last_paid.get(f"{mode}_tick", -1) >= changed
+    )
     if informed:
         return actual
     return agent.last_paid.get(mode, getattr(BASELINE.transportation, target.split(".")[1]))
@@ -73,7 +76,10 @@ def mode_scores(state, citizen, agent, meters, noise=True):
     trust = agent.institutional_trust / 100
     options = {"walk": (walk, 0.0)}
     if service > 0:
-        options["transit"] = (walk * MODE_SPEED["transit"] * (0.6 + 0.4 * min(service, 2)), 0.3 / max(service, 0.25))
+        options["transit"] = (
+            walk * MODE_SPEED["transit"] * (0.6 + 0.4 * min(service, 2)),
+            0.3 / max(service, 0.25),
+        )
     if agent.owns_car:
         options["car"] = (walk * MODE_SPEED["car"], 0.1)
     scores = []
@@ -97,7 +103,9 @@ def mode_scores(state, citizen, agent, meters, noise=True):
             score += 0.15 - transport.transit_campaign * trust * 0.3
         if noise:
             score += (unit(citizen.summary.id, mode, state.simulation.tick // 30) - 0.5) * 0.3
-        actual = transport.transit_fare if mode == "transit" else transport.car_trip_cost if mode == "car" else 0
+        actual = (
+            transport.transit_fare if mode == "transit" else transport.car_trip_cost if mode == "car" else 0
+        )
         label = f"Travel {MODE_LABEL[mode]} (about {ticks:.1f} ticks, expected cost {expected:.2f})"
         scores.append(
             dict(
@@ -175,7 +183,9 @@ def choose_trip_mode(state, citizen, agent, decision):
     citizen.summary.movement_speed_mps = round(base * speed, 4)
     agent.trip_mode = mode
     citizen.summary.thought_bubble = f"{decision.intent.motivation} ({MODE_LABEL[mode]})"[:2000]
-    satisfaction = 70 - chosen["cost"] * 12 * INCOME_SENSITIVITY[agent.income] - meters / (base * speed * 10) * 2
+    satisfaction = (
+        70 - chosen["cost"] * 12 * INCOME_SENSITIVITY[agent.income] - meters / (base * speed * 10) * 2
+    )
     agent.satisfaction = round(0.85 * agent.satisfaction + 0.15 * clamp(satisfaction), 3)
     streak = agent.streak
     streak["count"] = streak["count"] + 1 if streak["mode"] == mode else 1
@@ -217,7 +227,12 @@ def choose_trip_mode(state, citizen, agent, decision):
                 selected=mode,
                 motivation=chosen["why"],
                 memory_ids=memory_ids,
-                changes=[*changes, change(citizen.summary.id, "movement_speed_mps", base, citizen.summary.movement_speed_mps)],
+                changes=[
+                    *changes,
+                    change(
+                        citizen.summary.id, "movement_speed_mps", base, citizen.summary.movement_speed_mps
+                    ),
+                ],
                 significance=significance,
             )
         if streak["count"] >= 3:
@@ -231,7 +246,9 @@ def on_work(state, citizen, agent, decision):
     policy = systems.policy
     revenue = 0.85
     tax = revenue * policy.taxation.business_tax_rate
-    wage = 0.5 * {"low": 0.8, "middle": 1.0, "high": 1.3}[agent.income] + agent.incentives.get("work_bonus", 0)
+    wage = 0.5 * {"low": 0.8, "middle": 1.0, "high": 1.3}[agent.income] + agent.incentives.get(
+        "work_bonus", 0
+    )
     subsidy = policy.business.subsidy_per_shift if systems.treasury > -30 else 0
     reserve = systems.businesses.get(building, 0) + revenue - tax + subsidy
     paid = min(wage, max(0.0, reserve))
@@ -244,7 +261,9 @@ def on_work(state, citizen, agent, decision):
     before = agent.wallet
     agent.wallet = round(agent.wallet + paid - household_tax, 4)
     agent.shifts += 1
-    decision.effects.append(EffectChange(entity_id=citizen.summary.id, field="wallet", before=before, after=agent.wallet))
+    decision.effects.append(
+        EffectChange(entity_id=citizen.summary.id, field="wallet", before=before, after=agent.wallet)
+    )
 
 
 def acceptance(state, citizen, agent, channel, credibility, topic):
@@ -261,11 +280,19 @@ def acceptance(state, citizen, agent, channel, credibility, topic):
 
 
 def receive_information(state, citizen, op, event_id, repetition=0):
+    from app.behavior.vitals import conscious
+
+    if not conscious(citizen):
+        return
     agent = state.systems.agents[citizen.summary.id]
     p = acceptance(state, citizen, agent, op.channel, op.credibility, op.topic)
     believed = unit(citizen.summary.id, op.id, event_id, repetition, "believe") < p
-    source = {"official": "an official announcement", "media": "the news", "rumor": "a rumor",
-              "word_of_mouth": "neighbors"}[op.channel]
+    source = {
+        "official": "an official announcement",
+        "media": "the news",
+        "rumor": "a rumor",
+        "word_of_mouth": "neighbors",
+    }[op.channel]
     candidates = [
         dict(action="believe", label=f"Believe {source}", score=p, why=f"I find {source} credible"),
         dict(action="doubt", label=f"Doubt {source}", score=1 - p, why=f"I do not trust {source}"),
@@ -290,15 +317,28 @@ def receive_information(state, citizen, op, event_id, repetition=0):
         source="observed" if op.channel == "official" and believed else "heard",
     )
     if action == "believe":
-        hold_belief(state, citizen, agent, op.topic, op.message, p * 100, op.channel, op.id, op.accurate, event_id,
-                    record.memory_ids[:1])
+        hold_belief(
+            state,
+            citizen,
+            agent,
+            op.topic,
+            op.message,
+            p * 100,
+            op.channel,
+            op.id,
+            op.accurate,
+            event_id,
+            record.memory_ids[:1],
+        )
         bump(state.systems, "beliefs_adopted")
     else:
         bump(state.systems, "beliefs_doubted")
     return action == "believe"
 
 
-def hold_belief(state, citizen, agent, topic, message, confidence, channel, op_id, accurate, event_id, memory_ids):
+def hold_belief(
+    state, citizen, agent, topic, message, confidence, channel, op_id, accurate, event_id, memory_ids
+):
     key = f"{op_id}"
     agent.beliefs[key] = Belief(
         topic=topic,
@@ -314,7 +354,9 @@ def hold_belief(state, citizen, agent, topic, message, confidence, channel, op_i
             text=(f"Heard ({channel}): {message}")[:2000],
             confidence=clamp(confidence),
             evidence=evidence(
-                "Information I chose to believe; not verified fact" if channel != "official" else "Official information I chose to believe",
+                "Information I chose to believe; not verified fact"
+                if channel != "official"
+                else "Official information I chose to believe",
                 event_ids=[event_id] if event_id else None,
                 memory_ids=memory_ids,
             ),
@@ -331,7 +373,13 @@ def share_in_conversation(state, speaker, listener, decision):
     for key, belief in list(a.beliefs.items()):
         if listener.summary.id in belief.shared_with or key in b.beliefs or belief.confidence < 35:
             continue
-        p_share = speaker.profile.traits.sociability / 100 * belief.confidence / 100 * (1.2 if belief.channel == "rumor" else 1)
+        p_share = (
+            speaker.profile.traits.sociability
+            / 100
+            * belief.confidence
+            / 100
+            * (1.2 if belief.channel == "rumor" else 1)
+        )
         if unit(speaker.summary.id, listener.summary.id, key, "share") >= p_share:
             continue
         belief.shared_with.append(listener.summary.id)
@@ -345,8 +393,12 @@ def share_in_conversation(state, speaker, listener, decision):
         accepted = unit(listener.summary.id, speaker.summary.id, key, "accept") < p_accept
         event_id = current_event(state)
         candidates = [
-            dict(action="believe", label=f"Believe {speaker.summary.name}", score=p_accept,
-                 why=f"I trust {speaker.summary.name.split()[0]} ({interpersonal * 100:.0f})"),
+            dict(
+                action="believe",
+                label=f"Believe {speaker.summary.name}",
+                score=p_accept,
+                why=f"I trust {speaker.summary.name.split()[0]} ({interpersonal * 100:.0f})",
+            ),
             dict(action="doubt", label="Keep my doubts", score=1 - p_accept, why="I am not convinced"),
         ]
         winner = 0 if accepted else 1
@@ -358,21 +410,36 @@ def share_in_conversation(state, speaker, listener, decision):
             candidates,
             event_id=event_id,
             op_id=belief.source_op,
-            observations=[f"Heard in conversation from {speaker.summary.name} ({speaker.summary.id})",
-                          f"My trust in {speaker.summary.name.split()[0]}: {interpersonal * 100:.0f}"],
+            observations=[
+                f"Heard in conversation from {speaker.summary.name} ({speaker.summary.id})",
+                f"My trust in {speaker.summary.name.split()[0]}: {interpersonal * 100:.0f}",
+            ],
             memory=f"{speaker.summary.name} told me: {belief.message[:300]} I decided to {{choice}}.",
             affected=[speaker.summary.id],
             significance=1,
         )
         if accepted:
             bump(systems, "information_accepted")
-            hold_belief(state, listener, b, belief.topic, belief.message, belief.confidence * 0.8, belief.channel,
-                        belief.source_op, belief.accurate, event_id, record.memory_ids[:1])
+            hold_belief(
+                state,
+                listener,
+                b,
+                belief.topic,
+                belief.message,
+                belief.confidence * 0.8,
+                belief.channel,
+                belief.source_op,
+                belief.accurate,
+                event_id,
+                record.memory_ids[:1],
+            )
             if belief.topic == "government":
                 skeptic = 3 * (1 - listener.profile.traits.trust / 100)
                 before = b.institutional_trust
                 b.institutional_trust = round(clamp(before - skeptic), 3)
-                record.changes.append(change(listener.summary.id, "institutional_trust", before, b.institutional_trust))
+                record.changes.append(
+                    change(listener.summary.id, "institutional_trust", before, b.institutional_trust)
+                )
         else:
             bump(systems, "information_rejected")
 
@@ -410,7 +477,9 @@ def credibility_shift(state, citizen, op, event_id):
         op_id=op.id,
         agent=citizen,
         observations=observations,
-        candidates=[dict(action="update_trust", label=f"Adjust trust by {after - before:+.1f}", score=susceptibility)],
+        candidates=[
+            dict(action="update_trust", label=f"Adjust trust by {after - before:+.1f}", score=susceptibility)
+        ],
         selected="update_trust",
         motivation=f"Susceptibility {susceptibility:.2f} given my own trust and experience",
         memory_ids=[memory.id],
@@ -418,38 +487,69 @@ def credibility_shift(state, citizen, op, event_id):
         significance=2 if abs(after - before) >= 10 else 1,
     )
     if op.delta < 0:
-        hold_belief(state, citizen, agent, "government", op.reason, clamp(60 + abs(after - before) * 2), "word_of_mouth",
-                    op.id, True, event_id, [memory.id])
+        hold_belief(
+            state,
+            citizen,
+            agent,
+            "government",
+            op.reason,
+            clamp(60 + abs(after - before) * 2),
+            "word_of_mouth",
+            op.id,
+            True,
+            event_id,
+            [memory.id],
+        )
 
 
 NORM_ALIGNMENT = {
     "help_strangers": lambda c, a: (c.profile.traits.empathy + c.profile.traits.cooperation) / 200,
-    "use_public_transit": lambda c, a: 0.6 * (c.profile.traits.cooperation + 100 - c.profile.traits.risk_tolerance) / 200
-    + 0.4 * a.institutional_trust / 100,
-    "conserve_resources": lambda c, a: 0.6 * c.profile.traits.cooperation / 100 + 0.4 * a.institutional_trust / 100,
+    "use_public_transit": lambda c, a: (
+        0.6 * (c.profile.traits.cooperation + 100 - c.profile.traits.risk_tolerance) / 200
+        + 0.4 * a.institutional_trust / 100
+    ),
+    "conserve_resources": lambda c, a: (
+        0.6 * c.profile.traits.cooperation / 100 + 0.4 * a.institutional_trust / 100
+    ),
     "civic_participation": lambda c, a: (c.profile.traits.sociability + c.profile.traits.curiosity) / 200,
 }
 
 
 def peer_share(state, citizen, predicate):
-    ties = [aid for aid, tie in citizen.relationships.items() if tie.kind != "stranger" and aid in state.systems.agents]
+    ties = [
+        aid
+        for aid, tie in citizen.relationships.items()
+        if tie.kind != "stranger" and aid in state.systems.agents
+    ]
     if not ties:
         return 0.0
     return sum(predicate(state.systems.agents[aid]) for aid in ties) / len(ties)
 
 
 def evaluate_norm(state, citizen, norm, strength, event_id=None, op_id=None, exposure="campaign"):
+    from app.behavior.vitals import conscious
+
+    if not conscious(citizen):
+        return
     agent = state.systems.agents[citizen.summary.id]
     alignment = NORM_ALIGNMENT[norm](citizen, agent)
     peers = peer_share(state, citizen, lambda other: other.norms.get(norm, 0) > 0)
-    score = strength * alignment + 0.35 * peers + (unit(citizen.summary.id, norm, state.simulation.tick // 24) - 0.5) * 0.2
+    score = (
+        strength * alignment
+        + 0.35 * peers
+        + (unit(citizen.summary.id, norm, state.simulation.tick // 24) - 0.5) * 0.2
+    )
     adopted = agent.norms.get(norm, 0) > 0
     adopt = score > 0.3
     if adopt == adopted:
         return
     candidates = [
-        dict(action="adopt", label=f"Adopt '{norm.replace('_', ' ')}'", score=score,
-             why=f"it fits my values ({alignment:.2f}) and {peers * 100:.0f}% of people I know do it"),
+        dict(
+            action="adopt",
+            label=f"Adopt '{norm.replace('_', ' ')}'",
+            score=score,
+            why=f"it fits my values ({alignment:.2f}) and {peers * 100:.0f}% of people I know do it",
+        ),
         dict(action="ignore", label="Carry on as before", score=0.3, why="it does not fit how I live"),
     ]
     action, record = decide(
@@ -475,7 +575,9 @@ def help_threshold(state, citizen):
     agent = state.systems.agents.get(citizen.summary.id)
     if not agent:
         return 65
-    reward = state.systems.policy.community_programs.cooperation_reward + agent.incentives.get("help_reward", 0)
+    reward = state.systems.policy.community_programs.cooperation_reward + agent.incentives.get(
+        "help_reward", 0
+    )
     return 65 - 30 * agent.norms.get("help_strangers", 0) - min(10, reward * 8)
 
 
@@ -498,10 +600,18 @@ def stockpile_choice(state, citizen, agent):
     campaign = programs.conservation_campaign * agent.institutional_trust / 100
     conserve_norm = agent.norms.get("conserve_resources", 0)
     candidates = [
-        dict(action="stockpile", label="Buy and gather extra food", score=worry * (0.4 + 0.6 * risk_aversion),
-             why="I expect prices to rise"),
-        dict(action="conserve", label="Take only what I need", score=0.3 + campaign * 0.6 + conserve_norm * 0.5
-             + citizen.profile.traits.cooperation / 400, why="stockpiling hurts neighbors"),
+        dict(
+            action="stockpile",
+            label="Buy and gather extra food",
+            score=worry * (0.4 + 0.6 * risk_aversion),
+            why="I expect prices to rise",
+        ),
+        dict(
+            action="conserve",
+            label="Take only what I need",
+            score=0.3 + campaign * 0.6 + conserve_norm * 0.5 + citizen.profile.traits.cooperation / 400,
+            why="stockpiling hurts neighbors",
+        ),
     ]
     action, _ = decide(
         state,
@@ -509,8 +619,10 @@ def stockpile_choice(state, citizen, agent):
         "Decided whether to stockpile food",
         candidates,
         event_id=current_event(state),
-        observations=[f"Belief that prices will rise (confidence {worry * 100:.0f})",
-                      f"Conservation campaign {programs.conservation_campaign:.2f}"],
+        observations=[
+            f"Belief that prices will rise (confidence {worry * 100:.0f})",
+            f"Conservation campaign {programs.conservation_campaign:.2f}",
+        ],
         memory="I heard prices may rise. I decided to {choice}.",
         significance=2,
     )
@@ -543,8 +655,11 @@ def complies_with_evacuation(state, citizen):
         "Decided whether to follow the evacuation order",
         candidates,
         event_id=current_event(state),
-        observations=["Official evacuation order in force", "No hazard where I am",
-                      f"My trust in institutions {agent.institutional_trust:.0f}"],
+        observations=[
+            "Official evacuation order in force",
+            "No hazard where I am",
+            f"My trust in institutions {agent.institutional_trust:.0f}",
+        ],
         memory="An evacuation order was issued. I decided to {choice}.",
         significance=2,
     )
@@ -562,14 +677,18 @@ def preferred_destination(state, citizen):
         return None
     buildings = state.map.buildings
     if citizen.needs.health < 88:
-        hospitals = [b for b in buildings if b.kind == "hospital" and b.functional and b.occupancy < b.capacity]
+        hospitals = [
+            b for b in buildings if b.kind == "hospital" and b.functional and b.occupancy < b.capacity
+        ]
         if hospitals and citizen.inside_building_id not in {b.id for b in hospitals}:
             hospital = min(hospitals, key=lambda b: (distance(citizen.summary.position, b.entrance), b.id))
             return hospital, "Go to the hospital for care"
     for org_id in agent.organizations:
         org = state.systems.organizations.get(org_id)
         if org and org.active and org.kind in {"tenant_union", "protest_group"} and rallying(state, org):
-            centers = [b for b in buildings if b.kind == "community" and b.functional and b.occupancy < b.capacity]
+            centers = [
+                b for b in buildings if b.kind == "community" and b.functional and b.occupancy < b.capacity
+            ]
             if centers and citizen.inside_building_id not in {b.id for b in centers}:
                 center = min(centers, key=lambda b: (distance(citizen.summary.position, b.entrance), b.id))
                 return center, f"Join the {org.name} gathering"
@@ -588,7 +707,10 @@ def preferred_destination(state, citizen):
 def staying_for_care(state, citizen):
     if not state.systems.enabled or citizen.needs.health >= 95:
         return False
-    return any(b.id == citizen.inside_building_id and b.kind == "hospital" and b.functional for b in state.map.buildings)
+    return any(
+        b.id == citizen.inside_building_id and b.kind == "hospital" and b.functional
+        for b in state.map.buildings
+    )
 
 
 def rallying(state, org):
@@ -602,8 +724,12 @@ def seek_alternative(state, citizen, building, event_id, op_id):
         key=lambda b: (distance(citizen.summary.position, b.entrance), b.id),
     )[:3]
     candidates = [
-        dict(action=b.id, label=f"Use {b.name} instead", score=-distance(citizen.summary.position, b.entrance) / 40,
-             why=f"it is the nearest open {building.kind}")
+        dict(
+            action=b.id,
+            label=f"Use {b.name} instead",
+            score=-distance(citizen.summary.position, b.entrance) / 40,
+            why=f"it is the nearest open {building.kind}",
+        )
         for b in others
     ]
     if building.kind == "shop":
@@ -612,10 +738,17 @@ def seek_alternative(state, citizen, building, event_id, op_id):
             key=lambda r: distance(citizen.summary.position, r.position),
         )[:1]
         candidates += [
-            dict(action=r.id, label="Gather food from the depot instead", score=-distance(citizen.summary.position, r.position) / 40 - 0.5,
-                 why="the depot still has food") for r in depots
+            dict(
+                action=r.id,
+                label="Gather food from the depot instead",
+                score=-distance(citizen.summary.position, r.position) / 40 - 0.5,
+                why="the depot still has food",
+            )
+            for r in depots
         ]
-    candidates.append(dict(action="go_without", label="Go without for now", score=-3, why="nothing else is reachable"))
+    candidates.append(
+        dict(action="go_without", label="Go without for now", score=-3, why="nothing else is reachable")
+    )
     action, record = decide(
         state,
         citizen,
@@ -623,7 +756,10 @@ def seek_alternative(state, citizen, building, event_id, op_id):
         candidates,
         event_id=event_id,
         op_id=op_id,
-        observations=[f"{building.name} ({building.id}) is closed", f"I used it {agent.shop_visits.get(building.id, 0)} times"],
+        observations=[
+            f"{building.name} ({building.id}) is closed",
+            f"I used it {agent.shop_visits.get(building.id, 0)} times",
+        ],
         memory=f"{building.name} has closed. I decided to {{choice}}.",
         affected=[building.id],
         significance=2,
@@ -668,21 +804,38 @@ def join_score(state, citizen, agent, org):
     peers = peer_share(state, citizen, lambda other: org.id in other.organizations)
     grievance = any(b.topic in {"government", "housing", "prices"} for b in agent.beliefs.values())
     base = {
-        "mutual_aid": (traits.cooperation + traits.empathy) / 200 + 0.3 * (citizen.summary.metrics.resources < 40),
+        "mutual_aid": (traits.cooperation + traits.empathy) / 200
+        + 0.3 * (citizen.summary.metrics.resources < 40),
         "tenant_union": 0.45 * (agent.renter and strained) + traits.sociability / 200,
-        "protest_group": 0.45 * (1 - agent.institutional_trust / 100) + traits.risk_tolerance / 250 + 0.25 * (strained or grievance),
+        "protest_group": 0.45 * (1 - agent.institutional_trust / 100)
+        + traits.risk_tolerance / 250
+        + 0.25 * (strained or grievance),
         "community_program": 0.5 * (agent.income == "low") + agent.institutional_trust / 250,
         "assistance_office": 0.5 * strained + agent.institutional_trust / 250,
     }[org.kind]
-    return base + 0.3 * civic + 0.3 * peers + (unit(citizen.summary.id, org.id, state.simulation.tick // 24) - 0.5) * 0.2
+    return (
+        base
+        + 0.3 * civic
+        + 0.3 * peers
+        + (unit(citizen.summary.id, org.id, state.simulation.tick // 24) - 0.5) * 0.2
+    )
 
 
 def consider_joining(state, citizen, agent, org, founding=False):
+    from app.behavior.vitals import conscious
+
+    if not conscious(citizen):
+        return False
     score = join_score(state, citizen, agent, org) + (0.15 if founding else 0)
     if score <= 0.55 and not founding:
         return False
     candidates = [
-        dict(action="join", label=f"Join {org.name}", score=score, why=org.mission or f"I support the {org.kind.replace('_', ' ')}"),
+        dict(
+            action="join",
+            label=f"Join {org.name}",
+            score=score,
+            why=org.mission or f"I support the {org.kind.replace('_', ' ')}",
+        ),
         dict(action="stay_out", label="Stay out of it", score=0.55, why="it is not for me"),
     ]
     action, record = decide(
@@ -691,8 +844,11 @@ def consider_joining(state, citizen, agent, org, founding=False):
         f"Considered joining {org.name}",
         candidates,
         event_id=org.event_id,
-        observations=[f"{org.name}: {org.mission[:120]}", f"{len(org.members)} members so far",
-                      f"Wallet {agent.wallet:.1f}, trust in institutions {agent.institutional_trust:.0f}"],
+        observations=[
+            f"{org.name}: {org.mission[:120]}",
+            f"{len(org.members)} members so far",
+            f"Wallet {agent.wallet:.1f}, trust in institutions {agent.institutional_trust:.0f}",
+        ],
         memory=f"{org.name} is organizing. I decided to {{choice}}.",
         affected=[org.id],
         significance=2,
@@ -719,15 +875,22 @@ def review_housing(state, citizen, agent):
     traits = citizen.profile.traits
     cheaper = sorted(
         (
-            b for b in state.map.buildings
-            if b.kind == "home" and b.functional and systems.housing_available.get(b.id)
-            and systems.home_rent.get(b.id, 1) < agent.rent_factor - 0.1 and b.id != agent.home_id
+            b
+            for b in state.map.buildings
+            if b.kind == "home"
+            and b.functional
+            and systems.housing_available.get(b.id)
+            and systems.home_rent.get(b.id, 1) < agent.rent_factor - 0.1
+            and b.id != agent.home_id
         ),
         key=lambda b: (systems.home_rent.get(b.id, 1), b.id),
     )
     family = [
-        state.citizens[aid] for aid, tie in citizen.relationships.items()
-        if tie.kind == "family" and aid in state.citizens and aid in systems.agents
+        state.citizens[aid]
+        for aid, tie in citizen.relationships.items()
+        if tie.kind == "family"
+        and aid in state.citizens
+        and aid in systems.agents
         and systems.agents[aid].home_id != agent.home_id
     ]
     assistance = systems.policy.housing.assistance_per_tick > 0 or any(
@@ -735,21 +898,41 @@ def review_housing(state, citizen, agent):
     )
     attachment = sum(1 for aid, t in citizen.relationships.items() if t.affection > 55) / 6
     candidates = [
-        dict(action="stay", label="Stay and cut back", score=0.35 + 0.3 * min(1, attachment), why="my life and people are here"),
+        dict(
+            action="stay",
+            label="Stay and cut back",
+            score=0.35 + 0.3 * min(1, attachment),
+            why="my life and people are here",
+        ),
     ]
     if cheaper:
-        candidates.append(dict(action="relocate", label=f"Move to cheaper {cheaper[0].name}",
-                               score=0.3 + 0.4 * traits.risk_tolerance / 100 + 0.3 * strained - 0.2 * min(1, attachment),
-                               why="rent here is more than I can afford"))
+        candidates.append(
+            dict(
+                action="relocate",
+                label=f"Move to cheaper {cheaper[0].name}",
+                score=0.3 + 0.4 * traits.risk_tolerance / 100 + 0.3 * strained - 0.2 * min(1, attachment),
+                why="rent here is more than I can afford",
+            )
+        )
     if assistance and agent.housing_status == "housed":
-        candidates.append(dict(action="assistance", label="Apply for housing assistance",
-                               score=0.25 + 0.5 * agent.institutional_trust / 100 + 0.2 * strained,
-                               why="I trust the city to help"))
+        candidates.append(
+            dict(
+                action="assistance",
+                label="Apply for housing assistance",
+                score=0.25 + 0.5 * agent.institutional_trust / 100 + 0.2 * strained,
+                why="I trust the city to help",
+            )
+        )
     if family:
         relative = max(family, key=lambda r: (citizen.relationships[r.summary.id].affection, r.summary.id))
-        candidates.append(dict(action="share", label=f"Move in with {relative.summary.name}",
-                               score=0.2 + 0.5 * citizen.relationships[relative.summary.id].affection / 100,
-                               why="family can share the rent"))
+        candidates.append(
+            dict(
+                action="share",
+                label=f"Move in with {relative.summary.name}",
+                score=0.2 + 0.5 * citizen.relationships[relative.summary.id].affection / 100,
+                why="family can share the rent",
+            )
+        )
     for c in candidates:
         c["score"] += (unit(citizen.summary.id, c["action"], state.simulation.tick // 12) - 0.5) * 0.15
     action, record = decide(
@@ -758,8 +941,10 @@ def review_housing(state, citizen, agent):
         "Decided how to cope with rent",
         candidates,
         event_id=current_event(state),
-        observations=[f"Rent multiplier {rent:.2f}, homes available {housing_share(state) * 100:.0f}%",
-                      f"Wallet {agent.wallet:.1f} credits, income {agent.income}"],
+        observations=[
+            f"Rent multiplier {rent:.2f}, homes available {housing_share(state) * 100:.0f}%",
+            f"Wallet {agent.wallet:.1f} credits, income {agent.income}",
+        ],
         memory="Rent has become hard to manage. I decided to {choice}.",
         significance=2 if action_significant(candidates) else 1,
     )

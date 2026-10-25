@@ -224,6 +224,10 @@ def treatment(state):
                 hospital.inventory.supplies -= unit
                 state.counters["resources_consumed"] += unit
                 impact(state, patient, "health", RULES["treatment_health"] * dt, "Hospital supplies", "care")
+                if state.systems.enabled:
+                    from app.scenario_engine.systems import bump
+
+                    bump(state.systems, "hospital_care")
                 impact(state, patient, "mental", RULES["treatment_mental"] * dt, "Hospital treatment", "care")
                 metric_delta(
                     patient, "stress", RULES["treatment_stress"] * dt, evidence("Hospital treatment")

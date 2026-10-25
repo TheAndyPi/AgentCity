@@ -67,8 +67,14 @@ def revert(state, entry):
     handler = globals().get(f"revert_{op.type}")
     if handler:
         handler(state, op, entry.event_id, entry.undo)
-        trace(state, "operation", f"Ended: {describe(op)}", event_id=entry.event_id, op_id=op.id,
-              motivation="Temporary change reached the end of its duration")
+        trace(
+            state,
+            "operation",
+            f"Ended: {describe(op)}",
+            event_id=entry.event_id,
+            op_id=op.id,
+            motivation="Temporary change reached the end of its duration",
+        )
 
 
 def describe(op):
@@ -79,7 +85,9 @@ def describe(op):
     if t == "set_service_availability":
         subject = op.building_id or f"{op.building_kind} buildings in {op.region}"
         return f"{'open' if op.open else 'close'} {subject}" + (
-            f" at {op.capacity_multiplier * 100:.0f}% capacity" if op.open and op.capacity_multiplier != 1 else ""
+            f" at {op.capacity_multiplier * 100:.0f}% capacity"
+            if op.open and op.capacity_multiplier != 1
+            else ""
         )
     if t == "modify_resource_stock":
         return f"{op.resource} stock x{op.multiplier:g} in {op.region}"
@@ -115,8 +123,16 @@ def apply_modify_policy(state, op, event_id, permanent, repetition):
     policy.set(op.target, after)
     state.systems.counters[f"changed:{op.target}"] = state.simulation.tick
     sync_policy(state, op.target, permanent)
-    trace(state, "operation", f"Policy: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.rationale, changes=[change("policy", op.target, before, after)], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Policy: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=[change("policy", op.target, before, after)],
+        significance=3,
+    )
     return dict(before=before, after=after)
 
 
@@ -131,10 +147,7 @@ def revert_modify_policy(state, op, event_id, undo):
 def targeted_buildings(state, op):
     if op.building_id:
         return [b for b in state.map.buildings if b.id == op.building_id]
-    return [
-        b for b in state.map.buildings
-        if b.kind == op.building_kind and in_region(b.entrance, op.region)
-    ]
+    return [b for b in state.map.buildings if b.kind == op.building_kind and in_region(b.entrance, op.region)]
 
 
 def apply_set_service_availability(state, op, event_id, permanent, repetition):
@@ -154,15 +167,29 @@ def apply_set_service_availability(state, op, event_id, permanent, repetition):
         changes.append(change(building.id, "functional", before[0], building.functional))
         if before[1] != building.capacity:
             changes.append(change(building.id, "capacity", before[1], building.capacity))
-    trace(state, "operation", f"Service: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          changes=changes, affected=[b.id for b in buildings], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Service: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=changes,
+        affected=[b.id for b in buildings],
+        significance=3,
+    )
     if not op.open:
         for building in buildings:
             users = [
-                state.citizens[aid] for aid, agent in systems.agents.items()
-                if aid in state.citizens and state.citizens[aid].summary.active
-                and (agent.regular_shop == building.id or agent.shop_visits.get(building.id)
-                     or state.citizens[aid].last_building_id == building.id)
+                state.citizens[aid]
+                for aid, agent in systems.agents.items()
+                if aid in state.citizens
+                and state.citizens[aid].summary.active
+                and (
+                    agent.regular_shop == building.id
+                    or agent.shop_visits.get(building.id)
+                    or state.citizens[aid].last_building_id == building.id
+                )
             ][:30]
             for citizen in users:
                 responses.seek_alternative(state, citizen, building, event_id, op.id)
@@ -185,11 +212,25 @@ def apply_modify_resource_stock(state, op, event_id, permanent, repetition):
             resource.available_units = round(before * op.multiplier, 4)
             changes.append(change(resource.id, "available_units", before, resource.available_units))
             state.external_resource_changes.append(
-                dict(event_id=event_id, resource_id=resource.id, tick=state.simulation.tick, before=before,
-                     after=resource.available_units, reason="scenario operation stock change")
+                dict(
+                    event_id=event_id,
+                    resource_id=resource.id,
+                    tick=state.simulation.tick,
+                    before=before,
+                    after=resource.available_units,
+                    reason="scenario operation stock change",
+                )
             )
-    trace(state, "operation", f"Resources: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          changes=changes, significance=3)
+    trace(
+        state,
+        "operation",
+        f"Resources: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=changes,
+        significance=3,
+    )
     return {}
 
 
@@ -206,10 +247,20 @@ def apply_modify_housing_supply(state, op, event_id, permanent, repetition):
     share_before, rent_before = housing_share(state), rent_multiplier(state)
     for building in withdrawn:
         systems.housing_available[building.id] = False
-    trace(state, "operation", f"Housing: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          changes=[change("housing", "available_share", round(share_before, 3), round(housing_share(state), 3)),
-                   change("housing", "rent_multiplier", round(rent_before, 3), round(rent_multiplier(state), 3))],
-          affected=[b.id for b in withdrawn], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Housing: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=[
+            change("housing", "available_share", round(share_before, 3), round(housing_share(state), 3)),
+            change("housing", "rent_multiplier", round(rent_before, 3), round(rent_multiplier(state), 3)),
+        ],
+        affected=[b.id for b in withdrawn],
+        significance=3,
+    )
     return undo
 
 
@@ -220,10 +271,20 @@ def revert_modify_housing_supply(state, op, event_id, undo):
 
 def apply_broadcast_information(state, op, event_id, permanent, repetition):
     audience = select(state, op.audience, f"{op.id}:{repetition}")
-    believed = sum(responses.receive_information(state, citizen, op, event_id, repetition) for citizen in audience)
-    trace(state, "operation", f"Information: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.rationale, affected=[c.summary.id for c in audience],
-          observations=[f"{believed} of {len(audience)} recipients believed it"], significance=3)
+    believed = sum(
+        responses.receive_information(state, citizen, op, event_id, repetition) for citizen in audience
+    )
+    trace(
+        state,
+        "operation",
+        f"Information: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        affected=[c.summary.id for c in audience],
+        observations=[f"{believed} of {len(audience)} recipients believed it"],
+        significance=3,
+    )
     return {}
 
 
@@ -231,8 +292,16 @@ def apply_adjust_institutional_credibility(state, op, event_id, permanent, repet
     audience = select(state, op.audience, f"{op.id}:{repetition}")
     for citizen in audience:
         responses.credibility_shift(state, citizen, op, event_id)
-    trace(state, "operation", f"Credibility: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.reason, affected=[c.summary.id for c in audience], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Credibility: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.reason,
+        affected=[c.summary.id for c in audience],
+        significance=3,
+    )
     return {}
 
 
@@ -244,9 +313,18 @@ def apply_introduce_social_norm(state, op, event_id, permanent, repetition):
     for citizen in audience:
         responses.evaluate_norm(state, citizen, op.norm, op.strength, event_id, op.id)
     adopters = sum(1 for c in audience if systems.agents[c.summary.id].norms.get(op.norm, 0) > 0)
-    trace(state, "operation", f"Norm: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          changes=[change("norms", op.norm, before, systems.norms[op.norm])], affected=[c.summary.id for c in audience],
-          observations=[f"{adopters} of {len(audience)} exposed citizens adopted it"], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Norm: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=[change("norms", op.norm, before, systems.norms[op.norm])],
+        affected=[c.summary.id for c in audience],
+        observations=[f"{adopters} of {len(audience)} exposed citizens adopted it"],
+        significance=3,
+    )
     return dict(before=before)
 
 
@@ -272,17 +350,28 @@ def apply_create_organization(state, op, event_id, permanent, repetition):
     )
     systems.organizations[org.id] = org
     candidates = [
-        c for c in state.citizens.values()
+        c
+        for c in state.citizens.values()
         if c.summary.active and responses.eligible(state, c, systems.agents[c.summary.id], org)
     ]
     candidates.sort(
         key=lambda c: (-responses.join_score(state, c, systems.agents[c.summary.id], org), c.summary.id)
     )
-    for citizen in candidates[: max(1, round(len(candidates) * op.founding_share))] if op.founding_share else []:
+    for citizen in (
+        candidates[: max(1, round(len(candidates) * op.founding_share))] if op.founding_share else []
+    ):
         responses.consider_joining(state, citizen, systems.agents[citizen.summary.id], org, founding=True)
-    trace(state, "operation", f"Organization: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.mission or op.rationale, affected=[org.id, *org.members],
-          observations=[f"{len(org.members)} founding members joined"], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Organization: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.mission or op.rationale,
+        affected=[org.id, *org.members],
+        observations=[f"{len(org.members)} founding members joined"],
+        significance=3,
+    )
     return dict(org_id=org.id)
 
 
@@ -297,10 +386,24 @@ def apply_remove_organization(state, op, event_id, permanent, repetition):
     org.active = False
     for aid in org.members:
         if aid in state.citizens:
-            remember(state, state.citizens[aid], f"{org.name} was dissolved.", "observed", 55,
-                     proof=evidence("Organization dissolved", event_ids=[event_id] if event_id else None))
-    trace(state, "operation", f"Organization: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.rationale, affected=[org.id, *org.members], significance=3)
+            remember(
+                state,
+                state.citizens[aid],
+                f"{org.name} was dissolved.",
+                "observed",
+                55,
+                proof=evidence("Organization dissolved", event_ids=[event_id] if event_id else None),
+            )
+    trace(
+        state,
+        "operation",
+        f"Organization: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        affected=[org.id, *org.members],
+        significance=3,
+    )
     return {}
 
 
@@ -311,8 +414,16 @@ def apply_set_incentive(state, op, event_id, permanent, repetition):
         agent = state.systems.agents[citizen.summary.id]
         undo[citizen.summary.id] = agent.incentives.get(op.incentive, 0)
         agent.incentives[op.incentive] = op.amount
-    trace(state, "operation", f"Incentive: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          affected=[c.summary.id for c in audience], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Incentive: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        affected=[c.summary.id for c in audience],
+        significance=3,
+    )
     return undo
 
 
@@ -326,8 +437,10 @@ def apply_adjust_population_traits(state, op, event_id, permanent, repetition):
     audience = select(state, op.audience, f"{op.id}:{repetition}")
     if op.selection != "random":
         everyone = select(state, op.audience.model_copy(update=dict(share=1)), op.id)
-        everyone.sort(key=lambda c: (getattr(c.profile.traits, op.trait), c.summary.id),
-                      reverse=op.selection == "highest")
+        everyone.sort(
+            key=lambda c: (getattr(c.profile.traits, op.trait), c.summary.id),
+            reverse=op.selection == "highest",
+        )
         audience = everyone[: len(audience)]
     undo, changes = {}, []
     for citizen in audience:
@@ -336,8 +449,17 @@ def apply_adjust_population_traits(state, op, event_id, permanent, repetition):
         setattr(citizen.profile.traits, op.trait, after)
         undo[citizen.summary.id] = after - before
         changes.append(change(citizen.summary.id, f"traits.{op.trait}", before, after))
-    trace(state, "operation", f"Personality modification: {describe(op)}", event_id=event_id, op_id=op.id,
-          motivation=op.rationale, changes=changes, affected=list(undo), significance=3)
+    trace(
+        state,
+        "operation",
+        f"Personality modification: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=changes,
+        affected=list(undo),
+        significance=3,
+    )
     return undo
 
 
@@ -345,7 +467,9 @@ def revert_adjust_population_traits(state, op, event_id, undo):
     for aid, delta in undo.items():
         citizen = state.citizens.get(aid)
         if citizen:
-            setattr(citizen.profile.traits, op.trait, clamp(getattr(citizen.profile.traits, op.trait) - delta))
+            setattr(
+                citizen.profile.traits, op.trait, clamp(getattr(citizen.profile.traits, op.trait) - delta)
+            )
 
 
 def apply_modify_social_network(state, op, event_id, permanent, repetition):
@@ -367,22 +491,49 @@ def apply_modify_social_network(state, op, event_id, permanent, repetition):
                 before = tie.trust
                 tie.trust = clamp(tie.trust - 10)
                 tie.affection = clamp(tie.affection - 5)
-                tie.evidence = evidence("Scenario weakened existing ties", event_ids=[event_id] if event_id else None)
+                tie.evidence = evidence(
+                    "Scenario weakened existing ties", event_ids=[event_id] if event_id else None
+                )
                 changes.append(change(citizen.summary.id, f"trust:{tie.to_agent_id}", before, tie.trust))
-    trace(state, "operation", f"Network: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          changes=changes, affected=[c.summary.id for c in audience], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Network: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        changes=changes,
+        affected=[c.summary.id for c in audience],
+        significance=3,
+    )
     return {}
 
 
 def apply_physical_hazard(state, op, event_id, permanent, repetition):
-    trace(state, "operation", f"Hazard: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          observations=["Physical effects run through the event's hazard mechanics"], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Hazard: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        observations=["Physical effects run through the event's hazard mechanics"],
+        significance=3,
+    )
     return {}
 
 
 def apply_community_gathering(state, op, event_id, permanent, repetition):
-    trace(state, "operation", f"Gathering: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          observations=["Runs through the event's community mechanics"], significance=3)
+    trace(
+        state,
+        "operation",
+        f"Gathering: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        observations=["Runs through the event's community mechanics"],
+        significance=3,
+    )
     return {}
 
 
@@ -390,8 +541,15 @@ def apply_environmental_condition(state, op, event_id, permanent, repetition):
     state.systems.conditions.append(
         dict(op_id=op.id, condition=op.condition, region=op.region, intensity=op.intensity, event_id=event_id)
     )
-    trace(state, "operation", f"Condition: {describe(op)}", event_id=event_id, op_id=op.id, motivation=op.rationale,
-          significance=3)
+    trace(
+        state,
+        "operation",
+        f"Condition: {describe(op)}",
+        event_id=event_id,
+        op_id=op.id,
+        motivation=op.rationale,
+        significance=3,
+    )
     return {}
 
 

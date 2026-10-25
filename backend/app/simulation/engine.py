@@ -140,6 +140,7 @@ def tick(state, proposals=None):
         evaluate(state, citizen, "End-of-tick need decay")
     apply_effects(state)
     fire_effects(state)
+    systems.after_tick(state)
     treatment(state)
     # Refresh derived canonical inputs, then freeze/apply exactly one coupling phase.
     update_metrics(state)
@@ -147,7 +148,6 @@ def tick(state, proposals=None):
         background(state, citizen)
         evaluate_crisis(state, citizen)
     expire_interactions(state)
-    systems.after_tick(state)
     if state.simulation.tick % 20 == 0:
         for citizen in state.citizens.values():
             if not conscious(citizen):

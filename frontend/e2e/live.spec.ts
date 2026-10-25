@@ -24,6 +24,21 @@ test.afterEach(async ({}, info) => {
   }
 });
 
+async function previewCatalog(page: Page) {
+  await page.getByRole("button", { name: /Preview/ }).click();
+  const confirm = page.getByRole("button", {
+    name: "Confirm event",
+    exact: true,
+  });
+  const fallback = page.getByRole("button", {
+    name: "Use keyword catalog",
+    exact: true,
+  });
+  await expect(confirm.or(fallback)).toBeVisible();
+  if (await fallback.isVisible()) await fallback.click();
+  await expect(confirm).toBeEnabled();
+}
+
 async function api<T>(
   page: Page,
   path: string,
@@ -178,7 +193,7 @@ test("real create, initial flood, stream, inspector, outcome, undo and saved his
     .getByRole("dialog")
     .getByRole("textbox")
     .fill("A festival for 1 tick");
-  await page.getByRole("button", { name: /Preview/ }).click();
+  await previewCatalog(page);
   await page
     .getByRole("button", { name: "Confirm event", exact: true })
     .click();
@@ -496,7 +511,7 @@ test("an ambiguous confirmed event response retries the same key exactly once", 
     .getByRole("dialog")
     .getByRole("textbox")
     .fill("A festival for 1 tick");
-  await page.getByRole("button", { name: /Preview/ }).click();
+  await previewCatalog(page);
   await page
     .getByRole("button", { name: "Confirm event", exact: true })
     .click();
@@ -549,7 +564,7 @@ test("a manual pause from another tab invalidates preview and never auto-resumes
     .getByRole("dialog")
     .getByRole("textbox")
     .fill("A flood for 1 tick");
-  await page.getByRole("button", { name: /Preview/ }).click();
+  await previewCatalog(page);
   await expect(
     page.getByRole("button", { name: "Confirm event", exact: true }),
   ).toBeEnabled();
@@ -563,7 +578,7 @@ test("a manual pause from another tab invalidates preview and never auto-resumes
   await expect(page.getByRole("dialog").getByRole("textbox")).toHaveValue(
     "A flood for 1 tick",
   );
-  await page.getByRole("button", { name: /Preview/ }).click();
+  await previewCatalog(page);
   await page
     .getByRole("button", { name: "Confirm event", exact: true })
     .click();
@@ -1213,9 +1228,7 @@ test("life sim traits, conversations and open-ended events work on desktop and m
   await page
     .getByLabel("Describe your event")
     .fill("Dinosaurs appear in the town square");
-  await page
-    .getByRole("button", { name: "Preview event", exact: true })
-    .click();
+  await previewCatalog(page);
   await expect(page.getByRole("dialog")).toContainText(
     "Citizens learn about your event",
   );

@@ -19,16 +19,29 @@ from app.scenario_engine.world import enable, rent_for, sync_agents, trace, walk
 from app.simulation.agents import clamp, evidence, metric_delta, remember
 
 SERVICE_FAILURES = {"CAPACITY", "INFRASTRUCTURE_UNAVAILABLE", "UNREACHABLE"}
-IRREVERSIBLE = {"broadcast_information", "adjust_institutional_credibility", "modify_resource_stock",
-                "modify_social_network", "remove_organization", "physical_hazard", "community_gathering"}
+IRREVERSIBLE = {
+    "broadcast_information",
+    "adjust_institutional_credibility",
+    "modify_resource_stock",
+    "modify_social_network",
+    "remove_organization",
+    "physical_hazard",
+    "community_gathering",
+}
 
 
 def attach(state, event_id, plan):
     """Queue a validated plan with its event. Systems start now so the baseline is measured."""
     enable(state)
     state.systems.plans[event_id] = PlanRecord(event_id=event_id, plan=plan.model_dump(mode="json"))
-    trace(state, "operation", f"Scenario queued: {plan.title}", event_id=event_id,
-          motivation=plan.description, significance=3)
+    trace(
+        state,
+        "operation",
+        f"Scenario queued: {plan.title}",
+        event_id=event_id,
+        motivation=plan.description,
+        significance=3,
+    )
 
 
 def on_tick_start(state):
@@ -62,16 +75,32 @@ def activate_plan(state, record, runtime):
         data = op.model_dump(mode="json")
         for repetition in range(repetitions):
             systems.schedule.append(
-                Scheduled(tick=now + timing.start_tick + repetition * every, event_id=record.event_id, op=data,
-                          action="apply", repetition=repetition, permanent=permanent)
+                Scheduled(
+                    tick=now + timing.start_tick + repetition * every,
+                    event_id=record.event_id,
+                    op=data,
+                    action="apply",
+                    repetition=repetition,
+                    permanent=permanent,
+                )
             )
         if duration and op.type not in IRREVERSIBLE:
             systems.schedule.append(
-                Scheduled(tick=now + timing.start_tick + (repetitions - 1) * every + duration,
-                          event_id=record.event_id, op=data, action="revert")
+                Scheduled(
+                    tick=now + timing.start_tick + (repetitions - 1) * every + duration,
+                    event_id=record.event_id,
+                    op=data,
+                    action="revert",
+                )
             )
-    trace(state, "operation", f"Scenario active: {plan.title}", event_id=record.event_id,
-          motivation=plan.description, significance=3)
+    trace(
+        state,
+        "operation",
+        f"Scenario active: {plan.title}",
+        event_id=record.event_id,
+        motivation=plan.description,
+        significance=3,
+    )
 
 
 def process_schedule(state):
@@ -85,7 +114,11 @@ def process_schedule(state):
         if entry.action == "apply":
             undo = mutations.apply(state, entry, entry.permanent)
             for pending in systems.schedule:
-                if pending.action == "revert" and pending.event_id == entry.event_id and pending.op["id"] == entry.op["id"]:
+                if (
+                    pending.action == "revert"
+                    and pending.event_id == entry.event_id
+                    and pending.op["id"] == entry.op["id"]
+                ):
                     merge_undo(pending.undo, undo)
         else:
             mutations.revert(state, entry)
@@ -114,7 +147,11 @@ def after_decision(state, citizen, decision):
         if decision.outcome != "rejected":
             bump(systems, "service_success")
     if decision.outcome == "rejected":
-        if action in {"move", "evacuate"} and target.startswith("building") and decision.rejection_code not in SERVICE_FAILURES:
+        if (
+            action in {"move", "evacuate"}
+            and target.startswith("building")
+            and decision.rejection_code not in SERVICE_FAILURES
+        ):
             bump(systems, "service_attempts", -1)
         return
     if action in {"move", "evacuate"}:
@@ -136,6 +173,9 @@ def after_decision(state, citizen, decision):
 
 
 def after_tick(state):
+    from app.behavior.rules import RULES
+    from app.behavior.vitals import conscious, evaluate, impact, living
+
     systems = state.systems
     if not systems.enabled:
         return
@@ -145,7 +185,8 @@ def after_tick(state):
     shortfall = systems.treasury < -30
     for citizen in state.citizens.values():
         agent = systems.agents.get(citizen.summary.id)
-        if not citizen.summary.active or agent is None:
+        evaluate(state, citizen, "Before city-system effects")
+        if not living(citizen) or agent is None:
             continue
         if agent.trip_mode and not citizen.summary.path:
             citizen.summary.movement_speed_mps = walking_speed(citizen)
@@ -156,29 +197,58 @@ def after_tick(state):
             agent.wallet = round(agent.wallet - paid, 4)
             systems.businesses["landlords"] = systems.businesses.get("landlords", 0) + paid
             bump(systems, "rent_paid", paid)
-        if agent.housing_status == "seeking_assistance" and policy.housing.assistance_per_tick and not shortfall:
+        if (
+            agent.housing_status == "seeking_assistance"
+            and policy.housing.assistance_per_tick
+            and not shortfall
+        ):
             agent.wallet += policy.housing.assistance_per_tick
             systems.treasury -= policy.housing.assistance_per_tick
             bump(systems, "assistance_paid", policy.housing.assistance_per_tick)
-        if agent.incentives.get("conservation_bonus") and sum(citizen.inventory.model_dump().values()) <= citizen.target_inventory_units:
+        if (
+            agent.incentives.get("conservation_bonus")
+            and sum(citizen.inventory.model_dump().values()) <= citizen.target_inventory_units
+        ):
             bonus = agent.incentives["conservation_bonus"] * 0.1
             agent.wallet += bonus
             systems.treasury -= bonus
         inside = buildings.get(citizen.inside_building_id or "")
-        if inside and inside.functional and inside.kind == "shop":
+        if inside and inside.functional and inside.kind == "shop" and conscious(citizen):
             shop(state, citizen, agent, inside)
-        if inside and inside.functional and inside.kind == "hospital":
-            before = citizen.needs.health
-            citizen.needs.health = clamp(before + 0.35 * funding)
-            bump(systems, "hospital_care")
-            if agent.conditions.get("illness") is not None and state.simulation.tick - agent.conditions["illness"] >= 6:
-                agent.conditions.pop("illness")
+        # Admitted patients use the physical care engine exactly once. Conscious
+        # walk-in care also consumes real hospital supplies; location alone is
+        # never permission to heal an unconscious or terminal patient for free.
+        if (
+            inside
+            and inside.functional
+            and inside.kind == "hospital"
+            and conscious(citizen)
+            and citizen.condition.care != "hospital"
+        ):
+            hospital = state.behavior.hospitals.get(inside.id)
+            dt = state.simulation.config.tick_seconds / 10
+            units = RULES["treatment_units"] * funding * dt
+            if hospital and units > 0 and hospital.inventory.supplies >= units and citizen.needs.health < 100:
+                hospital.inventory.supplies -= units
+                state.counters["resources_consumed"] += units
+                impact(
+                    state, citizen, "health", 0.35 * funding * dt, "Funded walk-in hospital supplies", "care"
+                )
+                bump(systems, "hospital_care")
+                if (
+                    agent.conditions.get("illness") is not None
+                    and state.simulation.tick - agent.conditions["illness"] >= 6
+                ):
+                    agent.conditions.pop("illness")
         wellbeing(state, citizen, agent, inside)
+        if not living(citizen):
+            continue
         if agent.wallet < STRAIN_WALLET:
             proof = evidence(f"Financial strain: wallet below {STRAIN_WALLET:g} credits")
             metric_delta(citizen, "stress", 0.25, proof)
             metric_delta(citizen, "happiness", -0.15, proof)
-        responses.review(state, citizen)
+        if conscious(citizen):
+            responses.review(state, citizen)
     organizations(state)
     systems.treasury -= TRANSIT_OPERATING_COST * policy.transportation.transit_service_level
     systems.treasury -= HOSPITAL_UPKEEP * max(0.0, funding - 1)
@@ -218,28 +288,44 @@ def shop(state, citizen, agent, building):
     agent.last_paid["food"] = price
     bump(systems, "food_bought")
     if abs(expected - price) > 1e-9:
-        remember(state, citizen, f"Food at {building.name} cost {price:.2f} credits; it used to be {expected:.2f}.",
-                 "observed", 50, proof=evidence("Paid a changed shop price"))
+        remember(
+            state,
+            citizen,
+            f"Food at {building.name} cost {price:.2f} credits; it used to be {expected:.2f}.",
+            "observed",
+            50,
+            proof=evidence("Paid a changed shop price"),
+        )
 
 
 def wellbeing(state, citizen, agent, inside):
     """Everyday illness, ageing and regional conditions; care and shelter mitigate them."""
+    from app.behavior.vitals import evaluate, impact, living
+
+    def health(delta, reason, proof=None):
+        impact(state, citizen, "health", delta, reason, "scenario", proof)
+        evaluate(state, citizen, reason, proof)
+        return living(citizen)
+
     tick = state.simulation.tick
     age = citizen.profile.age
     if "illness" not in agent.conditions:
         chance = 0.003 + 0.004 * max(0, age - 50) / 30
         if unit(citizen.summary.id, tick, "illness") < chance:
             agent.conditions["illness"] = tick
-            citizen.needs.health = clamp(citizen.needs.health - 12)
+            if not health(-12, "Fell ill"):
+                return
             remember(state, citizen, "I am feeling unwell.", "observed", 60, proof=evidence("Fell ill"))
             bump(state.systems, "illnesses")
     elif not (inside and inside.kind == "hospital"):
         since = tick - agent.conditions["illness"]
-        citizen.needs.health = clamp(citizen.needs.health + (-0.1 if since < 40 else 0.3))
+        if not health(-0.1 if since < 40 else 0.3, "Ongoing illness"):
+            return
         if since >= 70:
             agent.conditions.pop("illness")
     if age > 60:
-        citizen.needs.health = clamp(citizen.needs.health - 0.01 * (age - 60) / 20)
+        if not health(-0.01 * (age - 60) / 20, "Age-related city-system pressure"):
+            return
     for condition in state.systems.conditions:
         here = in_region(citizen.summary.position, condition["region"])
         key = condition["op_id"]
@@ -252,27 +338,36 @@ def wellbeing(state, citizen, agent, inside):
         sheltered = inside is not None
         kind = condition["condition"]
         if kind in {"heat", "cold"} and not sheltered:
-            citizen.needs.health = clamp(citizen.needs.health - 0.05 * strength)
+            if not health(-0.05 * strength, f"Exposure to {kind}", proof):
+                return
             metric_delta(citizen, "stress", 0.3 * strength, proof)
         elif kind == "pollution":
-            citizen.needs.health = clamp(citizen.needs.health - 0.03 * strength)
+            if not health(-0.03 * strength, "Exposure to pollution", proof):
+                return
             metric_delta(citizen, "stress", 0.15 * strength, proof)
         elif kind == "noise" and not sheltered:
             metric_delta(citizen, "stress", 0.3 * strength, proof)
         elif kind == "illness" and "illness" not in agent.conditions:
             if unit(citizen.summary.id, tick, key) < 0.02 * strength:
                 agent.conditions["illness"] = tick
-                citizen.needs.health = clamp(citizen.needs.health - 12)
+                if not health(-12, "Scenario illness", proof):
+                    return
                 bump(state.systems, "illnesses")
 
 
 def organizations(state):
+    from app.behavior.vitals import conscious
+
     systems = state.systems
     tick = state.simulation.tick
     for org in systems.organizations.values():
         if not org.active or not org.members:
             continue
-        members = [state.citizens[aid] for aid in org.members if aid in state.citizens and state.citizens[aid].summary.active]
+        members = [
+            state.citizens[aid]
+            for aid in org.members
+            if aid in state.citizens and conscious(state.citizens[aid])
+        ]
         if org.kind == "mutual_aid" and (tick - org.created_tick) % 6 == 0:
             for donor in members:
                 surplus = max(("supplies", "food"), key=lambda k: getattr(donor.inventory, k))
@@ -285,36 +380,64 @@ def organizations(state):
                 org.pool -= 1
                 recipient.inventory.supplies += 1
                 bump(systems, "aid_transfers")
-                remember(state, recipient, f"{org.name} gave me supplies from its shared pool.", "observed", 55,
-                         proof=evidence("Mutual aid transfer", event_ids=[org.event_id] if org.event_id else None))
+                remember(
+                    state,
+                    recipient,
+                    f"{org.name} gave me supplies from its shared pool.",
+                    "observed",
+                    55,
+                    proof=evidence("Mutual aid transfer", event_ids=[org.event_id] if org.event_id else None),
+                )
         elif org.kind in {"tenant_union", "protest_group"} and responses.rallying(state, org):
             center_ids = {b.id for b in state.map.buildings if b.kind == "community"}
             present = [c for c in members if c.inside_building_id in center_ids]
-            proof = evidence(f"Took part in the {org.name} gathering", event_ids=[org.event_id] if org.event_id else None)
+            proof = evidence(
+                f"Took part in the {org.name} gathering", event_ids=[org.event_id] if org.event_id else None
+            )
             for citizen in present:
                 citizen.needs.social = clamp(citizen.needs.social - 2)
                 metric_delta(citizen, "happiness", 0.2, proof)
             if (tick - org.created_tick) % org.rally_every == 3 and present:
                 observers = [
-                    c for c in state.citizens.values()
-                    if c.summary.active and c.summary.id not in org.members and c.inside_building_id in center_ids
-                    and systems.agents.get(c.summary.id) and systems.agents[c.summary.id].institutional_trust > 60
+                    c
+                    for c in state.citizens.values()
+                    if c.summary.active
+                    and c.summary.id not in org.members
+                    and c.inside_building_id in center_ids
+                    and systems.agents.get(c.summary.id)
+                    and systems.agents[c.summary.id].institutional_trust > 60
                 ]
                 for observer in observers:
                     member = min(present, key=lambda c: c.summary.id)
                     tie = observer.relationships.get(member.summary.id)
                     if tie:
                         tie.conflict = clamp(tie.conflict + 2)
-                    metric_delta(observer, "stress", 0.5, evidence(f"Disagreed with the {org.name} gathering"))
+                    metric_delta(
+                        observer, "stress", 0.5, evidence(f"Disagreed with the {org.name} gathering")
+                    )
                     bump(systems, "rally_conflicts")
-                    trace(state, "decision", f"Disagreed with the {org.name} gathering", event_id=org.event_id,
-                          agent=observer, selected="object", motivation="I trust the institutions they criticize",
-                          affected=[member.summary.id], significance=1)
+                    trace(
+                        state,
+                        "decision",
+                        f"Disagreed with the {org.name} gathering",
+                        event_id=org.event_id,
+                        agent=observer,
+                        selected="object",
+                        motivation="I trust the institutions they criticize",
+                        affected=[member.summary.id],
+                        significance=1,
+                    )
                 bump(systems, "rally_demands", len(present))
-        elif org.kind in {"community_program", "assistance_office"} and org.budget_per_tick and systems.treasury > -30:
+        elif (
+            org.kind in {"community_program", "assistance_office"}
+            and org.budget_per_tick
+            and systems.treasury > -30
+        ):
             recipients = [
-                c for c in members
-                if org.kind == "community_program" or systems.agents[c.summary.id].housing_status == "seeking_assistance"
+                c
+                for c in members
+                if org.kind == "community_program"
+                or systems.agents[c.summary.id].housing_status == "seeking_assistance"
             ] or members
             share = org.budget_per_tick / len(recipients)
             for citizen in recipients:

@@ -130,81 +130,142 @@ PolicyTarget = Literal[
 # (minimum, maximum, unit, nullable, description, systems)
 POLICY_TARGETS: dict[str, tuple[float, float, str, bool, str, tuple[str, ...]]] = {
     "taxation.business_tax_rate": (
-        0, 0.6, "share", False,
-        "Share of each business's revenue paid to the city treasury.", ("taxation", "business", "economy"),
+        0,
+        0.6,
+        "share",
+        False,
+        "Share of each business's revenue paid to the city treasury.",
+        ("taxation", "business", "economy"),
     ),
     "taxation.household_tax_rate": (
-        0, 0.4, "share", False, "Share of each wage paid to the city treasury.", ("taxation", "economy"),
+        0,
+        0.4,
+        "share",
+        False,
+        "Share of each wage paid to the city treasury.",
+        ("taxation", "economy"),
     ),
     "transportation.transit_fare": (
-        0, 10, "credits per trip", False,
+        0,
+        10,
+        "credits per trip",
+        False,
         "Fare a rider pays per public transit trip. Fare revenue goes to the treasury.",
         ("transportation", "economy"),
     ),
     "transportation.car_trip_cost": (
-        0, 20, "credits per trip", False, "Fuel, parking and toll cost of one car trip.",
+        0,
+        20,
+        "credits per trip",
+        False,
+        "Fuel, parking and toll cost of one car trip.",
         ("transportation", "economy"),
     ),
     "transportation.transit_service_level": (
-        0, 2, "multiplier", False,
+        0,
+        2,
+        "multiplier",
+        False,
         "Transit frequency and speed. 0 suspends service; 1 is normal; above 1 is faster service "
         "that costs the treasury more to operate.",
         ("transportation", "infrastructure"),
     ),
     "transportation.transit_campaign": (
-        0, 1, "intensity", False,
+        0,
+        1,
+        "intensity",
+        False,
         "Official encouragement to ride transit instead of driving. Citizens weigh it by how much "
         "they trust institutions.",
         ("transportation", "public_trust"),
     ),
     "housing.rent_level": (
-        0.2, 3, "multiplier", False, "Market rent level relative to today's rents.", ("housing", "economy"),
+        0.2,
+        3,
+        "multiplier",
+        False,
+        "Market rent level relative to today's rents.",
+        ("housing", "economy"),
     ),
     "housing.rent_cap": (
-        0.2, 3, "multiplier", True,
+        0.2,
+        3,
+        "multiplier",
+        True,
         "Rent control: the highest rent multiplier landlords may charge. Clear it to remove control.",
         ("housing",),
     ),
     "housing.assistance_per_tick": (
-        0, 1, "credits per tick", False,
+        0,
+        1,
+        "credits per tick",
+        False,
         "Housing assistance the treasury pays to low-income renters who request it.",
         ("housing", "public_services", "economy"),
     ),
     "public_services.hospital_funding": (
-        0.25, 3, "multiplier", False,
+        0.25,
+        3,
+        "multiplier",
+        False,
         "Hospital funding. It sets care quality (healing per tick) and capacity, and costs the "
         "treasury upkeep above the normal level.",
         ("public_services", "healthcare"),
     ),
     "business.price_level": (
-        0.25, 3, "multiplier", False, "Shop prices relative to today's prices, including food.",
+        0.25,
+        3,
+        "multiplier",
+        False,
+        "Shop prices relative to today's prices, including food.",
         ("business", "economy", "resources"),
     ),
     "business.subsidy_per_shift": (
-        0, 2, "credits per shift", False, "Treasury subsidy paid to a business per work shift.",
+        0,
+        2,
+        "credits per shift",
+        False,
+        "Treasury subsidy paid to a business per work shift.",
         ("business", "economy"),
     ),
     "resource_distribution.ration_units_per_agent": (
-        0.25, 10, "units per tick", True,
+        0.25,
+        10,
+        "units per tick",
+        True,
         "Most units one citizen may gather from a depot per tick. Clear it to remove rationing.",
         ("resources",),
     ),
     "resource_distribution.aid_multiplier": (
-        0, 3, "multiplier", False, "Strength of help and community aid deliveries.", ("resources",),
+        0,
+        3,
+        "multiplier",
+        False,
+        "Strength of help and community aid deliveries.",
+        ("resources",),
     ),
     "resource_distribution.evacuation_order": (
-        0, 1, "boolean (0 or 1)", False,
+        0,
+        1,
+        "boolean (0 or 1)",
+        False,
         "Official evacuation order. Citizens decide whether to comply based on institutional trust "
         "and what they observe.",
         ("safety", "public_trust"),
     ),
     "community_programs.cooperation_reward": (
-        0, 2, "credits per action", False,
+        0,
+        2,
+        "credits per action",
+        False,
         "Treasury reward paid to a citizen for each accepted help or trade.",
         ("social_norms", "economy"),
     ),
     "community_programs.conservation_campaign": (
-        0, 1, "intensity", False,
+        0,
+        1,
+        "intensity",
+        False,
         "Official campaign asking citizens not to stockpile. Citizens weigh it by institutional trust.",
         ("resources", "public_trust"),
     ),
@@ -221,14 +282,33 @@ NORMS: dict[str, str] = {
     "civic_participation": "Joining organizations and public meetings.",
 }
 Topic = Literal[
-    "policy_change", "prices", "safety", "services", "housing", "transport", "community", "government", "other"
+    "policy_change",
+    "prices",
+    "safety",
+    "services",
+    "housing",
+    "transport",
+    "community",
+    "government",
+    "other",
 ]
 Channel = Literal["official", "media", "rumor", "word_of_mouth"]
 AudienceKind = Literal[
-    "all_citizens", "region", "low_income", "middle_income", "high_income", "renters", "workers",
-    "transit_riders", "car_users", "organization_members", "share",
+    "all_citizens",
+    "region",
+    "low_income",
+    "middle_income",
+    "high_income",
+    "renters",
+    "workers",
+    "transit_riders",
+    "car_users",
+    "organization_members",
+    "share",
 ]
-OrganizationKind = Literal["mutual_aid", "tenant_union", "protest_group", "community_program", "assistance_office"]
+OrganizationKind = Literal[
+    "mutual_aid", "tenant_union", "protest_group", "community_program", "assistance_office"
+]
 ORGANIZATIONS: dict[str, str] = {
     "mutual_aid": "Members with surplus contribute supplies to a pool; members in need draw from it.",
     "tenant_union": "Renters organize, meet at the community center and demand housing help.",
@@ -433,7 +513,9 @@ OperationType = Literal[tuple(OPERATION_MODELS)]
 # event that shares the event's single map region.
 OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
     "modify_policy": (
-        "Set, increase, decrease, multiply or clear one registered policy target.", (), False,
+        "Set, increase, decrease, multiply or clear one registered policy target.",
+        (),
+        False,
     ),
     "set_service_availability": (
         "Open or close a building (by building_id) or every building of a kind in a region, and "
@@ -442,7 +524,9 @@ OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
         False,
     ),
     "modify_resource_stock": (
-        "Multiply the stock of food, water or supplies at the depots in a region.", ("resources",), False,
+        "Multiply the stock of food, water or supplies at the depots in a region.",
+        ("resources",),
+        False,
     ),
     "modify_housing_supply": (
         "Set the share of homes in a region that accept tenants. Scarcer housing pushes market rent up.",
@@ -472,9 +556,15 @@ OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
         ("organizations",),
         False,
     ),
-    "remove_organization": ("Dissolve an existing organization by organization_id.", ("organizations",), False),
+    "remove_organization": (
+        "Dissolve an existing organization by organization_id.",
+        ("organizations",),
+        False,
+    ),
     "set_incentive": (
-        "Give an audience a per-action or per-tick credit incentive.", ("economy", "social_norms"), False,
+        "Give an audience a per-action or per-tick credit incentive.",
+        ("economy", "social_norms"),
+        False,
     ),
     "adjust_population_traits": (
         "Directly edit a personality trait for part of the population. This changes who citizens are, "
@@ -483,7 +573,9 @@ OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
         False,
     ),
     "modify_social_network": (
-        "Create acquaintance ties between strangers, or weaken existing ties.", ("social_network",), False,
+        "Create acquaintance ties between strangers, or weaken existing ties.",
+        ("social_network",),
+        False,
     ),
     "physical_hazard": (
         "A flood, fire or storm in a region at a severity. Citizens decide how to stay safe.",
@@ -491,7 +583,9 @@ OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
         True,
     ),
     "community_gathering": (
-        "A festival or community aid distribution in a region.", ("social_norms", "resources"), True,
+        "A festival or community aid distribution in a region.",
+        ("social_norms", "resources"),
+        True,
     ),
     "environmental_condition": (
         "Heat, cold, illness, pollution or noise in a region. It affects health and stress per tick; "

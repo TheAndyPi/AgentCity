@@ -62,8 +62,8 @@ def integration_app(service, failure):
         data = current.tiger.status(request.state.owner, simulation_id, after, limit)
         return dict(schema_version="1.0.0", request_id=request.state.request_id, data=data)
 
-    from app.scenario_engine.api import register
     from app.behavior.api import install
+    from app.scenario_engine.api import register
 
     register(child, service)
     install(child, service)

@@ -41,18 +41,30 @@ class CommitRequest(Model):
 
 
 def ok(request, data, status=200):
-    return JSONResponse(dict(schema_version="1.0.0", request_id=request.state.request_id, data=data), status_code=status)
+    return JSONResponse(
+        dict(schema_version="1.0.0", request_id=request.state.request_id, data=data), status_code=status
+    )
 
 
 def preview_summary(state, plan, warnings):
     """What the preview modal shows: compiled on a copy so nothing is allocated in the world."""
     copy = state.model_copy(deep=True)
     preview = compile_preview(copy, plan, warnings)
-    systems = list(dict.fromkeys([*plan.affected_systems, *(s for op in plan.operations for s in OPERATIONS[op.type][1])]))
+    systems = list(
+        dict.fromkeys(
+            [*plan.affected_systems, *(s for op in plan.operations for s in OPERATIONS[op.type][1])]
+        )
+    )
     return dict(
         operations=[
-            dict(id=op.id, type=op.type, label=describe(op), rationale=op.rationale,
-                 timing=op.timing.model_dump(), physical=OPERATIONS[op.type][2])
+            dict(
+                id=op.id,
+                type=op.type,
+                label=describe(op),
+                rationale=op.rationale,
+                timing=op.timing.model_dump(),
+                physical=OPERATIONS[op.type][2],
+            )
             for op in plan.operations
         ],
         affected_systems=systems,
@@ -69,10 +81,24 @@ def preview_summary(state, plan, warnings):
 def checked(state, raw):
     plan, errors, warnings = validate_plan(state, raw)
     if plan is None:
-        return dict(status="invalid", plan=raw, errors=errors, warnings=warnings, unsupported=raw.get("unsupported", []),
-                    clarification="", summary=None)
-    return dict(status="ready", plan=plan.model_dump(mode="json"), errors=[], warnings=warnings,
-                unsupported=plan.unsupported, clarification="", summary=preview_summary(state, plan, warnings))
+        return dict(
+            status="invalid",
+            plan=raw,
+            errors=errors,
+            warnings=warnings,
+            unsupported=raw.get("unsupported", []),
+            clarification="",
+            summary=None,
+        )
+    return dict(
+        status="ready",
+        plan=plan.model_dump(mode="json"),
+        errors=[],
+        warnings=warnings,
+        unsupported=plan.unsupported,
+        clarification="",
+        summary=preview_summary(state, plan, warnings),
+    )
 
 
 def commit(service, owner, sid, body):
@@ -92,7 +118,13 @@ def commit(service, owner, sid, body):
     )
     plan, errors, warnings = validate_plan(state, body.plan)
     if plan is None:
-        raise DomainError("VALIDATION_ERROR", "The scenario plan is not valid", 422, field="plan", reason="; ".join(errors)[:2000])
+        raise DomainError(
+            "VALIDATION_ERROR",
+            "The scenario plan is not valid",
+            422,
+            field="plan",
+            reason="; ".join(errors)[:2000],
+        )
     resume = hold.was_running
     if resume:
         service.running_slot(sid)
@@ -130,7 +162,14 @@ def systems_view(state):
         policy=systems.policy.model_dump(),
         treasury=round(systems.treasury, 3),
         organizations=[
-            dict(id=o.id, kind=o.kind, name=o.name, members=len(o.members), active=o.active, event_id=o.event_id)
+            dict(
+                id=o.id,
+                kind=o.kind,
+                name=o.name,
+                members=len(o.members),
+                active=o.active,
+                event_id=o.event_id,
+            )
             for o in systems.organizations.values()
         ],
         norms=systems.norms,
@@ -139,8 +178,13 @@ def systems_view(state):
             dict(id=b.id, name=b.name, kind=b.kind) for b in state.map.buildings if not b.functional
         ],
         plans=[
-            dict(event_id=r.event_id, title=r.plan["title"], status=r.status,
-                 activated_tick=r.activated_tick, resolved_tick=r.resolved_tick)
+            dict(
+                event_id=r.event_id,
+                title=r.plan["title"],
+                status=r.status,
+                activated_tick=r.activated_tick,
+                resolved_tick=r.resolved_tick,
+            )
             for r in systems.plans.values()
         ],
         live=outcomes.measure(state, record) if systems.enabled else None,
@@ -157,11 +201,15 @@ def event_view(state, eid):
         event_id=eid,
         status=record.status,
         plan=record.plan,
-        operations=[dict(id=op["id"], type=op["type"], label=describe(parse(op))) for op in record.plan["operations"]],
+        operations=[
+            dict(id=op["id"], type=op["type"], label=describe(parse(op))) for op in record.plan["operations"]
+        ],
         activated_tick=record.activated_tick,
         resolved_tick=record.resolved_tick,
         baseline=record.baseline,
-        current=outcomes.measure(state, record) if record.status == "active" else (record.series[-1] if record.series else None),
+        current=outcomes.measure(state, record)
+        if record.status == "active"
+        else (record.series[-1] if record.series else None),
         series=record.series[-200:],
         findings=record.findings,
         policy_before=record.policy_before,
@@ -181,7 +229,9 @@ def agent_view(state, aid):
     return dict(
         agent_id=aid,
         enabled=state.systems.enabled,
-        systems=None if agent is None else dict(
+        systems=None
+        if agent is None
+        else dict(
             wallet=round(agent.wallet, 3),
             income=agent.income,
             owns_car=agent.owns_car,
@@ -193,7 +243,8 @@ def agent_view(state, aid):
             norms=agent.norms,
             organizations=[
                 dict(id=o, name=state.systems.organizations[o].name)
-                for o in agent.organizations if o in state.systems.organizations
+                for o in agent.organizations
+                if o in state.systems.organizations
             ],
             incentives=agent.incentives,
             beliefs=[b.model_dump() for b in agent.beliefs.values()][-12:],
@@ -236,8 +287,12 @@ def register(child, service):
         current = service()
         owner = request.state.owner
         response, status = await current.mutate(
-            owner, request.state.request_id, f"POST {request.url.path}", body.model_dump(mode="json"),
-            lambda: commit(current, owner, sid, body), sid,
+            owner,
+            request.state.request_id,
+            f"POST {request.url.path}",
+            body.model_dump(mode="json"),
+            lambda: commit(current, owner, sid, body),
+            sid,
         )
         return JSONResponse(response, status_code=status)
 
@@ -246,18 +301,24 @@ def register(child, service):
         return ok(request, systems_view(service().owned(request.state.owner, sid, revision)))
 
     @child.get(PREFIX + "/simulations/{sid}/events/{eid}")
-    async def get_event(request: Request, sid: str, eid: str, revision: int | None = Query(default=None, ge=0)):
+    async def get_event(
+        request: Request, sid: str, eid: str, revision: int | None = Query(default=None, ge=0)
+    ):
         return ok(request, event_view(service().owned(request.state.owner, sid, revision), eid))
 
     @child.get(PREFIX + "/simulations/{sid}/agents/{aid}/traces")
-    async def get_traces(request: Request, sid: str, aid: str, revision: int | None = Query(default=None, ge=0)):
+    async def get_traces(
+        request: Request, sid: str, aid: str, revision: int | None = Query(default=None, ge=0)
+    ):
         return ok(request, agent_view(service().owned(request.state.owner, sid, revision), aid))
 
     @child.get(PREFIX + "/simulations/{sid}/initial-plan")
     async def initial_plan(request: Request, sid: str):
         state = service().owned(request.state.owner, sid)
         pending = state.simulation.initial_preview
-        plan = state.systems.initial_plan if pending and pending.id == state.systems.initial_preview_id else None
+        plan = (
+            state.systems.initial_plan if pending and pending.id == state.systems.initial_preview_id else None
+        )
         summary = None
         if plan:
             parsed, _, warnings = validate_plan(state, plan)

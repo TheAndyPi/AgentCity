@@ -136,13 +136,19 @@ def normalize(draft, prompt):
         fields = OPERATION_MODELS[item.type].model_fields
         data = item.model_dump(exclude_none=True)
         op = dict(type=item.type, id=item.id[:40] or "op", rationale=item.rationale[:300])
-        timing = {k: data[k] for k in ("start_tick", "duration_ticks", "repeat_every", "repeat_count") if k in data}
+        timing = {
+            k: data[k] for k in ("start_tick", "duration_ticks", "repeat_every", "repeat_count") if k in data
+        }
         if timing:
             op["timing"] = timing
         if "audience" in fields:
             audience = {}
-            for source, target in (("audience_kind", "kind"), ("audience_share", "share"),
-                                   ("audience_region", "region"), ("organization_id", "organization_id")):
+            for source, target in (
+                ("audience_kind", "kind"),
+                ("audience_share", "share"),
+                ("audience_region", "region"),
+                ("organization_id", "organization_id"),
+            ):
                 if source in data:
                     audience[target] = data[source]
             if audience:
@@ -174,11 +180,17 @@ def normalize(draft, prompt):
 
 def build_prompt(state, prompt, mode):
     registry = dict(
-        operations={name: dict(description=d, systems=list(s), physical=p) for name, (d, s, p) in OPERATIONS.items()},
-        operation_fields={name: [f for f in model.model_fields if f not in {"type", "id", "timing", "rationale"}]
-                          for name, model in OPERATION_MODELS.items()},
-        policy_targets={t: dict(minimum=lo, maximum=hi, unit=u, clearable=n, description=d)
-                        for t, (lo, hi, u, n, d, _) in POLICY_TARGETS.items()},
+        operations={
+            name: dict(description=d, systems=list(s), physical=p) for name, (d, s, p) in OPERATIONS.items()
+        },
+        operation_fields={
+            name: [f for f in model.model_fields if f not in {"type", "id", "timing", "rationale"}]
+            for name, model in OPERATION_MODELS.items()
+        },
+        policy_targets={
+            t: dict(minimum=lo, maximum=hi, unit=u, clearable=n, description=d)
+            for t, (lo, hi, u, n, d, _) in POLICY_TARGETS.items()
+        },
         norms=NORMS,
         organizations=ORGANIZATIONS,
         incentives=INCENTIVES,
@@ -194,10 +206,10 @@ def build_prompt(state, prompt, mode):
         "- Never substitute a different event. Do not add floods, fires, storms, festivals, aid or shortages "
         "unless the user asked for them.\n"
         "- If part of the request cannot be represented, explain it in `unsupported` and represent the rest. "
-        "If nothing can be represented, set status to \"unsupported\" with no operations.\n"
-        "- If the request is too ambiguous to represent, set status to \"needs_clarification\" and ask in "
+        'If nothing can be represented, set status to "unsupported" with no operations.\n'
+        '- If the request is too ambiguous to represent, set status to "needs_clarification" and ask in '
         "`clarification`.\n"
-        "- Relative changes: \"doubles\" is multiply 2, \"halves\" is multiply 0.5, \"raises by 20%\" is multiply 1.2.\n"
+        '- Relative changes: "doubles" is multiply 2, "halves" is multiply 0.5, "raises by 20%" is multiply 1.2.\n'
         "- Spending money on a public service is modify_policy on that service's funding target; the "
         "treasury pays for it.\n"
         "- Announce official changes with broadcast_information (channel official) unless the request says "
@@ -209,7 +221,7 @@ def build_prompt(state, prompt, mode):
         "- Choose metrics that measure the consequences the user cares about.\n"
         "- For each operation, set only the fields listed for its type in operation_fields; audience fields "
         "are audience_kind, audience_share, audience_region and organization_id.\n"
-        "- Use status \"ready\" when the plan has operations.\n\n"
+        '- Use status "ready" when the plan has operations.\n\n'
         f"Mode: {MODE_GUIDANCE.get(mode, MODE_GUIDANCE['sandbox'])}\n\n"
         f"Current town:\n{json.dumps(summary(state), separators=(',', ':'))}\n\n"
         f"Registry:\n{json.dumps(registry, separators=(',', ':'))}\n\n"
@@ -230,29 +242,72 @@ def correction_prompt(base, previous, errors):
 async def interpret(gateway, state, sid, prompt, mode):
     """Returns dict(status, plan, errors, warnings, unsupported, clarification, attempts)."""
     if not gateway.config.gemini_enabled:
-        return dict(status="unavailable", plan=None, errors=["The AI interpreter is not configured."],
-                    warnings=[], unsupported=[], clarification="", attempts=0)
+        return dict(
+            status="unavailable",
+            plan=None,
+            errors=["The AI interpreter is not configured."],
+            warnings=[],
+            unsupported=[],
+            clarification="",
+            attempts=0,
+        )
     base = build_prompt(state, prompt, mode)
     request = base
     errors, previous = [], None
     for attempt in (1, 2):
-        draft = await gateway.structured(sid, request, PlanDraft, max_output_tokens=OUTPUT_TOKENS, timeout=TIMEOUT_SECONDS)
+        draft = await gateway.structured(
+            sid, request, PlanDraft, max_output_tokens=OUTPUT_TOKENS, timeout=TIMEOUT_SECONDS
+        )
         if draft is None:
-            return dict(status="unavailable", plan=previous, errors=["The AI interpreter did not respond."],
-                        warnings=[], unsupported=[], clarification="", attempts=attempt)
+            return dict(
+                status="unavailable",
+                plan=previous,
+                errors=["The AI interpreter did not respond."],
+                warnings=[],
+                unsupported=[],
+                clarification="",
+                attempts=attempt,
+            )
         if draft.status == "unsupported" or (not draft.operations and draft.unsupported):
-            return dict(status="unsupported", plan=None, errors=[], warnings=[],
-                        unsupported=draft.unsupported or ["No registered operation can represent this scenario."],
-                        clarification=draft.clarification, attempts=attempt)
+            return dict(
+                status="unsupported",
+                plan=None,
+                errors=[],
+                warnings=[],
+                unsupported=draft.unsupported or ["No registered operation can represent this scenario."],
+                clarification=draft.clarification,
+                attempts=attempt,
+            )
         if draft.status == "needs_clarification" and not draft.operations:
-            return dict(status="needs_clarification", plan=None, errors=[], warnings=[],
-                        unsupported=draft.unsupported, clarification=draft.clarification, attempts=attempt)
+            return dict(
+                status="needs_clarification",
+                plan=None,
+                errors=[],
+                warnings=[],
+                unsupported=draft.unsupported,
+                clarification=draft.clarification,
+                attempts=attempt,
+            )
         raw = normalize(draft, prompt)
         plan, errors, warnings = validate_plan(state, raw)
         if plan is not None:
-            return dict(status="ready", plan=plan.model_dump(mode="json"), errors=[], warnings=warnings,
-                        unsupported=plan.unsupported, clarification="", attempts=attempt)
+            return dict(
+                status="ready",
+                plan=plan.model_dump(mode="json"),
+                errors=[],
+                warnings=warnings,
+                unsupported=plan.unsupported,
+                clarification="",
+                attempts=attempt,
+            )
         previous = raw
         request = correction_prompt(base, raw, errors)
-    return dict(status="invalid", plan=previous, errors=errors, warnings=[], unsupported=previous.get("unsupported", []),
-                clarification="", attempts=2)
+    return dict(
+        status="invalid",
+        plan=previous,
+        errors=errors,
+        warnings=[],
+        unsupported=previous.get("unsupported", []),
+        clarification="",
+        attempts=2,
+    )

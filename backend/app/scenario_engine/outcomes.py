@@ -8,12 +8,34 @@ from app.scenario_engine.world import rent_for
 from app.simulation.agents import evidence
 
 COUNTERS = (
-    "trips_walk", "trips_transit", "trips_car", "fare_revenue", "business_tax", "relocations",
-    "assistance_requests", "information_shares", "information_accepted", "information_rejected",
-    "norm_adoptions", "organization_joins", "hospital_care", "food_bought", "food_gathered",
-    "service_attempts", "service_success", "compliance_yes", "compliance_no", "aid_transfers",
-    "rally_conflicts", "habit_changes", "alternatives_sought", "beliefs_adopted", "beliefs_doubted",
-    "wage_cuts", "shortfall_ticks", "sold_out",
+    "trips_walk",
+    "trips_transit",
+    "trips_car",
+    "fare_revenue",
+    "business_tax",
+    "relocations",
+    "assistance_requests",
+    "information_shares",
+    "information_accepted",
+    "information_rejected",
+    "norm_adoptions",
+    "organization_joins",
+    "hospital_care",
+    "food_bought",
+    "food_gathered",
+    "service_attempts",
+    "service_success",
+    "compliance_yes",
+    "compliance_no",
+    "aid_transfers",
+    "rally_conflicts",
+    "habit_changes",
+    "alternatives_sought",
+    "beliefs_adopted",
+    "beliefs_doubted",
+    "wage_cuts",
+    "shortfall_ticks",
+    "sold_out",
 )
 
 
@@ -39,10 +61,15 @@ def measure(state, record=None):
     decided = delta["compliance_yes"] + delta["compliance_no"]
     attempts = delta["service_attempts"]
     scenario_beliefs = {
-        op["id"] for op in (record.plan["operations"] if record else []) if op["type"] in
-        {"broadcast_information", "adjust_institutional_credibility"}
+        op["id"]
+        for op in (record.plan["operations"] if record else [])
+        if op["type"] in {"broadcast_information", "adjust_institutional_credibility"}
     }
-    norms = {op.get("norm") for op in (record.plan["operations"] if record else []) if op["type"] == "introduce_social_norm"}
+    norms = {
+        op.get("norm")
+        for op in (record.plan["operations"] if record else [])
+        if op["type"] == "introduce_social_norm"
+    }
     orgs = [o for o in systems.organizations.values() if record is None or o.event_id == record.event_id]
     value = dict(
         tick=state.simulation.tick,
@@ -81,7 +108,11 @@ def measure(state, record=None):
 def baseline(state):
     """Measures at activation, plus habitual travel shares since no trips are recorded yet."""
     value = measure(state)
-    agents = [state.systems.agents[a] for a, c in state.citizens.items() if c.summary.active and a in state.systems.agents]
+    agents = [
+        state.systems.agents[a]
+        for a, c in state.citizens.items()
+        if c.summary.active and a in state.systems.agents
+    ]
     if agents:
         for mode, key in (("transit", "transit_usage"), ("car", "car_usage"), ("walk", "walking_trips")):
             value[key] = round(sum(a.habit == mode for a in agents) / len(agents), 4)
@@ -110,7 +141,11 @@ def finalize(state, record, runtime):
     traces = [t for t in state.systems.traces if t.event_id == record.event_id]
     decisions = [t for t in traces if t.kind == "decision"]
     memory_ids = [m for t in sorted(decisions, key=lambda t: -t.significance)[:12] for m in t.memory_ids[:1]]
-    proof = evidence("Recorded scenario measurements and decisions", event_ids=[record.event_id], memory_ids=memory_ids[:12])
+    proof = evidence(
+        "Recorded scenario measurements and decisions",
+        event_ids=[record.event_id],
+        memory_ids=memory_ids[:12],
+    )
     findings = []
 
     def add(text):
@@ -121,7 +156,11 @@ def finalize(state, record, runtime):
         if key in {"transit_usage", "car_usage", "walking_trips"}:
             if after["trips"]:
                 mode = {"transit_usage": "public transit", "car_usage": "car", "walking_trips": "foot"}[key]
-                counted = {"transit_usage": "trips_transit", "car_usage": "trips_car", "walking_trips": "trips_walk"}[key]
+                counted = {
+                    "transit_usage": "trips_transit",
+                    "car_usage": "trips_car",
+                    "walking_trips": "trips_walk",
+                }[key]
                 taken = state.systems.counters.get(counted, 0) - record.counters.get(counted, 0)
                 add(
                     f"{taken:.0f} of {after['trips']} recorded trips ({pct(after[key])}) were made by {mode}, "
@@ -131,8 +170,16 @@ def finalize(state, record, runtime):
         if key not in METRICS or after.get(key) is None:
             continue
         b, a = before.get(key), after[key]
-        if key in {"cooperation", "social_conflict", "relocations", "assistance_requests", "information_shares",
-                   "relationship_change", "hospital_care", "food_access"}:
+        if key in {
+            "cooperation",
+            "social_conflict",
+            "relocations",
+            "assistance_requests",
+            "information_shares",
+            "relationship_change",
+            "hospital_care",
+            "food_access",
+        }:
             add(f"{METRICS[key]}: {number(a)}.")
         elif key in {"policy_compliance", "service_access"}:
             add(f"{METRICS[key]}: {pct(a)}.")

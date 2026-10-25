@@ -98,8 +98,12 @@ def validate_plan(state, raw):
                 value = policy.get(op.target)
                 base = value if value is not None else (high if op.target == "housing.rent_cap" else low)
                 for _ in range(repetitions):
-                    base = {"set": op.value, "increase": base + op.value, "decrease": base - op.value,
-                            "multiply": base * op.value}[op.operation]
+                    base = {
+                        "set": op.value,
+                        "increase": base + op.value,
+                        "decrease": base - op.value,
+                        "multiply": base * op.value,
+                    }[op.operation]
                     if not low - 1e-9 <= base <= high + 1e-9:
                         errors.append(
                             f"{where}: {op.target} would become {base:g} {unit_name}; allowed range is {low:g} to {high:g}"
@@ -109,8 +113,14 @@ def validate_plan(state, raw):
                     errors.append(f"{where}: the evacuation order must be 0 or 1")
             span = window(op, plan)
             for other in policy_windows.get(op.target, []):
-                if overlaps(span, window(other, plan)) and "set" in {op.operation, other.operation} and op.timing.start_tick == other.timing.start_tick:
-                    errors.append(f"{where}: conflicts with {other.id}, which changes {op.target} at the same time")
+                if (
+                    overlaps(span, window(other, plan))
+                    and "set" in {op.operation, other.operation}
+                    and op.timing.start_tick == other.timing.start_tick
+                ):
+                    errors.append(
+                        f"{where}: conflicts with {other.id}, which changes {op.target} at the same time"
+                    )
             policy_windows.setdefault(op.target, []).append(op)
         elif op.type == "set_service_availability":
             if (op.building_id is None) == (op.building_kind is None):
@@ -123,8 +133,12 @@ def validate_plan(state, raw):
                     continue
                 targets = [building]
             else:
-                targets = [b for b in state.map.buildings if b.kind == op.building_kind
-                           and (op.region == "citywide" or polygon_contains(b.entrance, region_polygon(op.region)))]
+                targets = [
+                    b
+                    for b in state.map.buildings
+                    if b.kind == op.building_kind
+                    and (op.region == "citywide" or polygon_contains(b.entrance, region_polygon(op.region)))
+                ]
                 if not targets:
                     errors.append(f"{where}: there is no {op.building_kind} in the {op.region} region")
             if any(b.kind == "home" for b in targets) and not op.open:
@@ -132,7 +146,9 @@ def validate_plan(state, raw):
             for building in targets:
                 for other in service_windows.get(building.id, []):
                     if other.open != op.open and overlaps(window(op, plan), window(other, plan)):
-                        errors.append(f"{where}: opens and closes {building.name} at the same time as {other.id}")
+                        errors.append(
+                            f"{where}: opens and closes {building.name} at the same time as {other.id}"
+                        )
                 service_windows.setdefault(building.id, []).append(op)
             if not op.open and targets and all(b.kind == "hospital" for b in targets):
                 if len(targets) == sum(b.kind == "hospital" for b in state.map.buildings):
@@ -154,7 +170,9 @@ def validate_plan(state, raw):
         errors.append("plan: physical hazards and gatherings in one scenario must share a single region")
     for op in physical:
         if op.timing.start_tick or op.timing.repeat_every:
-            errors.append(f"{op.id} ({op.type}): physical events start when the scenario starts and do not repeat")
+            errors.append(
+                f"{op.id} ({op.type}): physical events start when the scenario starts and do not repeat"
+            )
         if op.timing.duration_ticks and op.timing.duration_ticks != plan.measurement_ticks:
             warnings.append(
                 f"{op.id} ({op.type}): physical events last the whole {plan.measurement_ticks}-tick scenario window"
@@ -184,14 +202,23 @@ def compile_preview(state, plan, warnings, source="custom"):
         if op.type == "physical_hazard":
             effects.append(HazardEffect(type="hazard", hazard=op.hazard, severity=op.severity))
         else:
-            effects.append(CommunityEffect(type="community", activity=op.activity, capacity=state.simulation.agent_count))
-    effects.append(InformationEffect(type="information", message=plan.public_description, reliability=100, delivery="local"))
+            effects.append(
+                CommunityEffect(type="community", activity=op.activity, capacity=state.simulation.agent_count)
+            )
+    effects.append(
+        InformationEffect(
+            type="information", message=plan.public_description, reliability=100, delivery="local"
+        )
+    )
     hazards = [op for op in physical if op.type == "physical_hazard"]
     gatherings = [op for op in physical if op.type == "community_gathering"]
     kind = (
-        hazards[0].hazard if hazards
-        else "festival" if any(op.activity == "festival" for op in gatherings)
-        else "policy" if any(op.type == "modify_policy" for op in plan.operations)
+        hazards[0].hazard
+        if hazards
+        else "festival"
+        if any(op.activity == "festival" for op in gatherings)
+        else "policy"
+        if any(op.type == "modify_policy" for op in plan.operations)
         else "custom"
     )
     spec = EventSpec(
@@ -216,9 +243,13 @@ def compile_preview(state, plan, warnings, source="custom"):
         source_event_id=None,
         based_on=state.ref(),
         expires_at=expiry(),
-        interpretation=(f"{plan.description} Citizens respond in their own way over {plan.measurement_ticks} ticks.")[:2000],
+        interpretation=(
+            f"{plan.description} Citizens respond in their own way over {plan.measurement_ticks} ticks."
+        )[:2000],
         spec=spec,
-        affected_agent_ids=[a for a, c in state.citizens.items() if polygon_contains(c.summary.position, polygon)],
+        affected_agent_ids=[
+            a for a, c in state.citizens.items() if polygon_contains(c.summary.position, polygon)
+        ],
         affected_building_ids=[b.id for b in state.map.buildings if polygon_contains(b.entrance, polygon)],
         warnings=[w[:2000] for w in warnings],
         unsupported_requests=[u[:2000] for u in plan.unsupported],
@@ -245,8 +276,11 @@ def summary(state):
         home_count=len(kinds.get("home", [])),
         organizations=[
             dict(id=o.id, kind=o.kind, name=o.name, members=len(o.members))
-            for o in state.systems.organizations.values() if o.active
+            for o in state.systems.organizations.values()
+            if o.active
         ],
         regions=list(REGIONS),
-        active_events=[r.summary.title for r in state.events.values() if r.summary.status in {"queued", "active"}],
+        active_events=[
+            r.summary.title for r in state.events.values() if r.summary.status in {"queued", "active"}
+        ],
     )

@@ -9,6 +9,9 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:15176",
     viewport: { width: 1440, height: 900 },
+    channel:
+      process.env.PLAYWRIGHT_CHANNEL ||
+      (process.platform === "win32" ? "chrome" : undefined),
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

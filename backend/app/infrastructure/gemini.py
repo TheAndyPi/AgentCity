@@ -194,7 +194,15 @@ def relevance(state, citizen, context=None):
         key: value
         for key, value in context.items()
         if key
-        not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories", "mental_stability", "city_life"}
+        not in {
+            "tick",
+            "needs",
+            "observed_facts",
+            "current_activity_reason",
+            "memories",
+            "mental_stability",
+            "city_life",
+        }
     }
     if context.get("city_life"):
         life = dict(context["city_life"])

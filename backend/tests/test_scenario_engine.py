@@ -45,18 +45,39 @@ def transit_hospital_draft():
     return draft(
         [
             op("modify_policy", "fare", target="transportation.transit_fare", operation="multiply", value=2),
-            op("modify_policy", "hospitals", target="public_services.hospital_funding", operation="increase", value=0.5),
-            op("broadcast_information", "announce", channel="official", topic="policy_change",
-               message="Transit fares double today; the revenue will fund hospital improvements.",
-               credibility=85, accurate=True, audience_kind="all_citizens"),
+            op(
+                "modify_policy",
+                "hospitals",
+                target="public_services.hospital_funding",
+                operation="increase",
+                value=0.5,
+            ),
+            op(
+                "broadcast_information",
+                "announce",
+                channel="official",
+                topic="policy_change",
+                message="Transit fares double today; the revenue will fund hospital improvements.",
+                credibility=85,
+                accurate=True,
+                audience_kind="all_citizens",
+            ),
         ],
         title="Transit fares fund hospitals",
         description="Transit fares double and the city spends the revenue on hospital funding.",
         public_description="The city announced new transit fares and hospital funding.",
         duration="permanent",
         affected_systems=["transportation", "public_services", "healthcare", "economy"],
-        metrics=["transit_usage", "car_usage", "walking_trips", "city_treasury", "hospital_care",
-                 "household_wallets", "financial_strain", "happiness"],
+        metrics=[
+            "transit_usage",
+            "car_usage",
+            "walking_trips",
+            "city_treasury",
+            "hospital_care",
+            "household_wallets",
+            "financial_strain",
+            "happiness",
+        ],
         agent_knowledge="Everyone hears the official announcement; some doubt it.",
     )
 
@@ -82,8 +103,11 @@ def fake_gemini(client, monkeypatch, answers):
 
 def hold(client, sid):
     simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
-    response = write(client, f"/simulations/{sid}/interventions",
-                     dict(expected_control_version=simulation["control_version"]))
+    response = write(
+        client,
+        f"/simulations/{sid}/interventions",
+        dict(expected_control_version=simulation["control_version"]),
+    )
     assert response.status_code == 201, response.text
     return response.json()["data"]
 
@@ -107,22 +131,35 @@ def test_acceptance_doubled_fares_fund_hospitals_end_to_end(client, monkeypatch)
     calls = fake_gemini(client, monkeypatch, [transit_hospital_draft()])
     sid = create_city(client, population=30)["id"]
     intervention = hold(client, sid)
-    response = engine(client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE))
+    response = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    )
     assert response.status_code == 200, response.text
     result = response.json()["data"]
     assert result["status"] == "ready", result
     assert ACCEPTANCE in calls[0] and "transportation.transit_fare" in calls[0]
     summary = result["summary"]
     assert {"transportation", "healthcare"} <= set(summary["affected_systems"])
-    assert [o["type"] for o in summary["operations"]] == ["modify_policy", "modify_policy", "broadcast_information"]
+    assert [o["type"] for o in summary["operations"]] == [
+        "modify_policy",
+        "modify_policy",
+        "broadcast_information",
+    ]
     assert summary["event_kind"] == "policy"
 
     # Nothing changes before confirmation, and a paused city keeps the scenario queued.
     service = client.app.state.service
     assert not service.heads[sid].systems.enabled
     simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
-    committed = engine(client, f"/simulations/{sid}/commits", dict(
-        intervention_id=intervention["id"], expected_control_version=simulation["control_version"], plan=result["plan"]))
+    committed = engine(
+        client,
+        f"/simulations/{sid}/commits",
+        dict(
+            intervention_id=intervention["id"],
+            expected_control_version=simulation["control_version"],
+            plan=result["plan"],
+        ),
+    )
     assert committed.status_code == 201, committed.text
     data = committed.json()["data"]
     assert data["queued_until_play"] and data["simulation"]["status"] == "paused"
@@ -150,8 +187,11 @@ def test_acceptance_doubled_fares_fund_hospitals_end_to_end(client, monkeypatch)
     assert report["decisions"], "citizens decided individually about the announcement and travel"
     decision = report["decisions"][0]
     assert decision["candidates"] and decision["selected"] and decision["agent_id"]
-    beliefs = [t for t in report["decisions"] + report["operation_traces"] if "announcement" in t["title"].lower()
-               or "believe" in t["title"].lower()]
+    beliefs = [
+        t
+        for t in report["decisions"] + report["operation_traces"]
+        if "announcement" in t["title"].lower() or "believe" in t["title"].lower()
+    ]
     assert beliefs or report["decision_count"] > 0
 
     agent = engine(client, f"/simulations/{sid}/agents/{decision['agent_id']}/traces").json()["data"]
@@ -197,12 +237,49 @@ def test_policy_lab_fares_and_taxes_change_state_and_behavior(client):
     assert base.systems.enabled, "policy lab cities start with their economy running"
     control = base.model_copy(deep=True)
     treated = base.model_copy(deep=True)
-    queue(control, plan_from(control, draft([op("modify_policy", "noop", target="taxation.business_tax_rate",
-                                                operation="set", value=0.1)], measurement_ticks=60)))
-    queue(treated, plan_from(treated, draft([
-        op("modify_policy", "fare", target="transportation.transit_fare", operation="multiply", value=4),
-        op("modify_policy", "tax", target="taxation.business_tax_rate", operation="set", value=0.4),
-    ], measurement_ticks=60)))
+    queue(
+        control,
+        plan_from(
+            control,
+            draft(
+                [
+                    op(
+                        "modify_policy",
+                        "noop",
+                        target="taxation.business_tax_rate",
+                        operation="set",
+                        value=0.1,
+                    )
+                ],
+                measurement_ticks=60,
+            ),
+        ),
+    )
+    queue(
+        treated,
+        plan_from(
+            treated,
+            draft(
+                [
+                    op(
+                        "modify_policy",
+                        "fare",
+                        target="transportation.transit_fare",
+                        operation="multiply",
+                        value=4,
+                    ),
+                    op(
+                        "modify_policy",
+                        "tax",
+                        target="taxation.business_tax_rate",
+                        operation="set",
+                        value=0.4,
+                    ),
+                ],
+                measurement_ticks=60,
+            ),
+        ),
+    )
     run(control, 60)
     run(treated, 60)
 
@@ -213,22 +290,47 @@ def test_policy_lab_fares_and_taxes_change_state_and_behavior(client):
 
     assert share(treated) < share(control)
     assert treated.systems.counters["business_tax"] > control.systems.counters["business_tax"]
-    switched = [t for t in treated.systems.traces if t.kind == "decision" and "instead of my usual transit" in t.title]
+    switched = [
+        t for t in treated.systems.traces if t.kind == "decision" and "instead of my usual transit" in t.title
+    ]
     assert switched and all(t.candidates and t.selected != "transit" for t in switched)
     assert any("transit trip cost" in m.text for c in treated.citizens.values() for m in c.memories)
 
 
 def test_behavior_lab_institutional_trust_changes_belief_and_sharing(client):
     base = city(client, mode="behavior_lab")
-    announcement = op("broadcast_information", "notice", channel="official", topic="services", start_tick=2,
-                      message="The clinic now offers free checkups.", credibility=80, accurate=True)
+    announcement = op(
+        "broadcast_information",
+        "notice",
+        channel="official",
+        topic="services",
+        start_tick=2,
+        message="The clinic now offers free checkups.",
+        credibility=80,
+        accurate=True,
+    )
     runs = {}
     for name, delta in (("scandal", -45), ("transparency", 40)):
         state = base.model_copy(deep=True)
-        queue(state, plan_from(state, draft([
-            op("adjust_institutional_credibility", "cred", delta=delta, reason=f"{name} condition"),
-            announcement,
-        ], category="behavioral", measurement_ticks=40)))
+        queue(
+            state,
+            plan_from(
+                state,
+                draft(
+                    [
+                        op(
+                            "adjust_institutional_credibility",
+                            "cred",
+                            delta=delta,
+                            reason=f"{name} condition",
+                        ),
+                        announcement,
+                    ],
+                    category="behavioral",
+                    measurement_ticks=40,
+                ),
+            ),
+        )
         runs[name] = run(state, 40)
     trust = {k: mean(a.institutional_trust for a in s.systems.agents.values()) for k, s in runs.items()}
     believers = {k: sum("notice" in a.beliefs for a in s.systems.agents.values()) for k, s in runs.items()}
@@ -237,18 +339,40 @@ def test_behavior_lab_institutional_trust_changes_belief_and_sharing(client):
     decisions = [t for t in runs["scandal"].systems.traces if t.op_id == "notice" and t.kind == "decision"]
     assert {t.selected for t in decisions} >= {"doubt"}
     # Trait edits are labeled as changing people rather than conditions.
-    _, _, warnings = validate_plan(base, plan_from(base, draft([
-        op("adjust_population_traits", "kind", trait="empathy", delta=20)], category="behavioral")))
+    _, _, warnings = validate_plan(
+        base,
+        plan_from(
+            base,
+            draft([op("adjust_population_traits", "kind", trait="empathy", delta=20)], category="behavioral"),
+        ),
+    )
     assert any("changes who citizens are" in w for w in warnings)
 
 
 def test_crisis_lab_closes_services_and_citizens_adapt(client):
     state = city(client, mode="crisis_lab")
     shops = [b for b in state.map.buildings if b.kind == "shop"]
-    event_id = queue(state, plan_from(state, draft([
-        op("set_service_availability", "shops", building_kind="shop", region="citywide", open=False, duration_ticks=12),
-        op("environmental_condition", "heat", condition="heat", region="citywide", intensity=70),
-    ], category="infrastructure", measurement_ticks=20)))
+    event_id = queue(
+        state,
+        plan_from(
+            state,
+            draft(
+                [
+                    op(
+                        "set_service_availability",
+                        "shops",
+                        building_kind="shop",
+                        region="citywide",
+                        open=False,
+                        duration_ticks=12,
+                    ),
+                    op("environmental_condition", "heat", condition="heat", region="citywide", intensity=70),
+                ],
+                category="infrastructure",
+                measurement_ticks=20,
+            ),
+        ),
+    )
     run(state, 3)
     assert all(not b.functional for b in state.map.buildings if b.kind == "shop")
     assert state.systems.conditions
@@ -265,15 +389,44 @@ def test_custom_multi_domain_plan_composes_housing_resources_and_organizations(c
     state = city(client)
     before = mean(state.citizens[a].summary.metrics.resources for a in state.citizens)
     assert before >= 0
-    event_id = queue(state, plan_from(state, draft([
-        op("modify_policy", "rent", target="housing.rent_level", operation="multiply", value=2.5),
-        op("modify_housing_supply", "homes", available_share=0.5),
-        op("create_organization", "aid", kind="mutual_aid", name="Neighbors Pantry", mission="Share food",
-           founding_share=0.3),
-        op("broadcast_information", "rumor", channel="rumor", topic="prices", accurate=False, credibility=60,
-           message="Food prices will triple next week."),
-        op("modify_policy", "campaign", target="community_programs.conservation_campaign", operation="set", value=1),
-    ], category="mixed", measurement_ticks=40)))
+    event_id = queue(
+        state,
+        plan_from(
+            state,
+            draft(
+                [
+                    op("modify_policy", "rent", target="housing.rent_level", operation="multiply", value=2.5),
+                    op("modify_housing_supply", "homes", available_share=0.5),
+                    op(
+                        "create_organization",
+                        "aid",
+                        kind="mutual_aid",
+                        name="Neighbors Pantry",
+                        mission="Share food",
+                        founding_share=0.3,
+                    ),
+                    op(
+                        "broadcast_information",
+                        "rumor",
+                        channel="rumor",
+                        topic="prices",
+                        accurate=False,
+                        credibility=60,
+                        message="Food prices will triple next week.",
+                    ),
+                    op(
+                        "modify_policy",
+                        "campaign",
+                        target="community_programs.conservation_campaign",
+                        operation="set",
+                        value=1,
+                    ),
+                ],
+                category="mixed",
+                measurement_ticks=40,
+            ),
+        ),
+    )
     run(state, 41)
     record = state.systems.plans[event_id]
     assert record.status == "resolved"
@@ -287,64 +440,105 @@ def test_custom_multi_domain_plan_composes_housing_resources_and_organizations(c
 
 def test_validator_rejects_unregistered_out_of_range_and_conflicting_operations(client):
     state = city(client)
-    bad = plan_from(state, draft([op("modify_policy", "fare", target="transportation.transit_fare",
-                                     operation="multiply", value=50)]))
+    bad = plan_from(
+        state,
+        draft(
+            [
+                op(
+                    "modify_policy",
+                    "fare",
+                    target="transportation.transit_fare",
+                    operation="multiply",
+                    value=50,
+                )
+            ]
+        ),
+    )
     plan, errors, _ = validate_plan(state, bad)
     assert plan is None and any("allowed range" in e for e in errors)
-    unknown = plan_from(state, draft([op("modify_policy", "x", target="transportation.transit_fare",
-                                         operation="set", value=1)]))
+    unknown = plan_from(
+        state,
+        draft([op("modify_policy", "x", target="transportation.transit_fare", operation="set", value=1)]),
+    )
     unknown["operations"][0]["target"] = "simulation.tick"
     assert validate_plan(state, unknown)[0] is None
-    missing = plan_from(state, draft([op("set_service_availability", "b", building_id="building_99999999", open=False)]))
+    missing = plan_from(
+        state, draft([op("set_service_availability", "b", building_id="building_99999999", open=False)])
+    )
     assert any("does not exist" in e for e in validate_plan(state, missing)[1])
     homes = plan_from(state, draft([op("set_service_availability", "h", building_kind="home", open=False)]))
     assert any("homes cannot be closed" in e for e in validate_plan(state, homes)[1])
-    clash = plan_from(state, draft([
-        op("modify_policy", "a", target="transportation.transit_fare", operation="set", value=1),
-        op("modify_policy", "b", target="transportation.transit_fare", operation="set", value=2),
-    ]))
+    clash = plan_from(
+        state,
+        draft(
+            [
+                op("modify_policy", "a", target="transportation.transit_fare", operation="set", value=1),
+                op("modify_policy", "b", target="transportation.transit_fare", operation="set", value=2),
+            ]
+        ),
+    )
     assert any("conflicts" in e for e in validate_plan(state, clash)[1])
-    split = plan_from(state, draft([op("physical_hazard", "f", hazard="flood", region="north", severity=50),
-                                    op("community_gathering", "g", activity="festival", region="south")]))
+    split = plan_from(
+        state,
+        draft(
+            [
+                op("physical_hazard", "f", hazard="flood", region="north", severity=50),
+                op("community_gathering", "g", activity="festival", region="south"),
+            ]
+        ),
+    )
     assert any("single region" in e for e in validate_plan(state, split)[1])
-    code = plan_from(state, draft([op("modify_policy", "fare", target="transportation.transit_fare",
-                                      operation="set", value=1)]))
+    code = plan_from(
+        state,
+        draft([op("modify_policy", "fare", target="transportation.transit_fare", operation="set", value=1)]),
+    )
     code["operations"][0]["script"] = "process.exit()"
     assert validate_plan(state, code)[0] is None
 
 
 def test_unsupported_request_is_explained_not_substituted(client, monkeypatch):
-    fake_gemini(client, monkeypatch, [draft([], status="unsupported",
-                                            unsupported=["Building a subway line needs new construction."])])
+    fake_gemini(
+        client,
+        monkeypatch,
+        [draft([], status="unsupported", unsupported=["Building a subway line needs new construction."])],
+    )
     sid = create_city(client)["id"]
     intervention = hold(client, sid)
-    result = engine(client, f"/simulations/{sid}/plans",
-                    dict(intervention_id=intervention["id"], prompt="Build a subway line")).json()["data"]
+    result = engine(
+        client,
+        f"/simulations/{sid}/plans",
+        dict(intervention_id=intervention["id"], prompt="Build a subway line"),
+    ).json()["data"]
     assert result["status"] == "unsupported" and result["plan"] is None
     assert "construction" in result["unsupported"][0]
     assert not client.app.state.service.heads[sid].events
 
 
 def test_interpreter_gets_one_correction_attempt(client, monkeypatch):
-    invalid = draft([op("modify_policy", "fare", target="transportation.transit_fare", operation="multiply", value=99)])
+    invalid = draft(
+        [op("modify_policy", "fare", target="transportation.transit_fare", operation="multiply", value=99)]
+    )
     calls = fake_gemini(client, monkeypatch, [invalid, transit_hospital_draft()])
     sid = create_city(client)["id"]
     intervention = hold(client, sid)
-    result = engine(client, f"/simulations/{sid}/plans",
-                    dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)).json()["data"]
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
     assert result["status"] == "ready" and result["attempts"] == 2
     assert "failed validation" in calls[1] and "allowed range" in calls[1]
     calls = fake_gemini(client, monkeypatch, [invalid])
-    result = engine(client, f"/simulations/{sid}/plans",
-                    dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)).json()["data"]
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
     assert result["status"] == "invalid" and result["errors"] and len(calls) == 2
 
 
 def test_interpreter_unavailable_without_gemini_and_manual_plans_validate(client):
     sid = create_city(client)["id"]
     intervention = hold(client, sid)
-    result = engine(client, f"/simulations/{sid}/plans",
-                    dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)).json()["data"]
+    result = engine(
+        client, f"/simulations/{sid}/plans", dict(intervention_id=intervention["id"], prompt=ACCEPTANCE)
+    ).json()["data"]
     assert result["status"] == "unavailable"
     capabilities = engine(client, "/capabilities").json()["data"]
     assert capabilities["interpreter"] is False
@@ -361,18 +555,34 @@ def test_running_city_resumes_and_legacy_events_still_work(client):
     intervention = hold(client, sid)
     from app.scenario_engine.interpreter import normalize
 
-    manual = normalize(PlanDraft.model_validate(draft([
-        op("physical_hazard", "flood", hazard="flood", region="west", severity=60)], category="environmental",
-        measurement_ticks=4)), "A flood in the west")
+    manual = normalize(
+        PlanDraft.model_validate(
+            draft(
+                [op("physical_hazard", "flood", hazard="flood", region="west", severity=60)],
+                category="environmental",
+                measurement_ticks=4,
+            )
+        ),
+        "A flood in the west",
+    )
     simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
-    committed = engine(client, f"/simulations/{sid}/commits", dict(
-        intervention_id=intervention["id"], expected_control_version=simulation["control_version"], plan=manual))
+    committed = engine(
+        client,
+        f"/simulations/{sid}/commits",
+        dict(
+            intervention_id=intervention["id"],
+            expected_control_version=simulation["control_version"],
+            plan=manual,
+        ),
+    )
     assert committed.status_code == 201, committed.text
     event = committed.json()["data"]["event"]
     assert event["kind"] == "flood" and event["scene"]
     step_until_outcome(client, sid)
     report = client.get(f"/api/v1/simulations/{sid}/events/{event['id']}").json()["data"]
-    assert report["exposed_count"] + report["evacuated_count"] >= 0 and report["event"]["status"] == "resolved"
+    assert (
+        report["exposed_count"] + report["evacuated_count"] >= 0 and report["event"]["status"] == "resolved"
+    )
 
 
 def test_initial_setup_scenario_uses_the_engine(client, monkeypatch):
@@ -383,8 +593,15 @@ def test_initial_setup_scenario_uses_the_engine(client, monkeypatch):
     sid = simulation["id"]
     initial = engine(client, f"/simulations/{sid}/initial-plan").json()["data"]
     assert initial["plan"]["title"] == "Transit fares fund hospitals"
-    response = write(client, f"/simulations/{sid}/initial-scenario", dict(
-        expected_control_version=simulation["control_version"], preview_id=preview["id"], decision="confirm"))
+    response = write(
+        client,
+        f"/simulations/{sid}/initial-scenario",
+        dict(
+            expected_control_version=simulation["control_version"],
+            preview_id=preview["id"],
+            decision="confirm",
+        ),
+    )
     assert response.status_code == 200, response.text
     head = client.app.state.service.heads[sid]
     assert head.systems.enabled and head.systems.plans and head.systems.initial_plan is None

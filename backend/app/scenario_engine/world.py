@@ -37,7 +37,9 @@ def enable(state):
         systems.base_capacity[building.id] = building.capacity
         if building.kind == "home":
             centrality = 1 - min(1, math.dist((building.entrance.x, building.entrance.y), CENTER) / 90)
-            systems.home_rent[building.id] = round(0.65 + 0.55 * centrality + 0.3 * building.height_m / tallest, 3)
+            systems.home_rent[building.id] = round(
+                0.65 + 0.55 * centrality + 0.3 * building.height_m / tallest, 3
+            )
             systems.housing_available[building.id] = True
         elif building.kind in {"work", "shop"}:
             systems.businesses[building.id] = 20.0
@@ -134,8 +136,23 @@ def select(state, audience, salt):
     return people[: math.ceil(audience.share * len(people))]
 
 
-def trace(state, kind, title, *, event_id=None, op_id=None, agent=None, observations=(), candidates=(),
-          selected=None, motivation="", memory_ids=(), changes=(), affected=(), significance=0.0):
+def trace(
+    state,
+    kind,
+    title,
+    *,
+    event_id=None,
+    op_id=None,
+    agent=None,
+    observations=(),
+    candidates=(),
+    selected=None,
+    motivation="",
+    memory_ids=(),
+    changes=(),
+    affected=(),
+    significance=0.0,
+):
     systems = state.systems
     record = Trace(
         id=systems.next_id("trace"),
@@ -157,13 +174,29 @@ def trace(state, kind, title, *, event_id=None, op_id=None, agent=None, observat
     systems.traces.append(record)
     if len(systems.traces) > TRACE_LIMIT:
         # Keep every operation record; drop the oldest minor decisions first.
-        minor = next((i for i, t in enumerate(systems.traces) if t.kind == "decision" and t.significance < 1), 0)
+        minor = next(
+            (i for i, t in enumerate(systems.traces) if t.kind == "decision" and t.significance < 1), 0
+        )
         systems.traces.pop(minor)
     return record
 
 
-def decide(state, citizen, title, candidates, *, event_id=None, op_id=None, observations=(), motivation=None,
-           memory=None, changes=(), affected=(), significance=1.0, source="heard"):
+def decide(
+    state,
+    citizen,
+    title,
+    candidates,
+    *,
+    event_id=None,
+    op_id=None,
+    observations=(),
+    motivation=None,
+    memory=None,
+    changes=(),
+    affected=(),
+    significance=1.0,
+    source="heard",
+):
     """Pick the highest-scoring candidate, remember it, and record the full decision trace."""
     ranked = sorted(candidates, key=lambda c: (-c["score"], c["action"]))
     chosen = ranked[0]

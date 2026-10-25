@@ -928,11 +928,14 @@ class Service:
         )
         if engine and engine["status"] in {"unsupported", "needs_clarification"}:
             # Explain instead of substituting whatever the keyword catalog happens to match.
-            reasons = engine["unsupported"] or [engine["clarification"] or "This scenario cannot be simulated."]
+            reasons = engine["unsupported"] or [
+                engine["clarification"] or "This scenario cannot be simulated."
+            ]
             preview.can_commit = False
             preview.unsupported_requests = [r[:2000] for r in reasons]
             preview.interpretation = (
-                engine["clarification"] or "The scenario engine cannot represent this request: " + "; ".join(reasons)
+                engine["clarification"]
+                or "The scenario engine cannot represent this request: " + "; ".join(reasons)
             )[:2000]
         elif engine:
             preview.warnings.append(
