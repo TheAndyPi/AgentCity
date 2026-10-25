@@ -151,3 +151,58 @@ def test_typed_hazard_injury_is_applied_once_by_the_merged_physical_tick(client)
     advance(state)
     assert len(state.damage_records) == before
     assert event.last_physical_tick == state.simulation.tick
+
+
+def test_scenario_closure_reversion_preserves_other_causes_and_damage(client):
+    from test_scenario_engine import op
+
+    from app.scenario_engine.mutations import (
+        apply_set_service_availability,
+        parse,
+        revert_set_service_availability,
+    )
+    from app.scenario_engine.world import enable
+
+    state = world(client)
+    enable(state)
+    initialize(state)
+    building = next(b for b in state.map.buildings if b.kind == "shop")
+    state.conditions[building.id].integrity = 70
+    a = parse(op("set_service_availability", "a", building_id=building.id, open=False))
+    b = parse(op("set_service_availability", "b", building_id=building.id, open=False))
+    first = apply_set_service_availability(state, a, "event_a", False, 0)
+    second = apply_set_service_availability(state, b, "event_b", False, 0)
+    revert_set_service_availability(state, a, "event_a", first)
+    assert not building.functional and building.capacity == 0
+    assert state.systems.closed_by[building.id] == "event_b"
+    revert_set_service_availability(state, b, "event_b", second)
+    assert building.functional
+    assert building.capacity == int(state.conditions[building.id].design_capacity * 0.7)
+    assert state.conditions[building.id].integrity == 70
+
+
+def test_hospital_policy_funding_cannot_reopen_an_unsafe_structure(client):
+    from app.scenario_engine.mutations import sync_policy
+    from app.scenario_engine.world import enable
+
+    state = world(client)
+    enable(state)
+    initialize(state)
+    building = next(b for b in state.map.buildings if b.kind == "hospital")
+    base = state.conditions[building.id].design_capacity
+    state.systems.policy.public_services.hospital_funding = 1.5
+    sync_policy(state, "public_services.hospital_funding", False)
+    assert building.capacity == round(base * 1.2) and building.capacity > base
+    state.conditions[building.id].integrity = 40
+    sync_policy(state, "public_services.hospital_funding", False)
+    assert building.capacity == 0 and not building.functional
+    assert state.conditions[building.id].integrity == 40
+
+
+def test_dead_citizens_are_not_advertised_as_disaster_rescue_needs(client):
+    state = world(client)
+    citizen = next(iter(state.citizens.values()))
+    citizen.condition.life = "dead"
+    citizen.summary.active = False
+    citizen.trapped_building_id = state.map.buildings[0].id
+    assert not view(state)["rescue_needs"]

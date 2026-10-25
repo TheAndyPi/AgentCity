@@ -202,6 +202,7 @@ class WorldSystems(Model):
     home_rent: dict[str, float] = Field(default_factory=dict)
     base_capacity: dict[str, int] = Field(default_factory=dict)
     closed_by: dict[str, str] = Field(default_factory=dict)
+    service_controls: dict[str, dict[str, dict[str, Any]]] = Field(default_factory=dict)
     conditions: list[dict[str, Any]] = Field(default_factory=list)
     agents: dict[str, AgentSystems] = Field(default_factory=dict)
     organizations: dict[str, Organization] = Field(default_factory=dict)

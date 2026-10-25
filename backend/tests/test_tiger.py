@@ -503,7 +503,12 @@ def test_t06_real_postgres_migrations_upserts_and_totals(tmp_path):
                 assert_export_rows(expected, export)
                 progress = connection.execute("SELECT simulation_id,revision FROM tiger_progress").fetchall()
                 assert progress == [(sid, export["simulation"]["revision"])]
-                assert connection.execute("SELECT count(*) FROM tiger_migrations").fetchone() == (1,)
+                assert connection.execute(
+                    "SELECT version FROM tiger_migrations ORDER BY version"
+                ).fetchall() == [
+                    ("001_read_model.sql",),
+                    ("002_disaster_damage.sql",),
+                ]
                 assert connection.execute(
                     "SELECT count(*) FROM tiger_records WHERE ingested_at IS NULL OR sim_time_seconds < 0"
                 ).fetchone() == (0,)

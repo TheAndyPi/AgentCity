@@ -32,10 +32,10 @@ are independent of conversations, voice availability, and playback success.
 records and separate unique damaged-building and structural-transition totals.
 The state projection retains only the newest 100 reaction captions; exports retain
 all reaction records. Do not use caption windows as cumulative analytics.
-# Geometry precision
+
+## Geometry precision
 
 Clipped footprint coordinates are canonicalized to nine decimal places in map
 meters and clamped to the exact map bounds. This removes platform-specific
 trigonometric roundoff without changing the selected extent or local exposure
 curve. The executable footprint fixtures use the same documented precision.
-

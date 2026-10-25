@@ -43,10 +43,9 @@ def sync_policy(state, target, permanent):
         policies.aid_multiplier = distribution.aid_multiplier
         policies.evacuation_order = distribution.evacuation_order >= 0.5
     if target == "public_services.hospital_funding":
-        funding = funding_level(state)
-        for building in state.map.buildings:
-            if building.kind == "hospital" and building.id in systems.base_capacity:
-                building.capacity = max(1, round(systems.base_capacity[building.id] * (0.6 + 0.4 * funding)))
+        from app.disasters.physics import effective_services
+
+        effective_services(state)
 
 
 def funding_level(state):
@@ -151,22 +150,29 @@ def targeted_buildings(state, op):
 
 
 def apply_set_service_availability(state, op, event_id, permanent, repetition):
+    from app.disasters.physics import effective_services, initialize
+
+    initialize(state)
     systems = state.systems
     undo, changes = {}, []
     buildings = targeted_buildings(state, op)
     for building in buildings:
         undo[building.id] = dict(functional=building.functional, capacity=building.capacity)
-        base = systems.base_capacity.get(building.id, building.capacity)
-        before = (building.functional, building.capacity)
-        building.functional = op.open
-        if op.open:
-            building.capacity = max(1, round(base * op.capacity_multiplier))
-            systems.closed_by.pop(building.id, None)
+        controls = systems.service_controls.setdefault(building.id, {})
+        controls[f"{event_id}:{op.id}"] = dict(
+            event_id=event_id, open=op.open, capacity_multiplier=op.capacity_multiplier
+        )
+        closed = [control["event_id"] for control in controls.values() if not control["open"]]
+        if closed:
+            systems.closed_by[building.id] = closed[-1]
         else:
-            systems.closed_by[building.id] = event_id
-        changes.append(change(building.id, "functional", before[0], building.functional))
-        if before[1] != building.capacity:
-            changes.append(change(building.id, "capacity", before[1], building.capacity))
+            systems.closed_by.pop(building.id, None)
+    effective_services(state)
+    for building in buildings:
+        before = undo[building.id]
+        changes.append(change(building.id, "functional", before["functional"], building.functional))
+        if before["capacity"] != building.capacity:
+            changes.append(change(building.id, "capacity", before["capacity"], building.capacity))
     trace(
         state,
         "operation",
@@ -197,11 +203,19 @@ def apply_set_service_availability(state, op, event_id, permanent, repetition):
 
 
 def revert_set_service_availability(state, op, event_id, undo):
+    from app.disasters.physics import effective_services, initialize
+
+    initialize(state)
     for building in state.map.buildings:
         if building.id in undo:
-            building.functional = undo[building.id]["functional"]
-            building.capacity = undo[building.id]["capacity"]
-            state.systems.closed_by.pop(building.id, None)
+            controls = state.systems.service_controls.get(building.id, {})
+            controls.pop(f"{event_id}:{op.id}", None)
+            closed = [control["event_id"] for control in controls.values() if not control["open"]]
+            if closed:
+                state.systems.closed_by[building.id] = closed[-1]
+            else:
+                state.systems.closed_by.pop(building.id, None)
+    effective_services(state)
 
 
 def apply_modify_resource_stock(state, op, event_id, permanent, repetition):

@@ -34,7 +34,11 @@ def enable(state):
     distribution.evacuation_order = float(state.policies.evacuation_order)
     tallest = max((b.height_m for b in state.map.buildings), default=1) or 1
     for building in state.map.buildings:
-        systems.base_capacity[building.id] = building.capacity
+        systems.base_capacity[building.id] = (
+            state.conditions[building.id].design_capacity
+            if building.id in state.conditions
+            else building.capacity
+        )
         if building.kind == "home":
             centrality = 1 - min(1, math.dist((building.entrance.x, building.entrance.y), CENTER) / 90)
             systems.home_rent[building.id] = round(

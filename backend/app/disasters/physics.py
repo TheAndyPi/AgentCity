@@ -26,9 +26,27 @@ def initialize(state):
                 None,
             )
             state.conditions[b.id] = Condition(
-                design_capacity=saved["capacity"] if saved else b.capacity,
-                baseline_functional=saved["functional"] if saved else b.functional,
+                design_capacity=saved["capacity"]
+                if saved
+                else state.systems.base_capacity.get(b.id, b.capacity),
+                baseline_functional=saved["functional"]
+                if saved
+                else (True if b.id in state.systems.closed_by else b.functional),
             )
+            # Recover active temporary scenario controls from older checkpoints.
+            for entry in state.systems.schedule:
+                if (
+                    entry.action == "revert"
+                    and entry.op.get("type") == "set_service_availability"
+                    and b.id in entry.undo
+                ):
+                    state.systems.service_controls.setdefault(b.id, {})[
+                        f"{entry.event_id}:{entry.op['id']}"
+                    ] = dict(
+                        event_id=entry.event_id,
+                        open=entry.op["open"],
+                        capacity_multiplier=entry.op.get("capacity_multiplier", 1),
+                    )
 
 
 def effective_services(state):
@@ -37,6 +55,21 @@ def effective_services(state):
         c = state.conditions[b.id]
         multipliers = [1.0]
         closed = not c.baseline_functional or c.integrity < 50
+        controls = list(state.systems.service_controls.get(b.id, {}).values())
+        closed |= any(not control["open"] for control in controls) or (
+            not controls and b.id in state.systems.closed_by
+        )
+        service_multiplier = min((control["capacity_multiplier"] for control in controls), default=1.0)
+        policy_multiplier = 1.0
+        if state.systems.enabled and b.kind == "hospital":
+            from app.scenario_engine.mutations import funding_level
+
+            policy_multiplier = 0.6 + 0.4 * funding_level(state)
+        design_capacity = (
+            max(1, round(c.design_capacity * policy_multiplier * service_multiplier))
+            if state.systems.enabled
+            else c.design_capacity
+        )
         for runtime in state.events.values():
             if runtime.summary.status != "active":
                 continue
@@ -46,7 +79,7 @@ def effective_services(state):
                     closed |= not effect.functional
         before = dict(functional=b.functional, capacity=b.capacity)
         b.functional = not closed
-        b.capacity = 0 if closed else math.floor(c.design_capacity * c.integrity / 100 * min(multipliers))
+        b.capacity = 0 if closed else math.floor(design_capacity * c.integrity / 100 * min(multipliers))
         after = dict(functional=b.functional, capacity=b.capacity)
         if before != after:
             state.service_changes.append(
@@ -60,13 +93,19 @@ def effective_services(state):
                     after=after,
                     integrity=c.integrity,
                     cause_ids=c.cause_ids.copy(),
-                    active_closure_ids=[
-                        r.summary.id
-                        for r in state.events.values()
-                        if r.summary.status == "active"
-                        and any(e.type == "infrastructure" for e in r.spec.effects)
-                        and intersects(b.footprint, r.spec.affected_polygon)
-                    ],
+                    active_closure_ids=list(
+                        dict.fromkeys(
+                            [
+                                r.summary.id
+                                for r in state.events.values()
+                                if r.summary.status == "active"
+                                and any(e.type == "infrastructure" for e in r.spec.effects)
+                                and intersects(b.footprint, r.spec.affected_polygon)
+                            ]
+                            + [control["event_id"] for control in controls if not control["open"]]
+                            + ([state.systems.closed_by[b.id]] if b.id in state.systems.closed_by else [])
+                        )
+                    ),
                 )
             )
             hospital = state.behavior.hospitals.get(b.id)
@@ -450,6 +489,6 @@ def view(state):
         rescue_needs=[
             dict(agent_id=c.summary.id, building_id=c.trapped_building_id)
             for c in state.citizens.values()
-            if c.trapped_building_id
+            if c.trapped_building_id and living(c)
         ],
     )
