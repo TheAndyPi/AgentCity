@@ -112,3 +112,58 @@ written as required acceptance specifications; their machines must implement
 the actual adapter tests alongside code. No external integration is claimed
 complete from these specifications. This task did not rerun the full backend or
 full browser suite and made no live vendor calls or deployment changes.
+
+## 2026-10-24 — Machine B Snowflake comparison handoff
+
+Implementation: `ef0aae2bc0e7519bc942a0252a50e099c8b6091b`, branch
+`codex/snowflake-comparison`, based on fetched `origin/dev` at `2d22559`.
+See [the Snowflake handoff](release/snowflake-handoff.md) for API/schema, SQL setup,
+configuration, bounded Cortex selection, retry/crash policy and exact commands.
+
+Delivered isolated `backend/app/snowflake/**`, a runnable real-core composition,
+versioned bound SQL, durable separate request/model-budget ledger, a service-specific
+frontend client/schema/component, controlled external HTTP fixtures, 30 backend
+acceptance tests and two browser cases. JSON inputs come from the existing owned
+export implementation at explicit revisions. Source/branch keys and citations
+include simulation/revision identity; numeric differences come from verified
+read-back. No Tiger dependency or scenario/lesson/provider/settings changes.
+
+Actual results on this branch:
+
+- Focused Snowflake backend: **30 passed** in 45.21s. Covers S-01–S-05, literal
+  fixture deltas, inherited IDs, missing records, every citation resolving at its
+  pinned revision, pending/completed/changed retries, response loss and restart,
+  cost limits, blocked-vendor ticking, caller cancellation, SQL asynchronous
+  polling/output bounds, key-pair signing and independent OpenAPI snapshot.
+- Browser S-06 with the real composed application route and only the external
+  Snowflake HTTP transport faked: **2 passed**. Displayed values match returned
+  records, response-loss retry keeps the same key/body/result, disabled UI makes
+  no integration request. This does not verify the default shared entry point.
+- Frontend unit/consumer: **150 passed**; production build/TypeScript passed.
+  All **43 core contract hashes**, DTO, parent OpenAPI and stream snapshots match.
+- Ruff lint passed across backend; changed Python files pass Ruff format.
+  Full format gate reports untouched `test_city_layout.py:96`.
+- Full backend run: **325 passed, 1 failed** in 153.64s, collected before the final
+  five Snowflake cases were added. The failure is
+  `test_domain.py::test_repeat_evacuations_count_each_citizen_once`, `StopIteration`
+  finding an unexposed shelter at line 449. Reproduced on an isolated untouched
+  `git archive origin/dev` with no Snowflake files. Scenario fixes are excluded.
+- Live opt-in SQL API smoke: **unverified**, HTTP 422 / insufficient privileges
+  when creating the unique disposable schema. Key files/config existed, but real
+  table setup/read-back and Cortex were not reached. No production cleanup or
+  real Cortex success is claimed. `node scripts/snowflake-live-smoke.mjs --live`
+  is the explicit rerun command after the operator grants suitable schema access.
+
+New consumed server configuration names: `SNOWFLAKE_ENABLED`, `SNOWFLAKE_ACCOUNT`,
+`SNOWFLAKE_USER`, `SNOWFLAKE_DATABASE`, `SNOWFLAKE_SCHEMA`, `SNOWFLAKE_WAREHOUSE`,
+`SNOWFLAKE_ROLE`, `SNOWFLAKE_PRIVATE_KEY_FILE`,
+`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_FILE`, `SNOWFLAKE_CORTEX_MODEL`. Values remain local.
+Existing pinned dependencies suffice; no shared manifests or locks changed.
+
+**A's next action:** apply the checked
+[minimal wiring patch](release/snowflake-wiring.patch) to coordinator-owned main,
+capability and existing ComparePanel entry points; compose Tiger/narration routes
+on the same child app, provision the dedicated runtime schema/grants, rerun real
+SQL/Cortex smoke and combined public application gates. The branch provides
+`app.snowflake.application:create_app` for executable adapter/browser evidence;
+normal `app.main:app` wiring and full release acceptance are not claimed complete.
