@@ -1,0 +1,10 @@
+# Replace with the authorized DNS name before installing. Caddy obtains HTTPS.
+city.example.com {
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+    }
+    # Caddy forwards WebSocket upgrades and trusted X-Forwarded-* headers.
+    reverse_proxy 127.0.0.1:8000
+}

@@ -16,6 +16,7 @@ from app import contracts as c
 from app.data.repository import Repository, encode
 from app.infrastructure.errors import DomainError, require
 from app.infrastructure.gemini import Gateway, context_for, relevance
+from app.integrations.tiger import TigerIngestor
 from app.simulation.agents import (
     connect,
     evidence,
@@ -109,6 +110,7 @@ class Service:
             billed.get("input_tokens", 0) + billed.get("output_tokens", 0) + billed.get("budget_charge", 0)
         )
         self.stats = {"ticks": 0, "tick_seconds": [], "commit_seconds": [], "fallbacks": 0, "socket_bytes": 0}
+        self.tiger = TigerIngestor(self)
 
     async def start(self):
         # Recovery adds a new revision; existing committed history is never rewritten.
@@ -133,6 +135,7 @@ class Service:
                     await self.persist([state])
                 except DomainError:
                     pass
+        self.tiger.start()
 
     async def close(self):
         self.closed = True
@@ -147,6 +150,7 @@ class Service:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
         await self.gateway.close()
+        await self.tiger.close()
         self.repo.close()
 
     def owned(self, owner, sid, revision=None):
@@ -254,6 +258,7 @@ class Service:
         for state in states:
             self.heads[state.simulation.id] = state
             self.schedule_lessons(state)
+        self.tiger.notify()
 
     def schedule_lessons(self, state):
         if not self.config.gemini_enabled or self.closed:

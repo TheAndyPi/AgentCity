@@ -1,11 +1,15 @@
 """Measure the actual HTTP and durable simulation paths, without vendor keys."""
 
 import argparse
+import asyncio
 import json
+import os
 import time
 from collections import Counter
+from contextlib import nullcontext
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -18,14 +22,70 @@ def p95(values):
     return sorted(values)[max(0, int(len(values) * 0.95 + 0.999) - 1)] if values else None
 
 
-def run(population, steps, live_ticks):
+def peak_memory_bytes():
+    """Peak of this application/test-driver process, rather than system RAM."""
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("faults", wintypes.DWORD)] + [
+                (name, ctypes.c_size_t)
+                for name in (
+                    "peak_working_set",
+                    "working_set",
+                    "quota_peak_paged",
+                    "quota_paged",
+                    "quota_peak_nonpaged",
+                    "quota_nonpaged",
+                    "pagefile",
+                    "peak_pagefile",
+                )
+            ]
+
+        counters = Counters()
+        counters.cb = ctypes.sizeof(counters)
+        kernel = ctypes.WinDLL("kernel32")
+        kernel.GetCurrentProcess.restype = wintypes.HANDLE
+        psapi = ctypes.WinDLL("psapi")
+        psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD]
+        if not psapi.GetProcessMemoryInfo(kernel.GetCurrentProcess(), ctypes.byref(counters), counters.cb):
+            raise ctypes.WinError()
+        return counters.peak_working_set
+    import resource
+    import sys
+
+    value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return value if sys.platform == "darwin" else value * 1024
+
+
+class BlockedTiger:
+    async def migrate(self):
+        pass
+
+    async def ingest(self, batch):
+        await asyncio.Event().wait()
+
+
+def run(population, steps, live_ticks, blocked_tiger=False, horizon=10000):
     with TemporaryDirectory() as temp:
         directory = Path(temp)
-        app = create_app(AppConfig(data_dir=directory))
-        with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
+        app = create_app(
+            AppConfig(
+                data_dir=directory,
+                tiger_enabled=blocked_tiger,
+                tiger_database_url="controlled-outage" if blocked_tiger else "",
+            )
+        )
+        integration = (
+            patch("app.integrations.tiger.PostgresSink", lambda config: BlockedTiger())
+            if blocked_tiger
+            else nullcontext()
+        )
+        with integration, TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000)) as client:
             driver = Driver(client)
             start = time.perf_counter()
-            simulation = driver.city(population=population)
+            simulation = driver.city(population=population, max_ticks=horizon)
             sid = simulation["id"]
             initialization = time.perf_counter() - start
             timings = []
@@ -69,6 +129,13 @@ def run(population, steps, live_ticks):
                 socket_bytes=service.stats["socket_bytes"],
                 persisted_bytes=bytes_used,
                 revisions=state.simulation.revision + 1,
+                peak_process_bytes=peak_memory_bytes(),
+                tiger_enabled=service.config.tiger_enabled,
+                tiger_blocked_fake=blocked_tiger,
+                tiger_lag_revisions=service.tiger.status("demo_owner")["simulations"][0]["lag_revisions"],
+                configured_horizon=horizon,
+                final_tick=state.simulation.tick,
+                final_status=state.simulation.status,
             )
 
 
@@ -76,13 +143,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--steps", type=int, default=30)
     parser.add_argument("--live-ticks", type=int, default=10)
+    parser.add_argument("--populations", type=int, nargs="+", default=[10, 30, 100])
+    parser.add_argument("--blocked-tiger", action="store_true")
+    parser.add_argument("--horizon", type=int, default=10000)
     parser.add_argument("--output", type=Path, default=Path("artifacts/performance.json"))
     args = parser.parse_args()
+    if args.steps < 1 or args.live_ticks < 1 or args.steps + args.live_ticks > args.horizon:
+        parser.error("positive manual/live ticks must fit within the configured horizon")
     results = dict(
         contract_version="1.0.0",
         mode="rules",
         platform="measured locally; see Python/runtime lock",
-        results=[run(population, args.steps, args.live_ticks) for population in (30, 100)],
+        results=[
+            run(population, args.steps, args.live_ticks, args.blocked_tiger, args.horizon)
+            for population in args.populations
+        ],
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")

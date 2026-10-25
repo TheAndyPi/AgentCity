@@ -440,7 +440,9 @@ def test_repeat_evacuations_count_each_citizen_once(client):
     from app.simulation.scenarios import queue_event
 
     state = world(client)
-    preview = compile_preview(state, "custom", "A flood in the east for 5 ticks")
+    # The default hazard leaves a safe facility on the current seeded layout.
+    # This case tests unique evacuees, independent of a cardinal-region layout.
+    preview = compile_preview(state, "custom", "A flood for 5 ticks")
     runtime = state.events[queue_event(state, preview, state.snapshots[0].id, False).id]
     tick(state)
     citizen = state.citizens[runtime.cohort[0]]

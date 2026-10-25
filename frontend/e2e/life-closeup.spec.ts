@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { randomUUID } from "node:crypto";
 import { defaultConfig } from "../src/api/defaults";
 import type { Simulation, WorldFrame } from "../src/api/types";
@@ -59,7 +59,9 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
   const [a, b] = pair;
   await page.goto(`/simulations/${city.id}?qa=1`);
   await expect(
-    page.getByRole("region", { name: "Your neighbors" }).getByRole("button"),
+    page
+      .getByRole("region", { name: "Your neighbors" })
+      .getByRole("button", { name: /^Focus on / }),
   ).toHaveCount(10);
   await expect(page.locator(".world-wrap canvas")).toBeVisible();
   await page
@@ -155,7 +157,11 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
   });
   await page.getByRole("button", { name: "Close character focus" }).click();
   await expect(conversation).not.toBeVisible();
-  // Wide view keeps both sides of the exchange visible without a selection.
+  // Overview suppresses small speech. Zoom to a readable scale without selecting
+  // either speaker, then verify both sides and their non-overlapping layout.
+  const firstBubble = page.locator(`[data-speaker-id="${a.id}"]`);
+  for (let i = 0; i < 12 && !(await firstBubble.isVisible()); i++)
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await expect(page.locator(`[data-speaker-id="${a.id}"]`)).toBeVisible();
   await expect(page.locator(`[data-speaker-id="${b.id}"]`)).toBeVisible();
   await expect
@@ -181,12 +187,14 @@ test("a ten-person cast can be visited, invited into a readable chat, and inspec
     fullPage: true,
   });
   await expect(
-    page.getByRole("region", { name: "Your neighbors" }).getByRole("button"),
+    page
+      .getByRole("region", { name: "Your neighbors" })
+      .getByRole("button", { name: /^Focus on / }),
   ).toHaveCount(10);
   expect(errors).toEqual([]);
 });
 
-test("new neighborhoods keep a fixed cast of ten even when an older draft asked for more", async ({
+test("setup restores an eighty-person draft and lets the user choose ten", async ({
   page,
 }) => {
   await page.addInitScript(
@@ -198,13 +206,23 @@ test("new neighborhoods keep a fixed cast of ten even when an older draft asked 
     defaultConfig,
   );
   await page.goto("/simulations/new");
-  await expect(page.getByLabel("Population", { exact: true })).toHaveValue(
-    "10",
-  );
-  await expect(page.getByLabel("Population", { exact: true })).toHaveAttribute(
-    "readonly",
-    "",
-  );
+  const population = page.getByRole("slider", {
+    name: "Number of agents",
+    exact: true,
+  });
+  await expect(population).toHaveValue("80");
+  await expect(population).toHaveAttribute("min", "10");
+  await expect(population).toHaveAttribute("max", "100");
+  await population.fill("10");
+  await expect(population).toHaveValue("10");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("agentcity-setup-draft")!).population,
+      ),
+    )
+    .toBe(10);
   await expect(
     page.getByRole("heading", {
       name: "Build your custom simulation",

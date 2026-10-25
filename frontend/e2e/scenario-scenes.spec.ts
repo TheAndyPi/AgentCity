@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { randomUUID } from "node:crypto";
 import type { Settings, WorldFrame } from "../src/api/types";
 

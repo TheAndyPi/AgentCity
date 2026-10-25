@@ -2,7 +2,7 @@
 name = "agentcity-backend"
 version = "1.0.0"
 requires-python = ">=3.13"
-dependencies = ["fastapi", "uvicorn", "httpx", "websockets", "google-auth[requests]"]
+dependencies = ["fastapi", "uvicorn", "httpx", "websockets", "google-auth[requests]", "psycopg[binary]==3.3.3"]
 
 [project.optional-dependencies]
 dev = ["pytest", "httpx2", "jsonschema", "pyyaml", "ruff"]

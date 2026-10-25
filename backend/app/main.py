@@ -41,6 +41,9 @@ def create_app(config: AppConfig | None = None):
         app.state.service = service
         app.state.security = Security(service)
         app.state.cursors = Cursors(service.repo.meta["cursor_secret"])
+        integrations.state.service = service
+        integrations.state.security = app.state.security
+        integrations.state.cursors = app.state.cursors
         await service.start()
         expirer = asyncio.create_task(service.expire_holds())
         try:
@@ -914,6 +917,10 @@ def create_app(config: AppConfig | None = None):
         return schema
 
     app.openapi = openapi
+    from app.integrations.api import integration_app
+
+    integrations = integration_app(lambda: app.state.service, app.exception_handlers)
+    app.mount(API + "/integrations", integrations)
     if runtime.frontend_dist:
         from app.infrastructure.frontend import mount_frontend
 

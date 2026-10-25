@@ -53,7 +53,9 @@ validated increment. Never remove a referenced object to free disk space.
 
 No database migration is required for a fresh 1.0.0 local store. A future schema
 or operational-adapter change must provide a versioned migration and backup/
-restore rehearsal. No PostgreSQL dual-write path exists in this build.
+restore rehearsal. The optional Tiger read model reconciles published history
+outside the writer lock; see [the Tiger handoff](../docs/release/tiger-handoff.md)
+and [deployment runbook](../deploy/README.md).
 
 ## Private production deployment recipe
 

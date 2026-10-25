@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Request } from "@playwright/test";
+import { test, expect, type Page, type Request } from "./fixtures";
 import { defaultSettings } from "../src/api/defaults";
 import type { Settings } from "../src/api/types";
 
