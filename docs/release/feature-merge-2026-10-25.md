@@ -1,8 +1,9 @@
 # Scenario, survival and live-voice integration — 2026-10-25
 
-Timezone: America/New_York. Final application source candidate: **`7c3815a`**.
+Timezone: America/New_York. Engine/UI source candidate: **`7c3815a`**.
 This records verification of the combined application, rather than adding together
-the individual branches' earlier results. Subsequent reporting changes are docs only.
+the individual branches' earlier results. Launcher-only follow-up **`866662a`**
+and its separate smoke checks are documented below.
 
 ## Included branches and explicit exclusion
 
@@ -100,6 +101,36 @@ Sanitized logs, backend JUnit, the final browser JSON and generated screenshots
 were copied to the original checkout's ignored
 `backend/.tmp/three-branch-merge-2026-10-25/`. Generated baseline artifacts were
 restored rather than committing unrelated screenshot/report churn.
+
+## Launcher recovery follow-up
+
+The original checkout's real store contained **18 saved worlds, 9,703 immutable
+objects and 2.97 GiB of compressed history**. Its startup verification exceeded
+the previous fixed 300-second launcher deadline. This was a real local launch
+failure despite passing isolated-store tests; it is not evidence of a corrupt
+store or an engine-test failure.
+
+`866662a` makes `npm run dev` and `npm start` use a shared validated
+`BACKEND_STARTUP_TIMEOUT_SECONDS` setting, default **600**, configurable **30..1800**.
+The launcher announces the allowance. Integrity verification, readiness semantics,
+ordinary HTTP request timeouts and simulation rules are unchanged. README and the
+server environment example document the setting. This allows recovery to finish;
+it does not solve growing full-state retention or make recovery faster.
+
+Manual checks verified the default, both allowed boundaries and rejection of
+zero/out-of-range/fractional/non-numeric settings, plus syntax checks. Fresh
+disposable-store launches of both actual commands reached readiness, served their
+frontend and exposed all 15 scenario operations plus behavior routes through the
+same origin. These test servers were then stopped. Evidence is in the ignored
+`launcher-smoke.json`; the original checkout's production build also passed.
+
+The original-store retry subsequently reached readiness and serves the merged
+application at `http://127.0.0.1:5173`. All **18 worlds** restored; the proxy exposes
+15 scenario operations and behavior routes. A read-only Chrome smoke opened the
+existing `simulation_c910e3e60652420abcc60b8506ce89e8` city, verified LIVE and the
+real controls, and observed zero page errors, failed API responses or mutation
+requests. `original-dev-smoke.json`, `original-browser-smoke.json` and
+`original-city.png` retain the evidence under the same ignored directory.
 
 ## Remaining external and feature boundaries
 

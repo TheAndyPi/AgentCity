@@ -604,3 +604,20 @@ provider, public hosting or live warehouse verification is claimed.
 See [combined feature merge evidence](release/feature-merge-2026-10-25.md) for
 branch/merge commits, resolved conflicts, initial failures, exact test boundaries,
 preserved local evidence and remaining external gates.
+
+### Launcher recovery allowance after the feature merge
+
+Actual local restart with 18 saved worlds/9,703 objects/2.97 GiB compressed history
+exceeded the old 300-second launcher timeout. Follow-up `866662a` adds validated
+`BACKEND_STARTUP_TIMEOUT_SECONDS` to both Node launchers: default 600 seconds,
+allowed 30..1800, with a startup message and environment/README documentation.
+It preserves integrity checks and HTTP deadlines; storage compaction/endurance
+remain separate work. Configuration boundary/invalid-input and syntax checks pass.
+Both real launch commands also passed fresh-store readiness, frontend and new
+scenario/behavior API smoke checks; the temporary test servers were stopped.
+
+The full original store then recovered successfully. The merged app is running on
+5173 with 18 restored worlds, 15 scenario operations and the behavior extension.
+A read-only Chrome visit to the existing city was LIVE with no page/API errors
+or mutation requests; smoke JSON/screenshot evidence is in the ignored merge
+evidence directory. Cold-history recovery remains slow, despite the larger allowance.
