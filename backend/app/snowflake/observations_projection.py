@@ -6,6 +6,7 @@ memories, deliberation prompts and relationship desires never enter this model.
 
 import hashlib
 import json
+from collections import Counter
 from statistics import mean
 
 VERSION = "1.0.0"
@@ -158,6 +159,15 @@ def _events(state):
     for eid, runtime in sorted(state.events.items()):
         event = runtime.summary
         plan = state.systems.plans.get(eid)
+        baseline = runtime.observation_baseline
+        if baseline is not None:
+            # Known ties can form a dense graph. Keep the event fact small and
+            # project relationship/opinion baselines individually below.
+            baseline = {
+                key: value for key, value in baseline.items() if key not in {"relationships", "opinions"}
+            }
+            baseline["relationship_count"] = len(runtime.observation_baseline.get("relationships", []))
+            baseline["opinion_count"] = len(runtime.observation_baseline.get("opinions", []))
         result[eid] = dict(
             event_id=eid,
             title=event.title,
@@ -166,7 +176,7 @@ def _events(state):
             start_tick=event.start_tick,
             end_tick=event.end_tick,
             cohort=sorted(plan.cohort if plan and plan.activated_tick is not None else runtime.cohort),
-            baseline=runtime.observation_baseline,
+            baseline=baseline,
             baseline_available=runtime.observation_baseline is not None,
         )
     return result
@@ -193,6 +203,17 @@ def _new_proofs(previous, current):
         if proof:
             result.setdefault((kind, identity, field), []).append(_evidence(proof))
 
+    def new_items(before, after):
+        # Impacts/reasons can be capped. A fixed list length does not mean no
+        # new evidence arrived; compare contents while respecting duplicates.
+        remaining = Counter(digest(item.model_dump(mode="json")) for item in before)
+        for item in after:
+            identity = digest(item.model_dump(mode="json"))
+            if remaining[identity]:
+                remaining[identity] -= 1
+            else:
+                yield item
+
     old_decisions = {d.id: d.model_dump(mode="json") for d in previous.decisions} if previous else {}
     for decision in current.decisions:
         if old_decisions.get(decision.id) == decision.model_dump(mode="json"):
@@ -203,11 +224,9 @@ def _new_proofs(previous, current):
             add("agent", effect.entity_id, field, proof)
     for aid, citizen in current.citizens.items():
         old = previous.citizens.get(aid) if previous else None
-        old_reasons = len(old.metric_reasons) if old else 0
-        for reason in citizen.metric_reasons[old_reasons:]:
+        for reason in new_items(old.metric_reasons if old else (), citizen.metric_reasons):
             add("agent", aid, reason.metric, reason.evidence)
-        old_impacts = len(old.condition.impacts) if old else 0
-        for impact in citizen.condition.impacts[old_impacts:]:
+        for impact in new_items(old.condition.impacts if old else (), citizen.condition.impacts):
             field = {"energy": "fatigue", "fullness": "hunger", "social": "social_need"}.get(
                 impact.meter, impact.meter
             )
@@ -312,6 +331,24 @@ def project(previous, current, lineage=None):
                         )
     for change in changes:
         add("change", digest([change["entity_kind"], change["entity_id"], change["field"]]), change)
+    for eid, runtime in sorted(current.events.items()):
+        baseline = runtime.observation_baseline
+        old_runtime = previous.events.get(eid) if previous else None
+        if baseline is None or (old_runtime and old_runtime.observation_baseline is not None):
+            continue
+        for category, kind in (("relationships", "relationship"), ("opinions", "opinion")):
+            for record in baseline.get(category, []):
+                identity = record["entity_id"]
+                add(
+                    "event_baseline",
+                    digest([eid, kind, identity]),
+                    dict(
+                        event_id=eid,
+                        entity_kind=kind,
+                        entity_id=identity,
+                        value=record,
+                    ),
+                )
     fork = lineage.get("fork_ref", sim.fork_ref.model_dump(mode="json") if sim.fork_ref else None)
     return dict(
         projection_version=VERSION,

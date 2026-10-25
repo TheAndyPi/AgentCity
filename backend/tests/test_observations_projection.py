@@ -5,7 +5,8 @@ import json
 import pytest
 from conftest import commit_preview, create_city, preview
 
-from app.contracts import Belief
+from app.behavior.models import Impact
+from app.contracts import Belief, Relationship
 from app.scenario_engine.systems import Belief as InformationBelief
 from app.scenario_engine.world import enable
 from app.simulation.agents import connect, evidence, metric_delta, social_delta
@@ -168,6 +169,38 @@ def test_metric_evidence_only_new_cause_is_used(world):
     assert stress["event_ids"] == ["event_new"]
 
 
+def test_capped_evidence_lists_preserve_new_explicit_causes(world):
+    citizen = next(iter(world.citizens.values()))
+    metric_delta(citizen, "stress", 1, evidence("First reason", event_ids=["event_old"]))
+    citizen.condition.impacts = [
+        Impact(
+            tick=1,
+            phase="passive",
+            meter="health",
+            reason="old",
+            delta=-1,
+            evidence=evidence("Old injury", event_ids=["event_old"]),
+        )
+    ]
+    previous = world.model_copy(deep=True)
+    metric_delta(citizen, "stress", 2, evidence("Second reason", event_ids=["event_new"]))
+    citizen.metric_reasons = citizen.metric_reasons[-1:]
+    citizen.needs.health -= 2
+    citizen.condition.impacts = [
+        Impact(
+            tick=2,
+            phase="event",
+            meter="health",
+            reason="new",
+            delta=-2,
+            evidence=evidence("New injury", event_ids=["event_new"]),
+        )
+    ]
+    changes = payloads(project(previous, advance(world)), "change")
+    assert next(c for c in changes if c["field"] == "stress")["event_ids"] == ["event_new"]
+    assert next(c for c in changes if c["field"] == "health")["event_ids"] == ["event_new"]
+
+
 def test_event_activation_baseline_persisted_before_effects(client):
     simulation = create_city(client)
     sid = simulation["id"]
@@ -202,3 +235,50 @@ def test_legacy_event_has_explicit_unavailable_baseline(client):
     state = client.app.state.service.repo.read(simulation["id"])
     event = payloads(project(None, state), "event")[0]
     assert event["baseline"] is None and event["baseline_available"] is False
+
+
+def test_dense_baseline_split_is_lossless_bounded_and_emitted_once(client):
+    simulation = create_city(client)
+    hold, compiled = preview(client, simulation["id"])
+    assert commit_preview(client, simulation["id"], hold, compiled).status_code in {200, 201}
+    state = client.app.state.service.repo.read(simulation["id"])
+    citizen = next(iter(state.citizens.values()))
+    state.citizens = {}
+    for i in range(100):
+        clone = citizen.model_copy(deep=True)
+        clone.summary.id = f"agent_dense_{i:03d}"
+        clone.relationships = {}
+        state.citizens[clone.summary.id] = clone
+    for aid, clone in state.citizens.items():
+        for bid in state.citizens:
+            if bid != aid:
+                clone.relationships[bid] = Relationship(
+                    from_agent_id=aid,
+                    to_agent_id=bid,
+                    kind="acquaintance",
+                    trust=50,
+                    affection=50,
+                    respect=50,
+                    familiarity=20,
+                    conflict=0,
+                    desired_relationship="friend",
+                    shared_history=[],
+                    evidence=evidence("Known meeting"),
+                )
+    runtime = next(iter(state.events.values()))
+    previous = state.model_copy(deep=True)
+    runtime.observation_baseline = capture_baseline(state)
+    assert len(json.dumps(runtime.observation_baseline).encode()) > 1_000_000
+    envelope = project(previous, advance(state))
+    assert max(len(json.dumps(f).encode()) for f in envelope["facts"]) < 1_000_000
+    baseline_facts = payloads(envelope, "event_baseline")
+    assert len(baseline_facts) == 9900
+    assert {r["entity_id"] for r in baseline_facts} == {
+        r["entity_id"] for r in runtime.observation_baseline["relationships"]
+    }
+    projected_event = payloads(envelope, "event")[0]
+    assert projected_event["baseline"]["relationship_count"] == 9900
+    assert "relationships" not in projected_event["baseline"]
+    assert projected_event["baseline"]["agents"] == runtime.observation_baseline["agents"]
+    previous = state.model_copy(deep=True)
+    assert not payloads(project(previous, advance(state)), "event_baseline")
