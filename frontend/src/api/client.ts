@@ -27,13 +27,13 @@ export class AgentCityClient {
   get mode() {
     return this.transport.mode;
   }
-  async call<S extends z.ZodTypeAny>(
+  async call<T>(
     method: string,
     path: string,
-    schema: S,
+    schema: z.ZodType<T>,
     body?: unknown,
     key?: string,
-  ): Promise<z.infer<S>> {
+  ): Promise<T> {
     const response = await this.transport.request(
       method,
       path,
@@ -357,14 +357,11 @@ export class AgentCityClient {
     );
   exportUrl = (id: string, revision: number) =>
     `${apiBase}/simulations/${encodeURIComponent(id)}/export?format=csv&through_revision=${revision}`;
-  async all<S extends z.ZodTypeAny>(
-    path: string,
-    schema: S,
-  ): Promise<z.infer<S>[]> {
-    const items: z.infer<S>[] = [];
+  async all<Item>(path: string, schema: z.ZodType<Item>): Promise<Item[]> {
+    const items: Item[] = [];
     let cursor: string | null = null;
     do {
-      const next: T.Page<z.infer<S>> = await this.call(
+      const next: T.Page<Item> = await this.call(
         "GET",
         `${path}${path.includes("?") ? "&" : "?"}limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
         S.page(schema),

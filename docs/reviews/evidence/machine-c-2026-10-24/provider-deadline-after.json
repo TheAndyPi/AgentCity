@@ -1,0 +1,10 @@
+{
+  "decision_deadline_seconds": 0.35,
+  "observed_seconds": 0.5540066999965347,
+  "lessons_pending_after_budget": false,
+  "slot_occupied": false,
+  "decision_control": {
+    "returned_fallback": true,
+    "elapsed_seconds": 0.35981799999717623
+  }
+}

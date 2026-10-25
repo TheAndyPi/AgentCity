@@ -1,0 +1,315 @@
+{
+  "note": "Vite exited with EBUSY while watching a generated screenshot; later tests received connection refusals.",
+  "stats": {
+    "startTime": "2026-10-25T01:53:18.314Z",
+    "duration": 191965.514,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 16,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "life-closeup.spec.ts",
+      "line": 26,
+      "title": "a ten-person cast can be visited, invited into a readable chat, and inspected on mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "life-closeup.spec.ts",
+      "line": 189,
+      "title": "new neighborhoods keep a fixed cast of ten even when an older draft asked for more",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Ten people. A world of little moments.' })\nExpected: visible\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('heading', { name: 'Ten people. A world of little moments.' }) with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Ten people. A world of little moments.' })\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 73,
+      "title": "real create, initial flood, stream, inspector, outcome, undo and saved history",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "TimeoutError: locator.fill: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByLabel('Your opening scenario')\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 244,
+      "title": "built frontend, HTTP API and WebSocket work on one production origin",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 281,
+      "title": "replay excludes initialization, and a continued branch saves before browser Back",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 336,
+      "title": "citizen details remain readable during slow live refreshes and isolate changed selections",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 470,
+      "title": "an ambiguous confirmed event response retries the same key exactly once",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 525,
+      "title": "a manual pause from another tab invalidates preview and never auto-resumes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 577,
+      "title": "running event editor pauses, cancels safely and resumes only the prior intent",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog')\nExpected substring: \u001b[32m\"CITY PAUSED\"\u001b[39m\nReceived string:    \u001b[31m\"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreview event\"\u001b[39m\nTimeout: 15000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog') with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog')\u001b[22m\n\u001b[2m    2 × locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"Waiting for a safe pauseTrigger a custom eventWaiting for the city to pause safely…\"\u001b[22m\n\u001b[2m    - locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\u001b[22m\n\u001b[2m    - unexpected value \"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreparing preview…\"\u001b[22m\n\u001b[2m    30 × locator resolved to <div role=\"dialog\" tabindex=\"-1\" class=\"modal \" aria-modal=\"true\" aria-labelledby=\"«r1»\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"Simulation pausedTrigger a custom eventDescribe the event you want to add. Nothing changes until you confirm.Describe your eventNEED A SPARK? New ideasDinosaurs appear in the town square for 20 ticks.An alien spacecraft arrives during a neighborhood festival.A farmers market and community garden open in the east. CancelPreview event\"\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 643,
+      "title": "three failed sockets fall back to real REST polling, then reconnect",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 670,
+      "title": "failed navigation save keeps the running city and retries its original operation",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 745,
+      "title": "mobile settings and profiles preserve setup drafts, copy citizens, archive and delete",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "TimeoutError: locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Delete all archived', exact: true })\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 846,
+      "title": "dense mixed-use blocks have 3D hover tags and keyboard-accessible 2D purposes",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 970,
+      "title": "real 30-citizen 3D world responds while running and supports WebGL fallback",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 970,
+      "title": "real 100-citizen 3D world responds while running and supports WebGL fallback",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m4\u001b[39m\nReceived:    \u001b[31m0\u001b[39m\n\nCall Log:\n- Timeout 15000ms exceeded while waiting on the predicate"
+        }
+      ]
+    },
+    {
+      "file": "live.spec.ts",
+      "line": 1072,
+      "title": "life sim traits, conversations and open-ended events work on desktop and mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "scenario-scenes.spec.ts",
+      "line": 5,
+      "title": "composed scenario has an orbitable preview and active 3D props",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:15173/simulations/new\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:15173/simulations/new\", waiting until \"load\"\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "scenario-scenes.spec.ts",
+      "line": 87,
+      "title": "free-form primitive geometry renders on the GPU and can be orbited",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:15173/tests/visual/scenario.html\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:15173/tests/visual/scenario.html\", waiting until \"load\"\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 71,
+      "title": "successful shortcut save ends its operation before save and create",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 95,
+      "title": "retry after connection response loss replays the exact request without duplicate mutation",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 95,
+      "title": "retry after json response loss replays the exact request without duplicate mutation",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 95,
+      "title": "retry after contract response loss replays the exact request without duplicate mutation",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 139,
+      "title": "appearance saves queued before shortcuts use successive versions and preserve all edits",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 189,
+      "title": "appearance queued behind a lost shortcut response retries it before applying its own patch",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "settings.spec.ts",
+      "line": 226,
+      "title": "stale settings refresh the version and preserve the shortcut draft for retry",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/settings\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "file": "walking-buildings.spec.ts",
+      "line": 27,
+      "title": "paused steps visibly walk into a building and leave through its entrance",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "error": "Error: apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:15173\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:15173/api/v1/session\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n"
+        }
+      ]
+    }
+  ]
+}
