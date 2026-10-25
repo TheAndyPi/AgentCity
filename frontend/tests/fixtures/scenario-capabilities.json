@@ -1,0 +1,2663 @@
+{
+ "operations": [
+  {
+   "type": "modify_policy",
+   "description": "Set, increase, decrease, multiply or clear one registered policy target.",
+   "systems": [],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "modify_policy",
+      "title": "Type",
+      "type": "string"
+     },
+     "target": {
+      "enum": [
+       "taxation.business_tax_rate",
+       "taxation.household_tax_rate",
+       "transportation.transit_fare",
+       "transportation.car_trip_cost",
+       "transportation.transit_service_level",
+       "transportation.transit_campaign",
+       "housing.rent_level",
+       "housing.rent_cap",
+       "housing.assistance_per_tick",
+       "public_services.hospital_funding",
+       "business.price_level",
+       "business.subsidy_per_shift",
+       "resource_distribution.ration_units_per_agent",
+       "resource_distribution.aid_multiplier",
+       "resource_distribution.evacuation_order",
+       "community_programs.cooperation_reward",
+       "community_programs.conservation_campaign"
+      ],
+      "title": "Target",
+      "type": "string"
+     },
+     "operation": {
+      "enum": [
+       "set",
+       "increase",
+       "decrease",
+       "multiply",
+       "clear"
+      ],
+      "title": "Operation",
+      "type": "string"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Value"
+     }
+    },
+    "required": [
+     "type",
+     "target",
+     "operation"
+    ],
+    "title": "ModifyPolicy",
+    "type": "object"
+   }
+  },
+  {
+   "type": "set_service_availability",
+   "description": "Open or close a building (by building_id) or every building of a kind in a region, and scale its capacity. Closed businesses stop producing and selling.",
+   "systems": [
+    "public_services",
+    "infrastructure",
+    "business"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "set_service_availability",
+      "title": "Type",
+      "type": "string"
+     },
+     "building_id": {
+      "anyOf": [
+       {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Building Id"
+     },
+     "building_kind": {
+      "anyOf": [
+       {
+        "enum": [
+         "home",
+         "work",
+         "shop",
+         "shelter",
+         "hospital",
+         "community"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Building Kind"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "open": {
+      "title": "Open",
+      "type": "boolean"
+     },
+     "capacity_multiplier": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Capacity Multiplier",
+      "type": "number"
+     }
+    },
+    "required": [
+     "type",
+     "open"
+    ],
+    "title": "SetServiceAvailability",
+    "type": "object"
+   }
+  },
+  {
+   "type": "modify_resource_stock",
+   "description": "Multiply the stock of food, water or supplies at the depots in a region.",
+   "systems": [
+    "resources"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "modify_resource_stock",
+      "title": "Type",
+      "type": "string"
+     },
+     "resource": {
+      "enum": [
+       "food",
+       "water",
+       "supplies"
+      ],
+      "title": "Resource",
+      "type": "string"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "multiplier": {
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Multiplier",
+      "type": "number"
+     }
+    },
+    "required": [
+     "type",
+     "resource",
+     "multiplier"
+    ],
+    "title": "ModifyResourceStock",
+    "type": "object"
+   }
+  },
+  {
+   "type": "modify_housing_supply",
+   "description": "Set the share of homes in a region that accept tenants. Scarcer housing pushes market rent up.",
+   "systems": [
+    "housing",
+    "economy"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "modify_housing_supply",
+      "title": "Type",
+      "type": "string"
+     },
+     "available_share": {
+      "maximum": 1,
+      "minimum": 0.3,
+      "title": "Available Share",
+      "type": "number"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     }
+    },
+    "required": [
+     "type",
+     "available_share"
+    ],
+    "title": "ModifyHousingSupply",
+    "type": "object"
+   }
+  },
+  {
+   "type": "broadcast_information",
+   "description": "Tell an audience something through a channel. Each citizen decides whether to believe it, and believers may pass it on in conversation.",
+   "systems": [
+    "information"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "broadcast_information",
+      "title": "Type",
+      "type": "string"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     },
+     "channel": {
+      "enum": [
+       "official",
+       "media",
+       "rumor",
+       "word_of_mouth"
+      ],
+      "title": "Channel",
+      "type": "string"
+     },
+     "topic": {
+      "enum": [
+       "policy_change",
+       "prices",
+       "safety",
+       "services",
+       "housing",
+       "transport",
+       "community",
+       "government",
+       "other"
+      ],
+      "title": "Topic",
+      "type": "string"
+     },
+     "message": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+     },
+     "credibility": {
+      "default": 80,
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Credibility",
+      "type": "number"
+     },
+     "accurate": {
+      "default": true,
+      "title": "Accurate",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "type",
+     "channel",
+     "topic",
+     "message"
+    ],
+    "title": "BroadcastInformation",
+    "type": "object"
+   }
+  },
+  {
+   "type": "adjust_institutional_credibility",
+   "description": "Introduce a condition that changes how credible official sources seem (for example a scandal or a transparency program). Each affected citizen's trust shifts by their own susceptibility.",
+   "systems": [
+    "public_trust",
+    "information"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "adjust_institutional_credibility",
+      "title": "Type",
+      "type": "string"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     },
+     "delta": {
+      "maximum": 50,
+      "minimum": -50,
+      "title": "Delta",
+      "type": "number"
+     },
+     "reason": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+     }
+    },
+    "required": [
+     "type",
+     "delta",
+     "reason"
+    ],
+    "title": "AdjustInstitutionalCredibility",
+    "type": "object"
+   }
+  },
+  {
+   "type": "introduce_social_norm",
+   "description": "Promote a social norm. Citizens adopt it or not based on their traits and on whether people they know have adopted it.",
+   "systems": [
+    "social_norms"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "introduce_social_norm",
+      "title": "Type",
+      "type": "string"
+     },
+     "norm": {
+      "enum": [
+       "help_strangers",
+       "use_public_transit",
+       "conserve_resources",
+       "civic_participation"
+      ],
+      "title": "Norm",
+      "type": "string"
+     },
+     "strength": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strength",
+      "type": "number"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     }
+    },
+    "required": [
+     "type",
+     "norm",
+     "strength"
+    ],
+    "title": "IntroduceSocialNorm",
+    "type": "object"
+   }
+  },
+  {
+   "type": "create_organization",
+   "description": "Create an organization. Eligible citizens decide whether to join; members act on its mission.",
+   "systems": [
+    "organizations"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "create_organization",
+      "title": "Type",
+      "type": "string"
+     },
+     "kind": {
+      "enum": [
+       "mutual_aid",
+       "tenant_union",
+       "protest_group",
+       "community_program",
+       "assistance_office"
+      ],
+      "title": "Kind",
+      "type": "string"
+     },
+     "name": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+     },
+     "mission": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Mission",
+      "type": "string"
+     },
+     "eligibility": {
+      "default": "all",
+      "enum": [
+       "all",
+       "low_income",
+       "renters",
+       "region"
+      ],
+      "title": "Eligibility",
+      "type": "string"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "budget_per_tick": {
+      "default": 0,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Budget Per Tick",
+      "type": "number"
+     },
+     "rally_every": {
+      "default": 24,
+      "maximum": 200,
+      "minimum": 6,
+      "title": "Rally Every",
+      "type": "integer"
+     },
+     "founding_share": {
+      "default": 0.1,
+      "maximum": 0.5,
+      "minimum": 0,
+      "title": "Founding Share",
+      "type": "number"
+     }
+    },
+    "required": [
+     "type",
+     "kind",
+     "name"
+    ],
+    "title": "CreateOrganization",
+    "type": "object"
+   }
+  },
+  {
+   "type": "remove_organization",
+   "description": "Dissolve an existing organization by organization_id.",
+   "systems": [
+    "organizations"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "remove_organization",
+      "title": "Type",
+      "type": "string"
+     },
+     "organization_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Organization Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "type",
+     "organization_id"
+    ],
+    "title": "RemoveOrganization",
+    "type": "object"
+   }
+  },
+  {
+   "type": "set_incentive",
+   "description": "Give an audience a per-action or per-tick credit incentive.",
+   "systems": [
+    "economy",
+    "social_norms"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "set_incentive",
+      "title": "Type",
+      "type": "string"
+     },
+     "incentive": {
+      "enum": [
+       "transit_rebate",
+       "help_reward",
+       "conservation_bonus",
+       "work_bonus"
+      ],
+      "title": "Incentive",
+      "type": "string"
+     },
+     "amount": {
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Amount",
+      "type": "number"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     }
+    },
+    "required": [
+     "type",
+     "incentive",
+     "amount"
+    ],
+    "title": "SetIncentive",
+    "type": "object"
+   }
+  },
+  {
+   "type": "adjust_population_traits",
+   "description": "Directly edit a personality trait for part of the population. This changes who citizens are, not their environment; use it only when the request is about changing people themselves.",
+   "systems": [
+    "population_traits"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "adjust_population_traits",
+      "title": "Type",
+      "type": "string"
+     },
+     "trait": {
+      "enum": [
+       "curiosity",
+       "empathy",
+       "sociability",
+       "trust",
+       "cooperation",
+       "risk_tolerance"
+      ],
+      "title": "Trait",
+      "type": "string"
+     },
+     "delta": {
+      "maximum": 40,
+      "minimum": -40,
+      "title": "Delta",
+      "type": "number"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     },
+     "selection": {
+      "default": "random",
+      "enum": [
+       "random",
+       "lowest",
+       "highest"
+      ],
+      "title": "Selection",
+      "type": "string"
+     }
+    },
+    "required": [
+     "type",
+     "trait",
+     "delta"
+    ],
+    "title": "AdjustPopulationTraits",
+    "type": "object"
+   }
+  },
+  {
+   "type": "modify_social_network",
+   "description": "Create acquaintance ties between strangers, or weaken existing ties.",
+   "systems": [
+    "social_network"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Audience": {
+      "additionalProperties": false,
+      "properties": {
+       "kind": {
+        "default": "all_citizens",
+        "enum": [
+         "all_citizens",
+         "region",
+         "low_income",
+         "middle_income",
+         "high_income",
+         "renters",
+         "workers",
+         "transit_riders",
+         "car_users",
+         "organization_members",
+         "share"
+        ],
+        "title": "Kind",
+        "type": "string"
+       },
+       "share": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Share",
+        "type": "number"
+       },
+       "region": {
+        "anyOf": [
+         {
+          "enum": [
+           "citywide",
+           "north",
+           "south",
+           "east",
+           "west",
+           "northeast",
+           "northwest",
+           "southeast",
+           "southwest"
+          ],
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Region"
+       },
+       "organization_id": {
+        "anyOf": [
+         {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Organization Id"
+       }
+      },
+      "title": "Audience",
+      "type": "object"
+     },
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "modify_social_network",
+      "title": "Type",
+      "type": "string"
+     },
+     "action": {
+      "enum": [
+       "connect_strangers",
+       "weaken_ties"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "audience": {
+      "$ref": "#/$defs/Audience"
+     },
+     "ties_per_agent": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Ties Per Agent",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "type",
+     "action"
+    ],
+    "title": "ModifySocialNetwork",
+    "type": "object"
+   }
+  },
+  {
+   "type": "physical_hazard",
+   "description": "A flood, fire or storm in a region at a severity. Citizens decide how to stay safe.",
+   "systems": [
+    "safety",
+    "environment"
+   ],
+   "physical": true,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "physical_hazard",
+      "title": "Type",
+      "type": "string"
+     },
+     "hazard": {
+      "enum": [
+       "flood",
+       "fire",
+       "storm"
+      ],
+      "title": "Hazard",
+      "type": "string"
+     },
+     "region": {
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "severity": {
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Severity",
+      "type": "number"
+     }
+    },
+    "required": [
+     "type",
+     "hazard",
+     "region",
+     "severity"
+    ],
+    "title": "PhysicalHazard",
+    "type": "object"
+   }
+  },
+  {
+   "type": "community_gathering",
+   "description": "A festival or community aid distribution in a region.",
+   "systems": [
+    "social_norms",
+    "resources"
+   ],
+   "physical": true,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "community_gathering",
+      "title": "Type",
+      "type": "string"
+     },
+     "activity": {
+      "enum": [
+       "festival",
+       "aid"
+      ],
+      "title": "Activity",
+      "type": "string"
+     },
+     "region": {
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     }
+    },
+    "required": [
+     "type",
+     "activity",
+     "region"
+    ],
+    "title": "CommunityGathering",
+    "type": "object"
+   }
+  },
+  {
+   "type": "environmental_condition",
+   "description": "Heat, cold, illness, pollution or noise in a region. It affects health and stress per tick; being indoors or in hospital mitigates it.",
+   "systems": [
+    "environment",
+    "healthcare"
+   ],
+   "physical": false,
+   "parameters": {
+    "$defs": {
+     "Timing": {
+      "additionalProperties": false,
+      "properties": {
+       "start_tick": {
+        "default": 0,
+        "maximum": 500,
+        "minimum": 0,
+        "title": "Start Tick",
+        "type": "integer"
+       },
+       "duration_ticks": {
+        "anyOf": [
+         {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Duration Ticks"
+       },
+       "repeat_every": {
+        "anyOf": [
+         {
+          "maximum": 100,
+          "minimum": 2,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Every"
+       },
+       "repeat_count": {
+        "anyOf": [
+         {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "default": null,
+        "title": "Repeat Count"
+       }
+      },
+      "title": "Timing",
+      "type": "object"
+     }
+    },
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "default": "op",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+     },
+     "timing": {
+      "$ref": "#/$defs/Timing"
+     },
+     "rationale": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Rationale",
+      "type": "string"
+     },
+     "type": {
+      "const": "environmental_condition",
+      "title": "Type",
+      "type": "string"
+     },
+     "condition": {
+      "enum": [
+       "heat",
+       "cold",
+       "illness",
+       "pollution",
+       "noise"
+      ],
+      "title": "Condition",
+      "type": "string"
+     },
+     "region": {
+      "default": "citywide",
+      "enum": [
+       "citywide",
+       "north",
+       "south",
+       "east",
+       "west",
+       "northeast",
+       "northwest",
+       "southeast",
+       "southwest"
+      ],
+      "title": "Region",
+      "type": "string"
+     },
+     "intensity": {
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Intensity",
+      "type": "number"
+     }
+    },
+    "required": [
+     "type",
+     "condition",
+     "intensity"
+    ],
+    "title": "EnvironmentalCondition",
+    "type": "object"
+   }
+  }
+ ],
+ "policy_targets": [
+  {
+   "target": "taxation.business_tax_rate",
+   "minimum": 0,
+   "maximum": 0.6,
+   "unit": "share",
+   "nullable": false,
+   "description": "Share of each business's revenue paid to the city treasury.",
+   "systems": [
+    "taxation",
+    "business",
+    "economy"
+   ]
+  },
+  {
+   "target": "taxation.household_tax_rate",
+   "minimum": 0,
+   "maximum": 0.4,
+   "unit": "share",
+   "nullable": false,
+   "description": "Share of each wage paid to the city treasury.",
+   "systems": [
+    "taxation",
+    "economy"
+   ]
+  },
+  {
+   "target": "transportation.transit_fare",
+   "minimum": 0,
+   "maximum": 10,
+   "unit": "credits per trip",
+   "nullable": false,
+   "description": "Fare a rider pays per public transit trip. Fare revenue goes to the treasury.",
+   "systems": [
+    "transportation",
+    "economy"
+   ]
+  },
+  {
+   "target": "transportation.car_trip_cost",
+   "minimum": 0,
+   "maximum": 20,
+   "unit": "credits per trip",
+   "nullable": false,
+   "description": "Fuel, parking and toll cost of one car trip.",
+   "systems": [
+    "transportation",
+    "economy"
+   ]
+  },
+  {
+   "target": "transportation.transit_service_level",
+   "minimum": 0,
+   "maximum": 2,
+   "unit": "multiplier",
+   "nullable": false,
+   "description": "Transit frequency and speed. 0 suspends service; 1 is normal; above 1 is faster service that costs the treasury more to operate.",
+   "systems": [
+    "transportation",
+    "infrastructure"
+   ]
+  },
+  {
+   "target": "transportation.transit_campaign",
+   "minimum": 0,
+   "maximum": 1,
+   "unit": "intensity",
+   "nullable": false,
+   "description": "Official encouragement to ride transit instead of driving. Citizens weigh it by how much they trust institutions.",
+   "systems": [
+    "transportation",
+    "public_trust"
+   ]
+  },
+  {
+   "target": "housing.rent_level",
+   "minimum": 0.2,
+   "maximum": 3,
+   "unit": "multiplier",
+   "nullable": false,
+   "description": "Market rent level relative to today's rents.",
+   "systems": [
+    "housing",
+    "economy"
+   ]
+  },
+  {
+   "target": "housing.rent_cap",
+   "minimum": 0.2,
+   "maximum": 3,
+   "unit": "multiplier",
+   "nullable": true,
+   "description": "Rent control: the highest rent multiplier landlords may charge. Clear it to remove control.",
+   "systems": [
+    "housing"
+   ]
+  },
+  {
+   "target": "housing.assistance_per_tick",
+   "minimum": 0,
+   "maximum": 1,
+   "unit": "credits per tick",
+   "nullable": false,
+   "description": "Housing assistance the treasury pays to low-income renters who request it.",
+   "systems": [
+    "housing",
+    "public_services",
+    "economy"
+   ]
+  },
+  {
+   "target": "public_services.hospital_funding",
+   "minimum": 0.25,
+   "maximum": 3,
+   "unit": "multiplier",
+   "nullable": false,
+   "description": "Hospital funding. It sets care quality (healing per tick) and capacity, and costs the treasury upkeep above the normal level.",
+   "systems": [
+    "public_services",
+    "healthcare"
+   ]
+  },
+  {
+   "target": "business.price_level",
+   "minimum": 0.25,
+   "maximum": 3,
+   "unit": "multiplier",
+   "nullable": false,
+   "description": "Shop prices relative to today's prices, including food.",
+   "systems": [
+    "business",
+    "economy",
+    "resources"
+   ]
+  },
+  {
+   "target": "business.subsidy_per_shift",
+   "minimum": 0,
+   "maximum": 2,
+   "unit": "credits per shift",
+   "nullable": false,
+   "description": "Treasury subsidy paid to a business per work shift.",
+   "systems": [
+    "business",
+    "economy"
+   ]
+  },
+  {
+   "target": "resource_distribution.ration_units_per_agent",
+   "minimum": 0.25,
+   "maximum": 10,
+   "unit": "units per tick",
+   "nullable": true,
+   "description": "Most units one citizen may gather from a depot per tick. Clear it to remove rationing.",
+   "systems": [
+    "resources"
+   ]
+  },
+  {
+   "target": "resource_distribution.aid_multiplier",
+   "minimum": 0,
+   "maximum": 3,
+   "unit": "multiplier",
+   "nullable": false,
+   "description": "Strength of help and community aid deliveries.",
+   "systems": [
+    "resources"
+   ]
+  },
+  {
+   "target": "resource_distribution.evacuation_order",
+   "minimum": 0,
+   "maximum": 1,
+   "unit": "boolean (0 or 1)",
+   "nullable": false,
+   "description": "Official evacuation order. Citizens decide whether to comply based on institutional trust and what they observe.",
+   "systems": [
+    "safety",
+    "public_trust"
+   ]
+  },
+  {
+   "target": "community_programs.cooperation_reward",
+   "minimum": 0,
+   "maximum": 2,
+   "unit": "credits per action",
+   "nullable": false,
+   "description": "Treasury reward paid to a citizen for each accepted help or trade.",
+   "systems": [
+    "social_norms",
+    "economy"
+   ]
+  },
+  {
+   "target": "community_programs.conservation_campaign",
+   "minimum": 0,
+   "maximum": 1,
+   "unit": "intensity",
+   "nullable": false,
+   "description": "Official campaign asking citizens not to stockpile. Citizens weigh it by institutional trust.",
+   "systems": [
+    "resources",
+    "public_trust"
+   ]
+  }
+ ],
+ "regions": [
+  "citywide",
+  "north",
+  "south",
+  "east",
+  "west",
+  "northeast",
+  "northwest",
+  "southeast",
+  "southwest"
+ ],
+ "norms": {
+  "help_strangers": "Helping people you do not know, including in shortages.",
+  "use_public_transit": "Choosing public transit over driving.",
+  "conserve_resources": "Taking only what you need instead of stockpiling.",
+  "civic_participation": "Joining organizations and public meetings."
+ },
+ "organizations": {
+  "mutual_aid": "Members with surplus contribute supplies to a pool; members in need draw from it.",
+  "tenant_union": "Renters organize, meet at the community center and demand housing help.",
+  "protest_group": "Residents rally at the community center on a schedule to press a cause.",
+  "community_program": "A funded program that pays a stipend to eligible members who join.",
+  "assistance_office": "An office that pays treasury-funded assistance to eligible citizens who apply."
+ },
+ "incentives": {
+  "transit_rebate": "Credits returned to the citizen per transit trip.",
+  "help_reward": "Credits paid to the citizen per accepted help or trade.",
+  "conservation_bonus": "Credits per tick while the citizen keeps a modest inventory (no stockpiling).",
+  "work_bonus": "Extra credits per work shift."
+ },
+ "metrics": {
+  "happiness": "Mean citizen happiness (0-100)",
+  "stress": "Mean citizen stress (0-100)",
+  "safety": "Mean citizen safety (0-100)",
+  "trust": "Mean interpersonal trust (0-100)",
+  "institutional_trust": "Mean trust in official institutions (0-100)",
+  "resources": "Mean household resource score (0-100)",
+  "cooperation": "Cooperative actions (help, trade, aid transfers) since activation",
+  "social_conflict": "Contested claims and recorded disagreements since activation",
+  "policy_compliance": "Share of decisions about official directives that complied",
+  "service_access": "Share of attempts to enter services that succeeded",
+  "transit_usage": "Share of recorded trips taken by public transit",
+  "car_usage": "Share of recorded trips taken by car",
+  "walking_trips": "Share of recorded trips taken on foot",
+  "business_resources": "Total business reserves in credits",
+  "city_treasury": "City treasury balance in credits",
+  "household_wallets": "Mean household wallet in credits",
+  "financial_strain": "Citizens with wallets below the strain threshold",
+  "rent_burden": "Mean rent paid per tick in credits",
+  "relocations": "Citizens who moved to another home since activation",
+  "assistance_requests": "Citizens who requested assistance since activation",
+  "information_shares": "Times a citizen passed information to someone else",
+  "belief_adoption": "Citizens currently holding a belief introduced by this scenario",
+  "norm_adoption": "Citizens who adopted a scenario social norm",
+  "organization_membership": "Members of scenario organizations",
+  "relationship_change": "Directed relationship updates since activation",
+  "hospital_care": "Citizen-ticks of hospital care delivered since activation",
+  "food_access": "Food units bought at shops or gathered since activation"
+ },
+ "systems": [
+  "economy",
+  "taxation",
+  "transportation",
+  "housing",
+  "public_services",
+  "healthcare",
+  "business",
+  "resources",
+  "information",
+  "public_trust",
+  "social_norms",
+  "social_network",
+  "organizations",
+  "population_traits",
+  "environment",
+  "infrastructure",
+  "safety"
+ ],
+ "interpreter": true
+}

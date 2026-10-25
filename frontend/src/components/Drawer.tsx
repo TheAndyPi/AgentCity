@@ -29,6 +29,11 @@ import * as S from "../api/schemas";
 import Narration from "./Narration";
 import { SnowflakeComparison } from "../snowflake/SnowflakeComparison";
 import { SnowflakeClient } from "../snowflake/client";
+import {
+  AgentSystemsPanel,
+  CitySystemsPanel,
+  ScenarioAnalysis,
+} from "../scenarios/Insights";
 import { Conversations, Personality, TraitsRoster } from "./LifePanels";
 import { ReportMetrics } from "./OutcomeDialog";
 export type DrawerNode =
@@ -364,6 +369,13 @@ function AgentInspector({
               simulationId={frame.simulation.id}
             />
           )}
+          <AgentSystemsPanel
+            simulationId={frame.simulation.id}
+            agentId={id}
+            revision={revision}
+            names={Object.fromEntries(frame.agents.map((x) => [x.id, x.name]))}
+            onAgent={(agent) => onPush({ type: "agent", id: agent })}
+          />
           <h4 className="panel-label">REASONS FOR CHANGE</h4>
           {d.metric_reasons.length ? (
             d.metric_reasons.map((r, i) => (
@@ -925,6 +937,13 @@ function EventPanel({
         </p>
       )}
       <ReportMetrics report={r.data} />
+      <ScenarioAnalysis
+        simulationId={frame.simulation.id}
+        eventId={id}
+        revision={revision}
+        names={Object.fromEntries(frame.agents.map((x) => [x.id, x.name]))}
+        onAgent={(agent) => onPush({ type: "agent", id: agent })}
+      />
       <h4 className="panel-label">CONSEQUENCES</h4>
       {r.data.consequences.map((c, i) => (
         <article className="memory-card" key={i}>
@@ -997,6 +1016,11 @@ function OverviewPanel({
           <strong>{r.data.metrics.resources_consumed}</strong>units consumed
         </span>
       </div>
+      <CitySystemsPanel
+        simulationId={frame.simulation.id}
+        revision={revision}
+        onEvent={(event) => onPush({ type: "event", id: event })}
+      />
       <h4 className="panel-label">EVENTS WITH THE LARGEST CHANGES</h4>
       {r.data.top_events.length ? (
         r.data.top_events.slice(0, 3).map((e, i) => (

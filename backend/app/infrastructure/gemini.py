@@ -133,12 +133,44 @@ def context_for(state, citizen):
             "evacuate",
         ],
     }
+    life = city_life(state, citizen)
+    if life:
+        value["city_life"] = life
     # Hard context cap, in UTF-8 bytes; local estimate is used only for budgeting.
     while len(encode(value)) > 12000 and value["memories"]:
         value["memories"].pop()
     if len(encode(value)) > 16000:
         return None
     return value
+
+
+def city_life(state, citizen):
+    """The citizen's own economic and civic situation, as they know it."""
+    agent = state.systems.agents.get(citizen.summary.id) if state.systems.enabled else None
+    if agent is None:
+        return None
+    from app.scenario_engine.responses import known_cost
+
+    orgs = state.systems.organizations
+    return {
+        "wallet_credits": round(agent.wallet, 1),
+        "income": agent.income,
+        "owns_car": agent.owns_car,
+        "usual_travel": agent.habit,
+        "trust_in_institutions": round(agent.institutional_trust),
+        "housing": agent.housing_status,
+        "known_prices": {
+            "transit_trip": round(known_cost(state, agent, "transit"), 2),
+            "car_trip": round(known_cost(state, agent, "car"), 2) if agent.owns_car else None,
+            "food_unit": agent.last_paid.get("food"),
+        },
+        "organizations": [orgs[o].name for o in agent.organizations if o in orgs],
+        "norms": {k: round(v, 2) for k, v in agent.norms.items() if v},
+        "heard": [
+            dict(topic=b.topic, message=b.message[:200], confidence=round(b.confidence), channel=b.channel)
+            for b in list(agent.beliefs.values())[-5:]
+        ],
+    }
 
 
 def relevance(state, citizen, context=None):
@@ -154,8 +186,13 @@ def relevance(state, citizen, context=None):
     stable = {
         key: value
         for key, value in context.items()
-        if key not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories"}
+        if key not in {"tick", "needs", "observed_facts", "current_activity_reason", "memories", "city_life"}
     }
+    if context.get("city_life"):
+        life = dict(context["city_life"])
+        # Small wallet drift from rent should not invalidate every pending decision.
+        life["wallet_credits"] = int(life["wallet_credits"] // 3)
+        stable["city_life"] = life
     stable["observations"] = [
         fact for fact in context["observed_facts"] if not fact.startswith(("Position (", "Hunger "))
     ]
@@ -355,10 +392,11 @@ class Gateway:
     def lesson_timeout_seconds(self):
         return min(LESSON_TIMEOUT_SECONDS, self.config.llm_timeout * 2 + 0.25)
 
-    async def structured(self, sid, prompt, output_model):
+    async def structured(self, sid, prompt, output_model, max_output_tokens=None, timeout=None):
         if not self.config.gemini_enabled:
             return None
-        reservation = len(prompt.encode()) + self.config.llm_output_tokens
+        output_tokens = max_output_tokens or self.config.llm_output_tokens
+        reservation = len(prompt.encode()) + output_tokens
         async with self.semaphore:
             if (
                 time.monotonic() < self.open_until
@@ -388,10 +426,10 @@ class Gateway:
                                 "generationConfig": {
                                     "responseMimeType": "application/json",
                                     "responseJsonSchema": output_model.model_json_schema(),
-                                    "maxOutputTokens": self.config.llm_output_tokens,
+                                    "maxOutputTokens": output_tokens,
                                 },
                             },
-                            timeout=self.config.llm_timeout,
+                            timeout=timeout or self.config.llm_timeout,
                         )
                         transient = response.status_code in {429, 500, 502, 503, 504}
                         if response.status_code == 429:

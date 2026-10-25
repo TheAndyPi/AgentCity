@@ -2,6 +2,7 @@
 
 import hashlib
 
+from app.scenario_engine import responses
 from app.simulation.navigation import distance
 
 
@@ -49,6 +50,9 @@ def social_choice(state, citizen, candidates):
 
 
 def routine_destination(state, citizen):
+    preferred = responses.preferred_destination(state, citizen)
+    if preferred:
+        return preferred
     homes = [b for b in state.map.buildings if b.kind == "home" and b.functional]
     home = min(homes, key=lambda b: distance(citizen.home, b.entrance), default=None)
     if citizen.needs.fatigue >= 45 and home and citizen.inside_building_id != home.id:

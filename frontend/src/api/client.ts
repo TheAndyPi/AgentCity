@@ -19,6 +19,7 @@ export interface Transport {
     path: string,
     body?: unknown,
     key?: string,
+    timeoutMs?: number,
   ): Promise<unknown>;
   subscribe?(id: string, cb: (frame: T.WorldFrame) => void): () => void;
 }
@@ -401,6 +402,7 @@ export class LiveTransport implements Transport {
     path: string,
     body?: unknown,
     key?: string,
+    timeoutMs = 15000,
   ): Promise<unknown> {
     if (
       method !== "GET" &&
@@ -437,7 +439,7 @@ export class LiveTransport implements Transport {
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         credentials: "include",
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch {
       throw new ApiError(

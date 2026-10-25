@@ -27,6 +27,10 @@ import {
   previewPoint,
   type MapBounds,
 } from "../world/previewGeometry";
+import { useEngine } from "../scenarios/Insights";
+import { PlanPreview } from "../scenarios/PlanPreview";
+import { PlanEditor, manualPlan } from "../scenarios/PlanEditor";
+import type { EngineCapabilities, Plan, PlanResult } from "../scenarios/schema";
 function describeEffect(effect: EffectSpec): string {
   switch (effect.type) {
     case "wellbeing":
@@ -203,6 +207,13 @@ export default function ScenarioDialog({
   onUpdated: () => Promise<void>;
 }) {
   const { client, notice } = useApp();
+  const engine = useEngine();
+  const [planResult, setPlanResult] = useState<PlanResult | null>(null),
+    [plan, setPlan] = useState<Plan | null>(null),
+    [editing, setEditing] = useState(false),
+    [caps, setCaps] = useState<EngineCapabilities | null>(null),
+    [catalog, setCatalog] = useState(false);
+  const useEngineFlow = source === "custom" && engine.available && !catalog;
   const [intervention, setIntervention] = useState<Intervention | null>(null),
     [preview, setPreview] = useState<ScenarioPreview | null>(null),
     [prompt, setPrompt] = useState(""),
@@ -319,8 +330,96 @@ export default function ScenarioDialog({
       }
     }
   };
+  const interpretPlan = async () => {
+    if (!intervention) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await engine.interpret(
+        simulation.id,
+        intervention,
+        prompt,
+      );
+      setPlanResult(result);
+      setPlan(result.plan);
+      commitKey.current = crypto.randomUUID();
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openEditor = async (start?: Plan) => {
+    setError("");
+    if (start) setPlan(start);
+    if (!caps) {
+      setBusy(true);
+      try {
+        setCaps(await engine.capabilities());
+      } catch (e) {
+        setError(messageOf(e));
+        setBusy(false);
+        return;
+      }
+      setBusy(false);
+    }
+    setEditing(true);
+  };
+  const validateEdits = async () => {
+    if (!plan) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await engine.validate(simulation.id, plan);
+      setPlanResult(result);
+      setPlan(result.plan);
+      if (result.status === "ready") setEditing(false);
+      commitKey.current = crypto.randomUUID();
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const commitPlan = async () => {
+    if (!plan || !intervention) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await engine.commit(
+        simulation.id,
+        intervention,
+        plan,
+        commitKey.current,
+      );
+      await onUpdated();
+      notice(
+        result.queued_until_play
+          ? "Scenario queued. It will begin once you press Play."
+          : "Scenario started. The city is running.",
+      );
+      onClose();
+    } catch (e) {
+      try {
+        if (e instanceof ApiError && e.code === "CONTROL_CONFLICT") {
+          const current = await client.simulation(simulation.id);
+          setIntervention({
+            ...intervention,
+            control_version: current.control_version,
+          });
+          commitKey.current = crypto.randomUUID();
+        }
+        setError(messageOf(e));
+      } catch (refreshError) {
+        setError(messageOf(refreshError));
+      } finally {
+        setBusy(false);
+      }
+    }
+  };
   const requestPreview = async () => {
     if (!intervention) return;
+    if (useEngineFlow) return interpretPlan();
     setBusy(true);
     setError("");
     try {
@@ -386,7 +485,37 @@ export default function ScenarioDialog({
   };
   const edit = () => {
     setPreview(null);
+    setPlanResult(null);
+    setPlan(null);
+    setEditing(false);
     previewKey.current = crypto.randomUUID();
+  };
+  const useCatalog = async () => {
+    setCatalog(true);
+    setPlanResult(null);
+    setPlan(null);
+    if (!intervention) return;
+    setBusy(true);
+    setError("");
+    try {
+      const p = await client.preview(
+        simulation.id,
+        {
+          intervention_id: intervention.id,
+          source,
+          source_event_id: null,
+          prompt,
+          policy: null,
+        },
+        previewKey.current,
+      );
+      setPreview(p);
+      commitKey.current = crypto.randomUUID();
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
   };
   const suggestions = [
     [
@@ -558,38 +687,131 @@ export default function ScenarioDialog({
                 </Field>
               </div>
             )}
+            {catalog && preview && (
+              <p className="warning">
+                Interpreted with the built-in keyword catalog because the AI
+                scenario engine was unavailable. Only the listed effects apply.
+              </p>
+            )}
             {preview && <PreviewCard preview={preview} map={map} />}{" "}
+            {editing && plan && caps && (
+              <PlanEditor plan={plan} caps={caps} onChange={setPlan} />
+            )}
+            {!editing && planResult && (
+              <PlanPreview result={planResult} plan={plan} />
+            )}
+            {!editing && planResult?.status === "unavailable" && (
+              <p className="helper-text">
+                The AI scenario interpreter is unavailable. You can compose the
+                scenario from the supported changes yourself, or use the
+                built-in keyword catalog.
+              </p>
+            )}
             {error && intervention && <ErrorBox error={error} />}
-            <div className="modal-actions">
-              <Button
-                kind="ghost"
-                disabled={busy}
-                onClick={() => void cancel()}
-              >
-                Cancel
-              </Button>
-              {preview ? (
+            {useEngineFlow && (editing || planResult) ? (
+              <div className="modal-actions">
                 <Button
-                  disabled={busy || !preview.can_commit}
-                  onClick={() => void commit()}
+                  kind="ghost"
+                  disabled={busy}
+                  onClick={() => void cancel()}
                 >
-                  {busy ? "Confirming…" : "Confirm event"}
-                  <Check size={16} />
+                  Cancel
                 </Button>
-              ) : (
+                {editing ? (
+                  <Button
+                    disabled={
+                      busy ||
+                      !(plan?.operations as unknown[] | undefined)?.length
+                    }
+                    onClick={() => void validateEdits()}
+                  >
+                    {busy ? "Checking…" : "Review changes"}
+                    <ArrowRight size={16} />
+                  </Button>
+                ) : planResult?.status === "unavailable" ? (
+                  <>
+                    <Button
+                      kind="ghost"
+                      disabled={busy}
+                      onClick={() => void useCatalog()}
+                    >
+                      Use keyword catalog
+                    </Button>
+                    <Button
+                      disabled={busy}
+                      onClick={() => void openEditor(manualPlan(prompt))}
+                    >
+                      Compose manually
+                    </Button>
+                  </>
+                ) : planResult?.status === "ready" ? (
+                  <>
+                    <Button
+                      kind="ghost"
+                      disabled={busy}
+                      onClick={() => void openEditor()}
+                    >
+                      Edit Parameters
+                    </Button>
+                    <Button disabled={busy} onClick={() => void commitPlan()}>
+                      {busy ? "Starting…" : "Confirm and Start"}
+                      <Check size={16} />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button kind="ghost" disabled={busy} onClick={edit}>
+                      Edit description
+                    </Button>
+                    <Button
+                      disabled={busy}
+                      onClick={() =>
+                        void openEditor(plan ?? manualPlan(prompt))
+                      }
+                    >
+                      {planResult?.status === "invalid"
+                        ? "Edit Parameters"
+                        : "Compose manually"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="modal-actions">
                 <Button
-                  type="submit"
-                  disabled={
-                    busy ||
-                    (source === "custom" && !prompt.trim()) ||
-                    (source === "repeat" && !eventId)
-                  }
+                  kind="ghost"
+                  disabled={busy}
+                  onClick={() => void cancel()}
                 >
-                  {busy ? "Preparing preview…" : "Preview event"}
-                  <ArrowRight size={16} />
+                  Cancel
                 </Button>
-              )}
-            </div>
+                {preview ? (
+                  <Button
+                    disabled={busy || !preview.can_commit}
+                    onClick={() => void commit()}
+                  >
+                    {busy ? "Confirming…" : "Confirm event"}
+                    <Check size={16} />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={
+                      busy ||
+                      (source === "custom" && !prompt.trim()) ||
+                      (source === "repeat" && !eventId)
+                    }
+                  >
+                    {busy
+                      ? useEngineFlow
+                        ? "Interpreting…"
+                        : "Preparing preview…"
+                      : "Preview event"}
+                    <ArrowRight size={16} />
+                  </Button>
+                )}
+              </div>
+            )}
           </form>
         </>
       )}
@@ -606,8 +828,16 @@ export function InitialScenarioDialog({
   onUpdated: () => Promise<void>;
 }) {
   const { client, notice } = useApp();
+  const engine = useEngine();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const initialPlan = useQuery(
+    () =>
+      engine.available
+        ? engine.initialPlan(simulation.id)
+        : Promise.resolve(null),
+    [simulation.id, simulation.initial_preview?.id],
+  );
   const confirmKey = useRef(crypto.randomUUID()),
     skipKey = useRef(crypto.randomUUID());
   const decide = async (decision: "confirm" | "skip") => {
@@ -635,7 +865,22 @@ export function InitialScenarioDialog({
       onClose={() => void decide("skip")}
       busy={busy}
     >
-      <PreviewCard preview={simulation.initial_preview!} map={map} />
+      {initialPlan.data?.plan && initialPlan.data.summary ? (
+        <PlanPreview
+          plan={initialPlan.data.plan}
+          result={{
+            status: "ready",
+            plan: initialPlan.data.plan,
+            errors: [],
+            warnings: [],
+            unsupported: simulation.initial_preview!.unsupported_requests,
+            clarification: "",
+            summary: initialPlan.data.summary,
+          }}
+        />
+      ) : (
+        <PreviewCard preview={simulation.initial_preview!} map={map} />
+      )}
       {error && <ErrorBox error={error} />}
       <div className="modal-actions">
         <Button

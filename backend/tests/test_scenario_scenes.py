@@ -170,8 +170,17 @@ def test_freeform_provider_geometry_is_previewed_outside_writer_lock_and_persist
     async def handler(request):
         assert not service.writer.locked()
         schema = json.loads(request.content)["generationConfig"]["responseJsonSchema"]
-        kind = "interpretation" if "recipe_ids" in schema["properties"] else "scene"
+        kind = (
+            "plan"
+            if "operations" in schema["properties"]
+            else "interpretation"
+            if "recipe_ids" in schema["properties"]
+            else "scene"
+        )
         calls.append(kind)
+        if kind == "plan":
+            # The scenario engine is unavailable here; setup falls back to the labeled catalog.
+            return httpx.Response(400)
         answer = (
             dict(recipe_ids=["wildlife"]) if kind == "interpretation" else dict(label="Whale", parts=[part])
         )
@@ -214,8 +223,10 @@ def test_freeform_provider_geometry_is_previewed_outside_writer_lock_and_persist
         # A committed/closed editor must not break idempotent preview retries.
         again = write(client, f"/simulations/{sid}/scenario-previews", body, key=key)
         assert again.status_code == 201 and again.json()["data"] == p
-    assert calls == ["interpretation", "scene"]
+    assert calls == (["plan"] if opening else []) + ["interpretation", "scene"]
     assert p["can_commit"]
+    if opening:
+        assert any("keyword catalog" in w for w in p["warnings"])
     assert "Interpreted by the model as: wildlife." in p["warnings"]
     assert p["spec"]["scene"][0]["model"] == "generated"
     assert p["spec"]["scene"][0]["parts"] == [part]

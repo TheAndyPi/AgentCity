@@ -151,3 +151,42 @@ the retained originals. Provider contexts cap at eight memories, eight observed
 people, six ties and six messages, plus self context/known locations and a hard
 size bound. Other citizens' private profiles, inventories, needs, memories and
 goals are not supplied. Remembered distant family ties do not reveal positions.
+
+## Dynamic scenario engine
+
+Custom and opening scenarios are interpreted by Gemini into a structured plan of
+registered operations (`app/scenario_engine/registry.py`): policy changes on 17
+named targets with ranges, service availability, resource stock, housing supply,
+information broadcasts, institutional credibility, social norms, organizations,
+incentives, trait edits, social ties, physical hazards, gatherings and
+environmental conditions. There is no property-path setter and no code execution.
+Plans are validated for ranges after every repetition, existing entities,
+contradictory simultaneous changes, a shared physical region and at most 200
+scheduled applications; an invalid plan gets one correction attempt with the
+errors. Unsupported requirements are listed, never replaced by another event.
+When the interpreter is unavailable the editor offers a manual composer, or the
+keyword catalog with an explicit label.
+
+Nothing changes until "Confirm and Start". The plan compiles to a core event
+(hazards and gatherings as its effects, otherwise a citywide policy/custom
+event) and the engine schedules the remaining operations from activation. A
+paused city keeps the scenario queued until Play. Temporary operations revert at
+the end of their duration; permanent ones persist after the measurement window.
+
+World systems start lazily with the first engine scenario (and at setup in Policy
+and Behavior Lab): wallets and income tiers, car ownership, travel habits, rent
+and housing availability, business reserves, shop stock and prices, a city
+treasury that collects fares and taxes and pays for transit, hospital upkeep,
+assistance and programs, everyday illness and hospital care. The interpreter only
+changes the world. Each citizen then decides individually, from income, wallet,
+habit, fatigue, mobility, traits, beliefs, relationships, norms and trust: travel
+mode per trip (learning a new price by paying it unless informed), whether to
+believe and pass on information, how much credibility shifts, whether to adopt a
+norm, join an organization, follow an evacuation order without visible danger,
+stockpile, relocate or seek assistance, and where to go when a service closes.
+Decisions and operations are recorded as traces (observations, scored
+candidates, choice, motivation, memory references, state changes, affected
+entities, tick) shown in the citizen inspector and the event panel. The outcome
+analyzer reports measured values from the run only, with the caveat that they
+are associations; a control branch from the pre-event snapshot runs the same
+world systems.

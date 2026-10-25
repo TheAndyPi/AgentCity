@@ -2,6 +2,7 @@
 
 import random
 
+from app.scenario_engine import runtime as systems
 from app.simulation.agents import (
     clamp,
     evidence,
@@ -46,6 +47,7 @@ def tick(state, proposals=None):
     state.simulation.tick += 1
     state.simulation.sim_time_seconds = state.simulation.tick * state.simulation.config.tick_seconds
     activate(state)
+    systems.on_tick_start(state)
     restore_personal_space(state)
     index = SpatialIndex(state.citizens)
     contexts = {aid: perception(state, c, index) for aid, c in state.citizens.items() if c.summary.active}
@@ -74,7 +76,8 @@ def tick(state, proposals=None):
         intent = proposed[0] if proposed else rule_intent(state, citizen, context)
         if intent is not None:
             # All participants still have pre-movement positions at this boundary.
-            apply_intent(state, citizen, intent, "gemini" if proposed else "rules", context)
+            decision = apply_intent(state, citizen, intent, "gemini" if proposed else "rules", context)
+            systems.after_decision(state, citizen, decision)
         citizen.needs.hunger = clamp(citizen.needs.hunger + RULES["hunger_per_tick"])
         citizen.needs.fatigue = clamp(citizen.needs.fatigue + RULES["fatigue_per_tick"])
         citizen.needs.social = clamp(citizen.needs.social + RULES["social_per_tick"])
@@ -85,6 +88,7 @@ def tick(state, proposals=None):
         advance_movement(state, state.citizens[aid])
     apply_effects(state)
     expire_interactions(state)
+    systems.after_tick(state)
     if state.simulation.tick % 20 == 0:
         for citizen in state.citizens.values():
             episodes = [
@@ -107,6 +111,7 @@ def tick(state, proposals=None):
     state.rng_state = list_tree(rng.getstate())
     update_metrics(state)
     resolved = finish_events(state)
+    systems.after_finish(state, resolved)
     if state.simulation.tick >= state.simulation.config.max_ticks and not resolved:
         state.simulation.status = "completed"
         state.simulation.pause_reason = None

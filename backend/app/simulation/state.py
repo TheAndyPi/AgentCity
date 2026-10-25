@@ -30,6 +30,7 @@ from app.contracts import (
     Snapshot,
     Vec2,
 )
+from app.scenario_engine.systems import WorldSystems
 
 
 def now():
@@ -148,6 +149,7 @@ class State(Model):
     entity_sequence: int = 0
     lineage_generation: int = 0
     initialization_profiles: list[dict[str, Any]] = Field(default_factory=list)
+    systems: WorldSystems = Field(default_factory=WorldSystems)
 
     def next_id(self, prefix):
         self.entity_sequence += 1
