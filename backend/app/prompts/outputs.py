@@ -23,6 +23,15 @@ class SceneDesign(Model):
     parts: Annotated[list[ScenePart], Field(max_length=8)]
 
 
+class LessonDraft(Model):
+    text: Text
+    fact_ids: Annotated[list[Annotated[int, Field(ge=0)]], Field(min_length=1, max_length=12)]
+
+
+class LessonsOutput(Model):
+    lessons: Annotated[list[LessonDraft], Field(max_length=4)]
+
+
 class MemoryProposal(Model):
     text: Text
     importance: Pct

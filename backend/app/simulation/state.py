@@ -1,7 +1,7 @@
 """Complete checkpoint state, distinct from the public WorldFrame projection."""
 
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import Field
@@ -85,12 +85,16 @@ class EventRuntime(Model):
     cohort: list[str] = Field(default_factory=list)
     baseline_conflicts: int = 0
     baseline_consumed: float = 0
+    baseline_cooperation: float | None = None
     conflicts: int = 0
     resources_consumed: float = 0
     evacuated_count: int = 0
     exposed_count: int = 0
     infrastructure_before: dict[str, dict[str, Any]] = Field(default_factory=dict)
     consequences: list[dict[str, Any]] = Field(default_factory=list)
+    lessons: list[dict[str, Any]] = Field(default_factory=list)
+    lesson_facts: list[dict[str, Any]] = Field(default_factory=list)
+    lessons_source: Literal["rules", "gemini"] = "rules"
     resume_allowed: bool = False
 
 

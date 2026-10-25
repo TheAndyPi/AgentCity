@@ -66,7 +66,12 @@ Conflicts count contested stock claims, not every invalid intent. Removed food,
 water and supplies count as consumption; transfers do not. Resource-multiplier
 events and aid have separately logged external stock changes. Reports freeze the
 initial affected cohort at activation and measure the event interval. They show
-association, not causal proof. No lessons are invented when none are evidenced.
+association, not causal proof. No lessons are invented when none are evidenced:
+each community lesson retells recorded evacuations, warnings, help, trades,
+contested claims, event conversations, unverified reports or measured changes
+from the affected cohort's interval, then states the takeaway, and cites those
+decisions and memories. With Gemini enabled, a model rewrite replaces the
+template lessons in a later revision only if every lesson cites recorded facts.
 
 Events activate on the next physical tick and end at `start_tick+duration_ticks`,
 or earlier for a validated all-safe condition. A flood-only preview does not

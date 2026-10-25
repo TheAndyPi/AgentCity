@@ -407,3 +407,132 @@ def test_full_length_custom_event_and_empty_event_validation(client):
     assert len(result.interpretation) <= 2000
     with pytest.raises(DomainError):
         compile_preview(state, "custom", "   ")
+
+
+def resolve(state, prompt):
+    from app.simulation.scenarios import event_report, queue_event
+
+    preview = compile_preview(state, "custom", prompt)
+    assert preview.can_commit
+    runtime = queue_event(state, preview, state.snapshots[0].id, False)
+    while state.events[runtime.id].summary.status != "resolved":
+        tick(state)
+    return event_report(state, state.events[runtime.id])
+
+
+def test_hazard_lesson_tells_what_happened_and_what_was_learned(client):
+    state = world(client)
+    report = resolve(state, "A flood in the east for 3 ticks")
+    safety = next(lesson for lesson in report.community_lessons if "reached safety" in lesson.text)
+    assert "The community learned" in safety.text
+    assert safety.evidence.event_ids == [report.event.id]
+    decisions = {d.id: d for d in state.decisions}
+    assert safety.evidence.decision_ids
+    for did in safety.evidence.decision_ids:
+        assert decisions[did].agent_id in report.affected_agent_ids
+
+
+def test_outside_aid_lesson_does_not_credit_neighbors(client):
+    report = resolve(world(client), "Robots deliver community aid citywide for 2 ticks")
+    aid = next(lesson for lesson in report.community_lessons if "Community aid delivered" in lesson.text)
+    assert "aid arriving at one shared point" in aid.text
+    assert "neighbors can rely" not in aid.text
+
+
+def test_help_between_neighbors_is_named_in_the_lesson(client):
+    from app.simulation.game_master import apply_intent, make_intent
+    from app.simulation.lessons import compose_lessons, gather_facts
+    from app.simulation.scenarios import queue_event
+
+    state = world(client)
+    preview = compile_preview(state, "custom", "A festival citywide for 5 ticks")
+    runtime = state.events[queue_event(state, preview, state.snapshots[0].id, False).id]
+    tick(state)
+    a, b = nearby_pair(state)
+    runtime.cohort = list(dict.fromkeys([*runtime.cohort, a.summary.id, b.summary.id]))
+    a.inventory.supplies = 2
+    decision = apply_intent(state, a, make_intent("help", target=b.summary.id))
+    assert decision.outcome == "accepted", decision.outcome_description
+    facts = gather_facts(state, runtime)
+    help_lesson = next(
+        lesson
+        for lesson in compose_lessons(runtime, facts)
+        if decision.id in lesson["evidence"]["decision_ids"]
+    )
+    assert a.summary.name in help_lesson["text"] and b.summary.name in help_lesson["text"]
+    assert "neighbors can rely on one another" in help_lesson["text"]
+
+
+def test_conversation_lesson_quotes_recorded_dialogue(client):
+    state = world(client)
+    report = resolve(state, "A festival citywide for 3 ticks")
+    lines = {line.text for line in state.dialogue}
+    talk = [lesson for lesson in report.community_lessons if "conversation" in lesson.text]
+    assert talk and any(f'"{line}"' in talk[0].text for line in lines)
+
+
+def test_no_lessons_without_recorded_actions_or_measured_change(client):
+    from app.simulation.lessons import compose_lessons, gather_facts
+    from app.simulation.scenarios import queue_event
+
+    state = world(client)
+    preview = compile_preview(state, "custom", "A mysterious visitor arrives with a secret")
+    runtime = state.events[queue_event(state, preview, state.snapshots[0].id, False).id]
+    runtime.after = runtime.before.model_copy()
+    assert compose_lessons(runtime, gather_facts(state, runtime)) == []
+
+
+def test_model_lessons_must_cite_recorded_facts(client):
+    from app.prompts.outputs import LessonDraft
+    from app.simulation.lessons import adopt_drafts
+
+    state = world(client)
+    report = resolve(state, "A flood in the east for 3 ticks")
+    runtime = state.events[report.event.id]
+    adopted = adopt_drafts(
+        runtime,
+        [
+            LessonDraft(text="  Grounded   retelling. The community learned.  ", fact_ids=[0, 0]),
+            LessonDraft(text="Invented story.", fact_ids=[len(runtime.lesson_facts)]),
+        ],
+    )
+    assert [lesson["text"] for lesson in adopted] == ["Grounded retelling. The community learned."]
+    assert adopted[0]["evidence"]["decision_ids"] == runtime.lesson_facts[0]["decision_ids"]
+
+
+def test_gemini_rewrite_replaces_template_lessons_after_resolution(client, monkeypatch):
+    import dataclasses
+    import time
+
+    from conftest import commit_preview, preview
+
+    from app.prompts.outputs import LessonDraft
+
+    sid = create_city(client)["id"]
+    service = client.app.state.service
+    hold, p = preview(client, sid, "A flood in the east for 2 ticks")
+    event = commit_preview(client, sid, hold, p).json()["data"]["event"]
+    materials = []
+
+    async def lessons(_, material):
+        materials.append(material)
+        return [LessonDraft(text="Model retelling. The community learned to move early.", fact_ids=[0])]
+
+    monkeypatch.setattr(service.gateway, "lessons", lessons)
+    monkeypatch.setattr(
+        service,
+        "config",
+        dataclasses.replace(service.config, llm_mode="gemini", gemini_api_key="k", gemini_model="m"),
+    )
+    assert command(client, sid, "step", count=4).status_code == 200
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        report = client.get(f"/api/v1/simulations/{sid}/events/{event['id']}").json()["data"]
+        if report["community_lessons"][0]["text"].startswith("Model retelling"):
+            break
+        time.sleep(0.02)
+    assert [lesson["text"] for lesson in report["community_lessons"]] == [
+        "Model retelling. The community learned to move early."
+    ]
+    assert len(materials) == 1 and materials[0]["facts"][0]["id"] == 0
+    assert materials[0]["draft_lessons"]

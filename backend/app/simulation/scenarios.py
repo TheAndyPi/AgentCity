@@ -22,6 +22,7 @@ from app.contracts import (
 )
 from app.infrastructure.errors import require
 from app.simulation.agents import clamp, evidence, hazard_severity, metric_delta, remember
+from app.simulation.lessons import compose_lessons, gather_facts
 from app.simulation.navigation import polygon_contains, simple_polygon
 from app.simulation.scenario_scene import CATALOG, affirmed_mentions, build_scene, matches
 from app.simulation.state import EventRuntime, expiry
@@ -663,6 +664,8 @@ def finish_events(state):
         )
         if not duration_end and not safe_end:
             continue
+        runtime.lesson_facts = gather_facts(state, runtime)
+        runtime.lessons = compose_lessons(runtime, runtime.lesson_facts)
         runtime.summary.status = "resolved"
         runtime.summary.end_tick = state.simulation.tick
         runtime.summary.summary = f"Resolved after {state.simulation.tick - runtime.summary.start_tick} ticks; {runtime.evacuated_count} initially exposed citizens now safe"
@@ -708,7 +711,7 @@ def event_report(state, runtime):
         evacuated_count=runtime.evacuated_count,
         exposed_count=runtime.exposed_count,
         consequences=[Consequence.model_validate(c) for c in runtime.consequences],
-        community_lessons=[],
+        community_lessons=[Consequence.model_validate(c) for c in runtime.lessons],
         suggested_preparations=["Keep reachable shelter and essential supplies available"]
         if runtime.summary.status == "resolved" and any(e.type == "hazard" for e in runtime.spec.effects)
         else [],

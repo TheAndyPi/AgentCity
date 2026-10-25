@@ -30,6 +30,7 @@ from app.simulation.building_visits import same_room, sync_building_location
 from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.engine import list_tree, tick
 from app.simulation.game_master import apply_intent, make_intent
+from app.simulation.lessons import adopt_drafts, lesson_material
 from app.simulation.navigation import cell_at, distance, meeting_point, pathfind
 from app.simulation.scenario_scene import matches
 from app.simulation.scenarios import compile_preview, generate_map, queue_event, validate_spec
@@ -62,6 +63,7 @@ class Service:
         self.provider_tasks = {}
         self.provider_results = {}
         self.scene_tasks = {}
+        self.lesson_tasks = {}
         self.closed = False
         self.gateway = Gateway(config, self.record_usage)
         billed = self.repo.meta["usage"].get("global", {})
@@ -101,6 +103,7 @@ class Service:
             *self.initializers.values(),
             *self.provider_tasks.values(),
             *self.scene_tasks.values(),
+            *self.lesson_tasks.values(),
         ]
         for task in tasks:
             task.cancel()
@@ -212,6 +215,49 @@ class Service:
         self.stats["commit_seconds"] = self.stats["commit_seconds"][-1000:]
         for state in states:
             self.heads[state.simulation.id] = state
+            self.schedule_lessons(state)
+
+    def schedule_lessons(self, state):
+        if not self.config.gemini_enabled or self.closed:
+            return
+        sid = state.simulation.id
+        for eid, runtime in state.events.items():
+            # Only the commit that resolved the event schedules; copies and branches never re-trigger.
+            if (
+                runtime.summary.status == "resolved"
+                and runtime.summary.end_tick == state.simulation.tick
+                and runtime.lessons_source == "rules"
+                and runtime.lesson_facts
+                and (sid, eid) not in self.lesson_tasks
+            ):
+                self.lesson_tasks[(sid, eid)] = asyncio.create_task(
+                    self.rewrite_lessons(sid, eid, lesson_material(runtime))
+                )
+
+    async def rewrite_lessons(self, sid, eid, material):
+        try:
+            drafts = await self.gateway.lessons(sid, material)
+        except DomainError:
+            return
+        if not drafts:
+            return
+        async with self.writer:
+            head = self.heads.get(sid)
+            runtime = head.events.get(eid) if head else None
+            if self.closed or self.repo.degraded or not runtime or runtime.lessons_source != "rules":
+                return
+            lessons = adopt_drafts(runtime, drafts)
+            if not lessons:
+                self.gateway.diagnostics["discarded"] += 1
+                return
+            state = head.model_copy(deep=True)
+            self.bump(state)
+            state.events[eid].lessons = lessons
+            state.events[eid].lessons_source = "gemini"
+            try:
+                await self.persist([state])
+            except DomainError:
+                pass
 
     async def mutate(self, owner, key, route, body, operation, sid=None):
         fingerprint = hashlib.sha256(encode({"route": route, "body": body})).hexdigest()

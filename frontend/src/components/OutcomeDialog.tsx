@@ -49,7 +49,8 @@ export default function OutcomeDialog({
     navigate = useNavigate();
   const report = useQuery(
     () => client.report(simulation.id, eventId, simulation.revision),
-    [simulation.id, eventId],
+    [simulation.id, eventId, simulation.revision],
+    `${simulation.id}:${eventId}`,
   );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
