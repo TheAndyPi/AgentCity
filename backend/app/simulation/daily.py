@@ -79,7 +79,7 @@ def curfew_window(state, citizen):
     if time < start - max(calendar.HOUR, travel_estimate(state, citizen) + 1800):
         return None
     if citizen.curfew_choice_key != key:
-        from app.scenario_engine.systems import unit
+        from app.scenario_engine.systems import bump, unit
         from app.scenario_engine.world import decide
 
         agent = state.systems.agents.get(citizen.summary.id)
@@ -112,6 +112,7 @@ def curfew_window(state, citizen):
         )
         citizen.curfew_choice_key = key
         citizen.curfew_complies = action == "comply"
+        bump(state.systems, "compliance_yes" if citizen.curfew_complies else "compliance_no")
         citizen.task_generation += 1
     return (start, end) if citizen.curfew_complies else None
 

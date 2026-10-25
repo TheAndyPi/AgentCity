@@ -143,6 +143,7 @@ def tick(state, proposals=None):
             decision = apply_intent(state, citizen, intent, "gemini" if proposed else "rules", context)
             systems.after_decision(state, citizen, decision)
         evaluate(state, citizen, "After actor action")
+    interrupt_conversations(state)
     for aid in ordering:
         citizen = state.citizens[aid]
         if conscious(citizen) and citizen.condition.care not in {

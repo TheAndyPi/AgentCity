@@ -171,7 +171,9 @@ export default function LifeHUD({
   );
   const liveChat = session
     ? ["invited", "accepted"].includes(session.status)
-    : last && !last.end_conversation && (frame.ref.tick - last.tick) * frame.simulation.config.tick_seconds <= 50;
+    : last &&
+      !last.end_conversation &&
+      (frame.ref.tick - last.tick) * frame.simulation.config.tick_seconds <= 50;
   const neighbors = selected
     ? frame.agents
         .filter(

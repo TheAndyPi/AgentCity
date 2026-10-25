@@ -117,9 +117,12 @@ export const configRequest = configObject
     population_traits: traits.partial().optional(),
     environment: configObject.shape.environment.partial().optional(),
   })
-  .transform((c) => ({
+  .transform((c): T.Config => ({
     ...defaultConfig,
     ...c,
+    calendar_seconds_per_tick:
+      c.calendar_seconds_per_tick ??
+      12 * (c.tick_seconds ?? defaultConfig.tick_seconds),
     population_traits: { ...defaultTraits, ...c.population_traits },
     environment: { ...defaultConfig.environment, ...c.environment },
   }))

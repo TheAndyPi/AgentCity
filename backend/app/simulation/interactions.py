@@ -43,7 +43,14 @@ def end_session(state, interaction, reason):
         if citizen is None:
             continue
         citizen.next_social_tick = state.simulation.tick + legacy_ticks(state, 10)
-        citizen.summary.path = []
+        # Releasing a conversation must not cancel a rescue or evacuation that
+        # already claimed the actor at this same decision boundary.
+        if (
+            not citizen.condition.patient_id
+            and citizen.condition.care == "none"
+            and citizen.summary.action != "evacuate"
+        ):
+            citizen.summary.path = []
         if citizen.plan and citizen.plan.get("kind") == "social_visit":
             citizen.plan = None
         if citizen.summary.routine_state == "talking":
@@ -106,7 +113,7 @@ def interrupt_conversations(state):
         for aid in session.participant_ids:
             citizen = state.citizens.get(aid)
             reason = None
-            if citizen is None or not conscious(citizen):
+            if citizen is None or not conscious(citizen) or citizen.trapped_building_id:
                 reason = "incapacitated"
             elif citizen.condition.care != "none" or citizen.condition.patient_id:
                 reason = "medical_care"
@@ -124,8 +131,9 @@ def interrupt_conversations(state):
 
 
 def conversation_benefits(state):
-    from app.behavior.rules import social_multiplier
+    from app.behavior.rules import RULES, social_multiplier
     from app.behavior.vitals import impact
+    from app.simulation.daily import RATES
 
     for session in state.interactions.values():
         if session.kind != "conversation" or session.status != "accepted":
@@ -142,13 +150,18 @@ def conversation_benefits(state):
                 state,
                 citizen,
                 "social",
-                12 * hours * social_multiplier(citizen, other),
+                RATES["conversation_social"] * hours * social_multiplier(citizen, other),
                 "Time spent in accepted conversation",
             )
-            impact(state, citizen, "mental", 3 * hours, "Accepted social support")
+            impact(state, citizen, "mental", RULES["comfort_mental"] * hours, "Accepted social support")
             from app.simulation.agents import metric_delta
 
-            metric_delta(citizen, "stress", -3 * hours, evidence("Time spent talking with a neighbor"))
+            metric_delta(
+                citizen,
+                "stress",
+                RULES["comfort_stress"] * hours,
+                evidence("Time spent talking with a neighbor"),
+            )
 
 
 def accept_invitation(state, actor, target, kind, proposal=None):
@@ -158,7 +171,7 @@ def accept_invitation(state, actor, target, kind, proposal=None):
             and interaction.kind == kind
             and interaction.status in {"invited", "accepted"}
             and set(interaction.participant_ids) == {actor.summary.id, target.summary.id}
-            and interaction.expires_tick >= state.simulation.tick
+            and (interaction.status == "accepted" or interaction.expires_tick >= state.simulation.tick)
         ):
             if actor.summary.id not in interaction.accepted_ids:
                 interaction.accepted_ids.append(actor.summary.id)

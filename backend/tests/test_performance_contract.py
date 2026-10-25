@@ -6,9 +6,10 @@ from app import contracts as c
 from app.simulation.timing import legacy_ticks, ticks_for
 
 
-def test_one_second_default_and_legacy_save(client):
+def test_calendar_default_and_optional_fine_steps_preserve_legacy_saves(client):
     defaults = c.ConfigRequest(name="Defaults", seed=42)
     assert defaults.tick_seconds == 1 and defaults.max_ticks == 100000
+    assert defaults.calendar_seconds_per_tick == 12
     fresh = create_city(client, tick_seconds=1, max_ticks=100000)
     assert fresh["config"]["tick_seconds"] == 1
     legacy = create_city(client, tick_seconds=10, max_ticks=10000)

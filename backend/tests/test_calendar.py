@@ -74,6 +74,28 @@ def test_calendar_rate_never_changes_physical_walking(client):
     assert distance(c.Vec2(x=33, y=33), citizen.summary.position) <= citizen.summary.movement_speed_mps * 10
 
 
+def test_fine_physical_steps_preserve_the_same_calendar_pace():
+    fine = c.ConfigRequest(name="Fine steps", seed=42, tick_seconds=1)
+    normal = c.ConfigRequest(name="Normal steps", seed=42, tick_seconds=10)
+    assert fine.calendar_seconds_per_tick == 12
+    assert normal.tick_seconds == 10 and normal.calendar_seconds_per_tick == 120
+    assert fine.calendar_seconds_per_tick * 20 == normal.calendar_seconds_per_tick * 2 == 240
+    with pytest.raises(ValueError):
+        c.ConfigRequest(name="Invalid steps", seed=42, tick_seconds=None)
+
+
+def test_legacy_local_tick_setting_keeps_the_normal_calendar_pace(monkeypatch):
+    from app.infrastructure.config import AppConfig
+
+    monkeypatch.delenv("SIM_PHYSICS_SECONDS_PER_REAL_SECOND", raising=False)
+    monkeypatch.setenv("SIM_BASE_TICKS_PER_SECOND", "2")
+    assert AppConfig.from_env().base_tps == 20
+    monkeypatch.setenv("SIM_BASE_TICKS_PER_SECOND", "20")
+    assert AppConfig.from_env().base_tps == 20
+    monkeypatch.setenv("SIM_PHYSICS_SECONDS_PER_REAL_SECOND", "2")
+    assert AppConfig.from_env().base_tps == 2
+
+
 def test_conversation_listens_between_turns_and_lasts_an_accepted_hour(client):
     state = city(client)
     a, b = pair(state)
@@ -102,7 +124,7 @@ def test_conversation_listens_between_turns_and_lasts_an_accepted_hour(client):
     assert state.model_dump() == restored.model_dump()
 
 
-@pytest.mark.parametrize("reason", ["danger", "urgent_needs", "medical_care", "curfew"])
+@pytest.mark.parametrize("reason", ["danger", "urgent_needs", "medical_care", "curfew", "incapacitated"])
 def test_conversations_release_both_participants_on_interrupt(client, reason):
     state = city(client)
     a, b = pair(state)
@@ -115,6 +137,8 @@ def test_conversations_release_both_participants_on_interrupt(client, reason):
         a.needs.hunger = 81
     elif reason == "medical_care":
         a.condition.care = "claimed"
+    elif reason == "incapacitated":
+        a.trapped_building_id = "collapsed-home"
     else:
         state.simulation.calendar_time_seconds = 22 * 3600
         state.curfew_revision = 1
@@ -127,17 +151,35 @@ def test_conversations_release_both_participants_on_interrupt(client, reason):
 
 
 def test_conversation_reward_depends_on_contact_time_and_is_not_duplicated(client):
+    from app.behavior.rules import social_multiplier
+
     state = city(client)
     a, b = pair(state)
     apply_intent(state, a, make_intent("talk", target=b.summary.id))
     tick(state)
     before = a.needs.social
+    expected = 12 / 3 * social_multiplier(a, b)
     state.simulation.calendar_time_seconds += 1200
     conversation_benefits(state)
-    assert a.needs.social < before
+    assert before - a.needs.social == pytest.approx(expected)
     after = a.model_dump()
     conversation_benefits(state)
     assert a.model_dump() == after
+
+
+def test_care_interruption_does_not_cancel_a_newly_claimed_rescue_path(client):
+    state = city(client)
+    a, b = pair(state)
+    apply_intent(state, a, make_intent("talk", target=b.summary.id))
+    tick(state)
+    a.condition.patient_id = b.summary.id
+    b.condition.care = "claimed"
+    a.summary.path = [c.Vec2(x=45, y=33)]
+    interrupt_conversations(state)
+    session = next(iter(state.interactions.values()))
+    assert session.end_reason == "medical_care"
+    assert a.summary.path == [c.Vec2(x=45, y=33)]
+    assert b.summary.routine_state == "free"
 
 
 def test_night_sleep_is_sustained_until_six_and_distinct_from_unconsciousness(client):
@@ -254,6 +296,35 @@ def test_curfew_compliance_is_stable_through_midnight_and_emergency_overrides(cl
     assert len(state.systems.traces) == count
     state.policies.evacuation_order = True
     assert commitment_intent(state, citizen)[1] is False
+
+
+def test_temporary_curfew_activates_and_expires_through_the_scenario_scheduler(client):
+    from app.scenario_engine import runtime, validator
+    from app.simulation.scenarios import queue_event
+
+    state = city(client)
+    raw = dict(
+        title="Evening curfew",
+        category="policy",
+        description="A temporary curfew",
+        public_description="Curfew from 22:00 to 06:00",
+        duration="temporary",
+        measurement_ticks=8,
+        affected_systems=["safety"],
+        operations=[dict(type="set_curfew", timing=dict(duration_ticks=4))],
+        metrics=["policy_compliance"],
+    )
+    plan, errors, warnings = validator.validate_plan(state, raw)
+    assert not errors
+    preview = validator.compile_preview(state, plan, warnings)
+    event = queue_event(state, preview, state.snapshots[0].id, False)
+    runtime.attach(state, event.id, plan)
+    state.simulation.calendar_time_seconds = 22 * 3600 - 120
+    tick(state)
+    assert calendar.effective_curfew(state).enabled
+    for _ in range(4):
+        tick(state)
+    assert not calendar.effective_curfew(state).enabled
 
 
 def test_clock_alone_does_not_invalidate_model_context_but_commitments_do(client):

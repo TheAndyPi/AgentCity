@@ -177,6 +177,7 @@ function PolygonBuilding({
 }
 
 export default function Buildings({
+  nightBrightness = 1,
   buildings,
   cutaway = [],
   theme = "dark",
@@ -184,7 +185,6 @@ export default function Buildings({
   onClick,
   conditions,
   events = [],
-  nightBrightness = 1,
 }: {
   nightBrightness?: number;
   events?: readonly Pick<EventSummary, "id" | "title">[];

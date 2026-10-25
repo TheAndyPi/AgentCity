@@ -538,7 +538,9 @@ export default function World(props: Props) {
             <>
               <ambientLight
                 intensity={0.95 + sun * 0.65}
-                color={sun < 0.5 ? "#8f85ff" : "#d9e4ff"}
+                color={new THREE.Color("#8f85ff")
+                  .lerp(new THREE.Color("#d9e4ff"), sun)
+                  .getStyle()}
               />
               <directionalLight
                 position={[50, 100, 30]}
@@ -555,12 +557,12 @@ export default function World(props: Props) {
           )}
           <Ground map={props.frame.map} theme={light ? "light" : "dark"} />
           <Buildings
+            nightBrightness={1 - sun}
             onClick={props.onEmpty}
             theme={light ? "light" : "dark"}
             reducedMotion={props.reducedMotion}
             conditions={props.disasters?.conditions}
             events={props.frame.events}
-            nightBrightness={1 - sun}
             buildings={props.frame.map.buildings.map((b) =>
               props.disasters?.conditions[b.id]?.integrity === 0
                 ? { ...b, height_m: 0.5 }
@@ -972,7 +974,11 @@ function World2D(props: Props) {
     <svg
       className="world-2d"
       data-day-phase={dayPhase(calendarTime(frame.simulation))}
-      style={{ backgroundColor: sun < 0.5 ? "#151a35" : palette.sky }}
+      style={{
+        backgroundColor: new THREE.Color("#151a35")
+          .lerp(new THREE.Color(palette.sky), sun)
+          .getStyle(),
+      }}
       role="img"
       aria-label="Interactive top-down city map. Hover or focus a building for its purpose. Select a citizen or use Search agent."
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
@@ -1162,7 +1168,7 @@ function World2D(props: Props) {
               fill="none"
               stroke={info.accent}
               strokeWidth=".14"
-              opacity=".7"
+              opacity={0.3 + (1 - sun) * 0.4}
               pointerEvents="none"
             />
             {props.disasters &&
@@ -1272,7 +1278,7 @@ function World2D(props: Props) {
             <circle r="2.6" fill="transparent" />
             {a.routine_state === "sleeping" && (
               <text y={-2} textAnchor="middle" fontSize={1.5} fill={neon.cyan}>
-                Sleeping
+                {a.id === selected ? "Sleeping" : "Zz"}
               </text>
             )}
             {(!a.active || a.emotion === "unconscious") && (

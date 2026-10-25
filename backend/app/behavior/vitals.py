@@ -270,14 +270,9 @@ def rest(state, citizen, base=None, phase="activity"):
         impact(state, citizen, "mental", RATES["rest_mental"] * hours, "Quiet rest", phase)
         metric_delta(citizen, "stress", RATES["rest_stress"] * hours, evidence("Time spent resting"))
     else:
-        impact(
-            state,
-            citizen,
-            "mental",
-            RULES["rest_mental"] * state.simulation.config.tick_seconds / 10,
-            "Quiet rest",
-            phase,
-        )
+        dt = state.simulation.config.tick_seconds / 10
+        base *= dt
+        impact(state, citizen, "mental", RULES["rest_mental"] * dt, "Quiet rest", phase)
     impact(state, citizen, "energy", base * rest_multiplier(citizen), "Rest quality", phase)
 
 

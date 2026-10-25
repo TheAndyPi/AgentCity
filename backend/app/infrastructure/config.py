@@ -3,6 +3,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def simulation_rate_from_env():
+    """Physical seconds per real second, accepting the original default tick rate."""
+    explicit = os.getenv("SIM_PHYSICS_SECONDS_PER_REAL_SECOND")
+    if explicit is not None:
+        return float(explicit)
+    rate = float(os.getenv("SIM_BASE_TICKS_PER_SECOND", "20"))
+    # Before fine-step physics this setting meant two ten-second ticks/second.
+    return 20.0 if rate == 2 else rate
+
+
 @dataclass(frozen=True)
 class AppConfig:
     data_dir: Path = Path("data")
@@ -74,7 +84,7 @@ class AppConfig:
             llm_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "512")),
             llm_token_budget=int(os.getenv("LLM_SESSION_TOKEN_BUDGET", "200000")),
             llm_event_token_budget=int(os.getenv("LLM_EVENT_TOKEN_BUDGET", "100000")),
-            base_tps=float(os.getenv("SIM_BASE_TICKS_PER_SECOND", "20")),
+            base_tps=simulation_rate_from_env(),
             max_agents=int(os.getenv("SIM_MAX_AGENTS", "100")),
             max_running=int(os.getenv("SIM_MAX_RUNNING", "1")),
             autosave_interval=int(os.getenv("AUTOSAVE_INTERVAL_TICKS", "200")),
