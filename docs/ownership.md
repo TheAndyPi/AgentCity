@@ -1,5 +1,15 @@
 # AgentCity ownership baseline
 
+## Twelve-hour release coordination
+
+The current parallel assignments and shared-file boundaries are in
+[the shared dev log](dev-log.md) and
+[release integration handoff](release/integration-handoff.md). A coordinates
+central app/config/dependency/deployment changes; B owns Snowflake modules and
+comparison; C owns narration modules and playback. These supersede the historical
+initial-backend ownership table below for the new integration work. Frozen core
+v1 contracts remain unchanged; new APIs use a documented extension sub-application.
+
 ## Current integration scope
 
 The user's subsequent integration request authorizes changes to both applications,

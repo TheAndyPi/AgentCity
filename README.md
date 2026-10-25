@@ -1,5 +1,9 @@
 # AgentCity
 
+Current development coordination: [shared dev log](docs/dev-log.md),
+[release integration handoff](docs/release/integration-handoff.md), and
+[functional acceptance cases](docs/release/acceptance-cases.md).
+
 AgentCity runs a persistent society simulation with a React/Three.js interface and a FastAPI backend. The interface uses real HTTP and WebSocket data by default. Rules mode works locally without an API key.
 
 ## Start the application
@@ -17,7 +21,7 @@ Reopening a larger saved history includes integrity verification. The launchers 
 
 Create a city, confirm or skip its initial scenario, then use Play or Step. Custom scenarios pause the city while their effects are previewed. Outcomes, snapshots, replay, restored branches, profiles, settings and history use backend persistence in `backend/data/`. Restarted simulations reopen paused. Rules decisions are labeled in the interface.
 
-Fresh setup defaults to 80 citizens in an urban neighborhood. New maps contain two to four separate buildings per block (240 buildings at the default urban density), with clear road entrances and green courtyards. Apartments, offices, restaurants, markets and civic buildings have different silhouettes. Hover over a building in 3D or hover/focus one in 2D to see its name, purpose and capacity; tapping a building also shows its tag. Existing saved cities keep their original layout and population while receiving the new building rendering and tags. Existing setup drafts retain their chosen settings.
+Fresh setup defaults to ten citizens in a suburb; population can be adjusted up to the server's advertised maximum (normally 100). Existing drafts and templates can select different settings. City layouts vary with settlement and density, with separate buildings, road entrances and green courtyards. Apartments, offices, restaurants, markets and civic buildings have different silhouettes. Hover over a building in 3D or hover/focus one in 2D to see its name, purpose and capacity; tapping a building also shows its tag. Existing saved cities keep their original layout and population while receiving the new building rendering and tags.
 
 The setup command creates `backend/.venv`, installs the pinned Python dependencies and runs `npm ci` in `frontend/`. On Windows, `python` must be on PATH; set `PYTHON` if another executable is needed when creating the environment. `AGENTCITY_PYTHON` can select an existing compatible Python environment.
 
@@ -75,4 +79,4 @@ npm run test:e2e
 
 `npm test` runs TypeScript, frontend unit/contract tests, backend tests, frozen contract verification and Ruff. Browser tests start isolated real backend processes and exercise the development proxy and built same-origin application. They use installed Chrome on Windows; on other systems install Playwright Chromium with `npm --prefix frontend exec -- playwright install chromium`. `PLAYWRIGHT_CHANNEL` can select an installed compatible browser. Browser tests use separate data directories under `backend/.tmp/`.
 
-See [the integration handoff](docs/integration-handoff.md) for test evidence and limitations. Gemini requires an account key and model configuration and has not been live-tested with credentials. PostgreSQL/Tiger Data, Snowflake and ElevenLabs adapters are unavailable; capabilities report that explicitly. The functioning local application uses durable local storage, rules simulation, live export and replay.
+See [the integration handoff](docs/integration-handoff.md) for test evidence and limitations. Gemini supports Developer API or Vertex AI configuration; [prior live Vertex application verification](docs/vertex-integration.md) is documented separately from the default mocked provider tests. PostgreSQL/Tiger Data, Snowflake and ElevenLabs adapters are unavailable until the new release assignments are implemented; capabilities report that explicitly. The functioning local application uses durable local storage, rules or configured Gemini decisions, live export and replay.
