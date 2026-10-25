@@ -179,6 +179,17 @@ def metric_delta(citizen, metric, delta, proof):
         citizen.metric_reasons.append(MetricReason(metric=metric, delta=after - before, evidence=proof))
 
 
+def local_exposure(runtime, position, state):
+    from app.disasters.geometry import exposure
+
+    return exposure(
+        runtime.physical,
+        position,
+        state.simulation.tick - (runtime.summary.start_tick or state.simulation.tick),
+        runtime.spec.affected_polygon,
+    )
+
+
 def hazard_severity(state, position):
     fires = [
         f.severity
@@ -190,7 +201,7 @@ def hazard_severity(state, position):
     return max(
         fires
         + [
-            effect.severity
+            (local_exposure(runtime, position, state) * 100 if runtime.physical else effect.severity)
             for runtime in state.events.values()
             if runtime.summary.status == "active"
             and polygon_contains(position, runtime.spec.affected_polygon)
@@ -295,6 +306,7 @@ def update_metrics(state):
         sum(
             aid in state.citizens
             and state.citizens[aid].summary.active
+            and state.citizens[aid].needs.health > 0
             and hazard_severity(state, state.citizens[aid].summary.position) == 0
             for aid in runtime.cohort
         )

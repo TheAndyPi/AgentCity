@@ -33,7 +33,7 @@ export const eligible = (line: Dialogue, subject: Subject) =>
       line.recipient_ids.includes(subject.id));
 const estimate = (line: Dialogue) =>
   Math.max(1, line.text.split(/\s+/).length / 2.6 + 0.5);
-function silence() {
+export function silence() {
   const bytes = new Uint8Array(124),
     view = new DataView(bytes.buffer);
   const text = (offset: number, value: string) =>
@@ -102,6 +102,7 @@ export class LiveVoices {
   private speaking: Dialogue | null = null;
   private error = "";
   private enabled = false;
+  private categoryEnabled = true;
   private paused = false;
   private muted = false;
   private volume = 0.8;
@@ -243,6 +244,10 @@ export class LiveVoices {
     if (!this.scope || frame.simulation.id !== this.scope.simulation) return;
     if (this.scope.revision !== null) return;
     this.latest = frame;
+    if (!this.categoryEnabled) {
+      this.baseline(frame);
+      return;
+    }
     if (this.discardNextFrame) {
       this.discardNextFrame = false;
       this.baseline(frame);
@@ -357,7 +362,13 @@ export class LiveVoices {
     }
   }
   private canPlay() {
-    return this.enabled && !this.muted && !this.paused && !this.hidden;
+    return (
+      this.enabled &&
+      this.categoryEnabled &&
+      !this.muted &&
+      !this.paused &&
+      !this.hidden
+    );
   }
   private pump() {
     if (!this.canPlay() || this.unlocking) return;
@@ -457,6 +468,41 @@ export class LiveVoices {
     this.emit();
     this.pump();
   }
+  offerReaction(
+    reaction: {
+      id: string;
+      agent_id: string;
+      event_id: string;
+      tick: number;
+      text: string;
+      kind: string;
+    },
+    result: NarrationAudio,
+  ) {
+    if (!this.canPlay() || this.queue.length || this.scope?.revision !== null)
+      return false;
+    const line: Dialogue = {
+      id: reaction.id,
+      interaction_id: reaction.event_id,
+      tick: reaction.tick,
+      speaker_id: reaction.agent_id,
+      recipient_ids: [],
+      audible_to_ids: [],
+      text: reaction.text,
+      intent: reaction.kind,
+      emotion: "afraid",
+      end_conversation: true,
+    };
+    this.queue.push({
+      line,
+      revision: this.latest?.ref.revision ?? 0,
+      key: crypto.randomUUID(),
+      result,
+    });
+    this.emit();
+    this.pump();
+    return true;
+  }
   enable() {
     if (this.hidden) return;
     this.enabled = true;
@@ -508,6 +554,12 @@ export class LiveVoices {
     }
     this.emit();
     this.pump();
+  }
+  setCategoryEnabled(value: boolean) {
+    this.categoryEnabled = value;
+    this.clear();
+    if (this.latest) this.baseline(this.latest);
+    this.emit();
   }
   setVolume(value: number) {
     this.volume = Math.max(0, Math.min(1, value));

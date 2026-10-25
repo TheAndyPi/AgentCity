@@ -73,7 +73,11 @@ def tick(state, proposals=None):
         citizen = state.citizens[aid]
         evaluate(state, citizen)
         evaluate_crisis(state, citizen, recovery=False)
-        if not conscious(citizen) or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}:
+        if (
+            citizen.trapped_building_id
+            or not conscious(citizen)
+            or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}
+        ):
             continue
         candidate = proposals.get(aid)
         context = perception(state, citizen, SpatialIndex(state.citizens))
@@ -123,6 +127,11 @@ def tick(state, proposals=None):
         }:
             advance_movement(state, citizen)
             synchronize_transport(state, citizen)
+    from app.disasters.physics import advance
+
+    advance(state)
+    for citizen in state.citizens.values():
+        evaluate(state, citizen, "After physical disaster exposure")
     # Consumption/rest happens before decay. Patients still decay and can die.
     dt = state.simulation.config.tick_seconds / 10
     for citizen in state.citizens.values():

@@ -87,9 +87,17 @@ class ElevenLabsFake:
             await asyncio.sleep(0.005)
         kind, *args = action if isinstance(action, tuple) else (action,)
         if kind == "ok":
-            return httpx.Response(
-                200, headers={"content-type": "audio/mpeg"}, content=marked_audio(record["body"]["text"])
-            )
+            audio = marked_audio(record["body"].get("text", record["body"].get("prompt", "")))
+            if record["path"] in {"/v1/sound-generation", "/v1/music"}:
+                import math
+
+                from app.narration.disaster import mp3_seconds
+
+                desired = record["body"].get(
+                    "duration_seconds", record["body"].get("music_length_ms", 1000) / 1000
+                )
+                audio += TONE * (max(1, math.ceil(desired / mp3_seconds(TONE))) - 1)
+            return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=audio)
         if kind == "status":
             status, headers = args[0], args[1] if len(args) > 1 else {}
             return httpx.Response(
@@ -102,6 +110,8 @@ class ElevenLabsFake:
         if kind == "hang":
             await asyncio.sleep(args[0])
             return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=TONE)
+        if kind == "truncated":
+            return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=TONE[:-3])
         if kind == "malformed":
             return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=b"\x00" * 4096)
         if kind == "json":

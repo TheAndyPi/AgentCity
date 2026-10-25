@@ -118,6 +118,7 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
     try:
         check(
             conscious(citizen)
+            and not citizen.trapped_building_id
             and citizen.condition.care not in {"hospital", "claimed", "carried", "escorted"},
             "INCAPACITATED",
             "Only a conscious free citizen can perform ordinary actions",
@@ -503,7 +504,11 @@ def advance_movement(state, citizen):
     from app.behavior.vitals import conscious, evaluate
 
     evaluate(state, citizen, "Before movement")
-    if not conscious(citizen) or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}:
+    if (
+        citizen.trapped_building_id
+        or not conscious(citizen)
+        or citizen.condition.care in {"hospital", "claimed", "carried", "escorted"}
+    ):
         return
     origin_at_tick = citizen.summary.position.model_copy()
     # Pause at a greeting long enough to answer it. Urgent evacuation/help still
@@ -617,6 +622,8 @@ def advance_movement(state, citizen):
 
 
 def rule_intent(state, citizen, context):
+    if citizen.trapped_building_id or not citizen.summary.active or citizen.needs.health <= 0:
+        return None
     p = citizen.summary.position
     from app.behavior.care import eligible
     from app.behavior.vitals import conscious

@@ -58,6 +58,8 @@ import ScenarioDialog, {
 import LifeHUD from "../components/LifeHUD";
 import OutcomeDialog from "../components/OutcomeDialog";
 import LiveVoiceProvider from "../narration/LiveVoiceProvider";
+import { useDisasters } from "../disasters/useDisasters";
+import ConditionPanel from "../disasters/ConditionPanel";
 import { resolveSubject } from "../narration/live";
 export default function Simulation() {
   const { id } = useParams();
@@ -77,6 +79,14 @@ export default function Simulation() {
     [fallback, setFallback] = useState(false),
     [busy, setBusy] = useState(false),
     [saveState, setSaveState] = useState("");
+  const [listeningPoint, setListeningPoint] = useState({ x: 64, y: 64 });
+  const onListenerMoved = useCallback(
+    (point: { x: number; y: number }) =>
+      setListeningPoint((old) =>
+        Math.hypot(old.x - point.x, old.y - point.y) < 0.5 ? old : point,
+      ),
+    [],
+  );
   const [focused, setFocused] = useState<string[]>([]);
   const [watchedInteraction, setWatchedInteraction] = useState<string | null>(
     null,
@@ -361,6 +371,12 @@ export default function Simulation() {
     }
   };
   const frame = revision === null ? live.frame : historical;
+  const disasters = useDisasters(
+    client,
+    id,
+    frame?.ref.revision,
+    revision !== null,
+  );
   if (!frame)
     return (
       <div className="city-connecting">
@@ -475,6 +491,8 @@ export default function Simulation() {
       >
         <World
           frame={frame}
+          disasters={disasters}
+          onListenerMoved={onListenerMoved}
           mode={fallback ? "2d" : settings.view_mode}
           selected={selected}
           focus={focused}
@@ -1092,6 +1110,12 @@ export default function Simulation() {
           setFollow={setFollow}
         />
       )}
+      <ConditionPanel
+        data={disasters}
+        frame={frame}
+        readOnly={readOnly}
+        refresh={refresh}
+      />
       {source && (
         <ScenarioDialog
           key={`${id}-${source}`}
@@ -1144,6 +1168,8 @@ export default function Simulation() {
   return (
     <LiveVoiceProvider
       store={store}
+      disasters={disasters}
+      listeningPoint={listeningPoint}
       frame={frame}
       scope={{
         simulation: s.id,

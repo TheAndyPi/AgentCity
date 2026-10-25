@@ -1,0 +1,2838 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AgentCity disasters",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/v2/simulations/{sid}/state": {
+      "get": {
+        "summary": "State",
+        "operationId": "state_v2_simulations__sid__state_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_StateView_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/export": {
+      "get": {
+        "summary": "Export",
+        "operationId": "export_v2_simulations__sid__export_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_ExportView_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_v2_simulations__sid__previews_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_PreviewResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/commits": {
+      "post": {
+        "summary": "Commit",
+        "operationId": "commit_v2_simulations__sid__commits_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_ScenarioResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/events/{eid}/cancel": {
+      "post": {
+        "summary": "Cancel",
+        "operationId": "cancel_v2_simulations__sid__events__eid__cancel_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "eid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Eid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Control"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_StateView_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/simulations/{sid}/repairs": {
+      "post": {
+        "summary": "Repair",
+        "operationId": "repair_v2_simulations__sid__repairs_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepairRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success_Repair_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Bounds": {
+        "properties": {
+          "min_extent_m": {
+            "type": "number",
+            "title": "Min Extent M"
+          },
+          "max_extent_m": {
+            "type": "number",
+            "title": "Max Extent M"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "min_extent_m",
+          "max_extent_m"
+        ],
+        "title": "Bounds"
+      },
+      "CommitRequest": {
+        "properties": {
+          "intervention_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Intervention Id"
+          },
+          "preview_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Preview Id"
+          },
+          "expected_control_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Control Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "intervention_id",
+          "preview_id",
+          "expected_control_version"
+        ],
+        "title": "CommitRequest"
+      },
+      "CommunityEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "community",
+            "title": "Type"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "festival",
+              "aid"
+            ],
+            "title": "Activity"
+          },
+          "capacity": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Capacity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "activity",
+          "capacity"
+        ],
+        "title": "CommunityEffect"
+      },
+      "ConditionView": {
+        "properties": {
+          "integrity": {
+            "type": "number",
+            "title": "Integrity"
+          },
+          "design_capacity": {
+            "type": "integer",
+            "title": "Design Capacity"
+          },
+          "baseline_functional": {
+            "type": "boolean",
+            "title": "Baseline Functional"
+          },
+          "resistance": {
+            "type": "number",
+            "title": "Resistance"
+          },
+          "cause_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cause Ids"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "intact",
+              "damaged",
+              "unsafe",
+              "destroyed"
+            ],
+            "title": "Stage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "integrity",
+          "design_capacity",
+          "baseline_functional",
+          "resistance",
+          "cause_ids",
+          "stage"
+        ],
+        "title": "ConditionView"
+      },
+      "Config": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Name"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "sandbox",
+              "behavior_lab",
+              "crisis_lab",
+              "policy_lab"
+            ],
+            "title": "Mode"
+          },
+          "population": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 10.0,
+            "title": "Population"
+          },
+          "population_traits": {
+            "$ref": "#/components/schemas/Traits"
+          },
+          "household_supplies": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Household Supplies"
+          },
+          "personality_diversity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Personality Diversity"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/Environment"
+          },
+          "scenario_description": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Scenario Description"
+          },
+          "custom_agent_ids": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "title": "Custom Agent Ids"
+          },
+          "tick_seconds": {
+            "type": "integer",
+            "const": 10,
+            "title": "Tick Seconds"
+          },
+          "max_ticks": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Max Ticks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "seed",
+          "mode",
+          "population",
+          "population_traits",
+          "household_supplies",
+          "personality_diversity",
+          "environment",
+          "scenario_description",
+          "custom_agent_ids",
+          "tick_seconds",
+          "max_ticks"
+        ],
+        "title": "Config"
+      },
+      "Control": {
+        "properties": {
+          "expected_control_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Control Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_control_version"
+        ],
+        "title": "Control"
+      },
+      "DamageProjection": {
+        "properties": {
+          "min_integrity_loss": {
+            "type": "number",
+            "title": "Min Integrity Loss"
+          },
+          "max_integrity_loss": {
+            "type": "number",
+            "title": "Max Integrity Loss"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "min_integrity_loss",
+          "max_integrity_loss",
+          "description"
+        ],
+        "title": "DamageProjection"
+      },
+      "DamageRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "tick": {
+            "type": "integer",
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "sim_time_seconds": {
+            "type": "number",
+            "title": "Sim Time Seconds"
+          },
+          "exposure": {
+            "type": "number",
+            "title": "Exposure"
+          },
+          "before": {
+            "type": "number",
+            "title": "Before"
+          },
+          "after": {
+            "type": "number",
+            "title": "After"
+          },
+          "units": {
+            "type": "string",
+            "enum": [
+              "integrity",
+              "stock",
+              "health"
+            ],
+            "title": "Units"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version",
+            "default": "disasters-2.0.0"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "entity_id",
+          "tick",
+          "revision",
+          "sim_time_seconds",
+          "exposure",
+          "before",
+          "after",
+          "units"
+        ],
+        "title": "DamageRecord"
+      },
+      "Environment": {
+        "properties": {
+          "resource_availability": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Resource Availability"
+          },
+          "population_density": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Population Density"
+          },
+          "infrastructure_capacity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Infrastructure Capacity"
+          },
+          "initial_community_trust": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Initial Community Trust"
+          },
+          "settlement": {
+            "type": "string",
+            "enum": [
+              "urban",
+              "suburb"
+            ],
+            "title": "Settlement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resource_availability",
+          "population_density",
+          "infrastructure_capacity",
+          "initial_community_trust",
+          "settlement"
+        ],
+        "title": "Environment"
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": "array",
+            "title": "Details"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "details"
+        ],
+        "title": "Error"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "reason"
+        ],
+        "title": "ErrorDetail"
+      },
+      "EventSpec": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Description"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "fire",
+              "storm",
+              "shortage",
+              "outage",
+              "misinformation",
+              "festival",
+              "policy",
+              "custom"
+            ],
+            "title": "Kind"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "affected_polygon": {
+            "items": {
+              "$ref": "#/components/schemas/Vec2"
+            },
+            "type": "array",
+            "minItems": 3,
+            "title": "Affected Polygon"
+          },
+          "severity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Severity"
+          },
+          "duration_ticks": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Duration Ticks"
+          },
+          "effects": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HazardEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/ResourceEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/InfrastructureEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/InformationEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/CommunityEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyEffect"
+                },
+                {
+                  "$ref": "#/components/schemas/WellbeingEffect"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "community": "#/components/schemas/CommunityEffect",
+                  "hazard": "#/components/schemas/HazardEffect",
+                  "information": "#/components/schemas/InformationEffect",
+                  "infrastructure": "#/components/schemas/InfrastructureEffect",
+                  "policy": "#/components/schemas/PolicyEffect",
+                  "resource_multiplier": "#/components/schemas/ResourceEffect",
+                  "wellbeing": "#/components/schemas/WellbeingEffect"
+                }
+              }
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Effects"
+          },
+          "success_condition": {
+            "type": "string",
+            "enum": [
+              "duration_elapsed",
+              "all_safe_or_duration"
+            ],
+            "title": "Success Condition"
+          },
+          "scene": {
+            "items": {
+              "$ref": "#/components/schemas/SceneObject"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "title": "Scene"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "kind",
+          "origin",
+          "affected_polygon",
+          "severity",
+          "duration_ticks",
+          "effects",
+          "success_condition"
+        ],
+        "title": "EventSpec"
+      },
+      "EventSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "fire",
+              "storm",
+              "shortage",
+              "outage",
+              "misinformation",
+              "festival",
+              "policy",
+              "custom"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "active",
+              "resolved",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "queued_tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Queued Tick"
+          },
+          "start_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Tick"
+          },
+          "end_tick": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Tick"
+          },
+          "affected_agent_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Affected Agent Count"
+          },
+          "affected_polygon": {
+            "items": {
+              "$ref": "#/components/schemas/Vec2"
+            },
+            "type": "array",
+            "minItems": 3,
+            "title": "Affected Polygon"
+          },
+          "pre_event_snapshot_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Pre Event Snapshot Id"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Summary"
+          },
+          "scene": {
+            "items": {
+              "$ref": "#/components/schemas/SceneObject"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "title": "Scene"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "kind",
+          "status",
+          "queued_tick",
+          "start_tick",
+          "end_tick",
+          "affected_agent_count",
+          "affected_polygon",
+          "pre_event_snapshot_id",
+          "summary"
+        ],
+        "title": "EventSummary"
+      },
+      "EventView": {
+        "properties": {
+          "legacy_projection": {
+            "type": "boolean",
+            "title": "Legacy Projection"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "active",
+              "resolved",
+              "cancel"
+            ],
+            "title": "Phase"
+          },
+          "phase_id": {
+            "type": "string",
+            "title": "Phase Id"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Parameters"
+          },
+          "normalized_intensity": {
+            "type": "number",
+            "title": "Normalized Intensity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "start_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Tick"
+          },
+          "end_tick": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Tick"
+          },
+          "footprint": {
+            "items": {
+              "$ref": "#/components/schemas/Vec2"
+            },
+            "type": "array",
+            "title": "Footprint"
+          },
+          "current_footprint": {
+            "items": {
+              "$ref": "#/components/schemas/Vec2"
+            },
+            "type": "array",
+            "title": "Current Footprint"
+          },
+          "current_origin": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "exposure_count": {
+            "type": "integer",
+            "title": "Exposure Count"
+          },
+          "damage_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Damage Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "legacy_projection",
+          "id",
+          "phase",
+          "phase_id",
+          "parameters",
+          "normalized_intensity",
+          "unit",
+          "start_tick",
+          "end_tick",
+          "footprint",
+          "current_footprint",
+          "current_origin",
+          "exposure_count",
+          "damage_ids"
+        ],
+        "title": "EventView"
+      },
+      "ExportView": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "2.0.0",
+            "title": "Schema Version"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "sim_time_seconds": {
+            "type": "number",
+            "title": "Sim Time Seconds"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "service_changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Service Changes"
+          },
+          "vocal_states": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VocalState"
+            },
+            "type": "object",
+            "title": "Vocal States"
+          },
+          "conditions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ConditionView"
+            },
+            "type": "object",
+            "title": "Conditions"
+          },
+          "terrain": {
+            "items": {
+              "$ref": "#/components/schemas/TerrainDamage"
+            },
+            "type": "array",
+            "title": "Terrain"
+          },
+          "damage": {
+            "items": {
+              "$ref": "#/components/schemas/DamageRecord"
+            },
+            "type": "array",
+            "title": "Damage"
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/Reaction"
+            },
+            "type": "array",
+            "title": "Reactions"
+          },
+          "repairs": {
+            "items": {
+              "$ref": "#/components/schemas/Repair"
+            },
+            "type": "array",
+            "title": "Repairs"
+          },
+          "rescue_needs": {
+            "items": {
+              "$ref": "#/components/schemas/RescueNeed"
+            },
+            "type": "array",
+            "title": "Rescue Needs"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Totals"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "rule_version",
+          "simulation_id",
+          "ref",
+          "sim_time_seconds",
+          "events",
+          "service_changes",
+          "vocal_states",
+          "conditions",
+          "terrain",
+          "damage",
+          "reactions",
+          "repairs",
+          "rescue_needs",
+          "totals"
+        ],
+        "title": "ExportView"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HazardEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "hazard",
+            "title": "Type"
+          },
+          "hazard": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "fire",
+              "storm"
+            ],
+            "title": "Hazard"
+          },
+          "severity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Severity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "hazard",
+          "severity"
+        ],
+        "title": "HazardEffect"
+      },
+      "InformationEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "information",
+            "title": "Type"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Message"
+          },
+          "reliability": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Reliability"
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "local",
+              "broadcast"
+            ],
+            "title": "Delivery"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "message",
+          "reliability",
+          "delivery"
+        ],
+        "title": "InformationEffect"
+      },
+      "InfrastructureEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "infrastructure",
+            "title": "Type"
+          },
+          "functional": {
+            "type": "boolean",
+            "title": "Functional"
+          },
+          "capacity_multiplier": {
+            "type": "number",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Capacity Multiplier"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "functional",
+          "capacity_multiplier"
+        ],
+        "title": "InfrastructureEffect"
+      },
+      "Job": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "map",
+              "population",
+              "relationships",
+              "scenario",
+              "persistence",
+              "ready",
+              "failed"
+            ],
+            "title": "Stage"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Progress"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Error"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stage",
+          "progress",
+          "message",
+          "error"
+        ],
+        "title": "Job"
+      },
+      "Parameters": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "earthquake",
+              "tornado",
+              "flood",
+              "fire",
+              "storm"
+            ],
+            "title": "Kind"
+          },
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
+          },
+          "extent_m": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Extent M"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "track_end": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Vec2"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duration_ticks": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Duration Ticks"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed"
+          },
+          "rule_version": {
+            "type": "string",
+            "const": "disasters-2.0.0",
+            "title": "Rule Version",
+            "default": "disasters-2.0.0"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "intensity",
+          "extent_m",
+          "origin",
+          "duration_ticks",
+          "seed"
+        ],
+        "title": "Parameters"
+      },
+      "PolicyEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "policy",
+            "title": "Type"
+          },
+          "evacuation_order": {
+            "type": "boolean",
+            "title": "Evacuation Order"
+          },
+          "ration_units_per_agent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ration Units Per Agent"
+          },
+          "aid_multiplier": {
+            "type": "number",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Aid Multiplier"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "evacuation_order",
+          "ration_units_per_agent",
+          "aid_multiplier"
+        ],
+        "title": "PolicyEffect"
+      },
+      "PreviewRequest": {
+        "properties": {
+          "editor_generation": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Editor Generation",
+            "default": 0
+          },
+          "original_prompt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Prompt"
+          },
+          "intervention_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Intervention Id"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Parameters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "intervention_id",
+          "parameters"
+        ],
+        "title": "PreviewRequest"
+      },
+      "PreviewResult": {
+        "properties": {
+          "damage_projection": {
+            "$ref": "#/components/schemas/DamageProjection"
+          },
+          "schema_version": {
+            "type": "string",
+            "const": "2.0.0",
+            "title": "Schema Version"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/Parameters"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/ScenarioPreview"
+          },
+          "bounds": {
+            "$ref": "#/components/schemas/Bounds"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "damage_projection",
+          "schema_version",
+          "parameters",
+          "preview",
+          "bounds",
+          "duration_seconds"
+        ],
+        "title": "PreviewResult"
+      },
+      "Reaction": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "tick": {
+            "type": "integer",
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "sim_time_seconds": {
+            "type": "number",
+            "title": "Sim Time Seconds"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "threat": {
+            "type": "number",
+            "title": "Threat"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "scream",
+              "help",
+              "warning"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "episode_id": {
+            "type": "string",
+            "title": "Episode Id"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Ids"
+          },
+          "alive": {
+            "type": "boolean",
+            "title": "Alive",
+            "default": true
+          },
+          "conscious": {
+            "type": "boolean",
+            "title": "Conscious",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "agent_id",
+          "tick",
+          "revision",
+          "sim_time_seconds",
+          "position",
+          "threat",
+          "kind",
+          "text",
+          "episode_id",
+          "evidence_ids"
+        ],
+        "title": "Reaction"
+      },
+      "Ref": {
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tick",
+          "revision"
+        ],
+        "title": "Ref"
+      },
+      "Repair": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "repair",
+              "clear"
+            ],
+            "title": "Action",
+            "default": "repair"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "building_id": {
+            "type": "string",
+            "title": "Building Id"
+          },
+          "start_tick": {
+            "type": "integer",
+            "title": "Start Tick"
+          },
+          "finish_tick": {
+            "type": "integer",
+            "title": "Finish Tick"
+          },
+          "before": {
+            "type": "number",
+            "title": "Before"
+          },
+          "supplies": {
+            "type": "number",
+            "title": "Supplies"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "blocked"
+            ],
+            "title": "Status",
+            "default": "pending"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "building_id",
+          "start_tick",
+          "finish_tick",
+          "before",
+          "supplies",
+          "resource_id"
+        ],
+        "title": "Repair"
+      },
+      "RepairRequest": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "pattern": "^(repair|clear)$",
+            "title": "Action",
+            "default": "repair"
+          },
+          "expected_control_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Control Version"
+          },
+          "building_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Building Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_control_version",
+          "building_id"
+        ],
+        "title": "RepairRequest"
+      },
+      "RescueNeed": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "building_id": {
+            "type": "string",
+            "title": "Building Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agent_id",
+          "building_id"
+        ],
+        "title": "RescueNeed"
+      },
+      "ResourceEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "resource_multiplier",
+            "title": "Type"
+          },
+          "resource": {
+            "type": "string",
+            "enum": [
+              "food",
+              "water",
+              "supplies"
+            ],
+            "title": "Resource"
+          },
+          "multiplier": {
+            "type": "number",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Multiplier"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "resource",
+          "multiplier"
+        ],
+        "title": "ResourceEffect"
+      },
+      "ScenarioPreview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "simulation_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Simulation Id"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "random",
+              "repeat",
+              "custom",
+              "policy",
+              "initial"
+            ],
+            "title": "Source"
+          },
+          "source_event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Event Id"
+          },
+          "based_on": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "interpretation": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Interpretation"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/EventSpec"
+          },
+          "affected_agent_ids": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Affected Agent Ids"
+          },
+          "affected_building_ids": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Affected Building Ids"
+          },
+          "warnings": {
+            "items": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "unsupported_requests": {
+            "items": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "type": "array",
+            "title": "Unsupported Requests"
+          },
+          "can_commit": {
+            "type": "boolean",
+            "title": "Can Commit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "simulation_id",
+          "source",
+          "source_event_id",
+          "based_on",
+          "expires_at",
+          "interpretation",
+          "spec",
+          "affected_agent_ids",
+          "affected_building_ids",
+          "warnings",
+          "unsupported_requests",
+          "can_commit"
+        ],
+        "title": "ScenarioPreview"
+      },
+      "ScenarioResult": {
+        "properties": {
+          "simulation": {
+            "$ref": "#/components/schemas/Simulation"
+          },
+          "event": {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/Snapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "simulation",
+          "event",
+          "snapshot"
+        ],
+        "title": "ScenarioResult"
+      },
+      "SceneObject": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "enum": [
+              "flood",
+              "fire",
+              "cloud",
+              "crates",
+              "generator",
+              "broadcast",
+              "stage",
+              "stall",
+              "tree",
+              "dinosaur",
+              "spacecraft",
+              "robot",
+              "barrier",
+              "clinic",
+              "snow",
+              "heat",
+              "meteor",
+              "monument",
+              "portal",
+              "visitor",
+              "deer",
+              "generated"
+            ],
+            "title": "Model"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Label"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Vec2"
+          },
+          "scale": {
+            "type": "number",
+            "maximum": 4.0,
+            "minimum": 0.5,
+            "title": "Scale"
+          },
+          "rotation": {
+            "type": "number",
+            "maximum": 6.284,
+            "minimum": 0.0,
+            "title": "Rotation"
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/ScenePart"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Parts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "label",
+          "position",
+          "scale",
+          "rotation",
+          "color"
+        ],
+        "title": "SceneObject",
+        "description": "Bounded procedural props: no external assets or executable model output."
+      },
+      "SceneOffset": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "maximum": 8.0,
+            "minimum": -8.0,
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "maximum": 8.0,
+            "minimum": -8.0,
+            "title": "Z"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z"
+        ],
+        "title": "SceneOffset"
+      },
+      "ScenePart": {
+        "properties": {
+          "shape": {
+            "type": "string",
+            "enum": [
+              "box",
+              "sphere",
+              "cone",
+              "cylinder"
+            ],
+            "title": "Shape"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/SceneOffset"
+          },
+          "size": {
+            "$ref": "#/components/schemas/SceneSize"
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Color"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "shape",
+          "offset",
+          "size",
+          "color"
+        ],
+        "title": "ScenePart"
+      },
+      "SceneSize": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "maximum": 8.0,
+            "minimum": 0.1,
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "maximum": 8.0,
+            "minimum": 0.1,
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "maximum": 8.0,
+            "minimum": 0.1,
+            "title": "Z"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z"
+        ],
+        "title": "SceneSize"
+      },
+      "Simulation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Name"
+          },
+          "config": {
+            "$ref": "#/components/schemas/Config"
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "initializing",
+              "paused",
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "pause_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "intervention",
+                  "outcome",
+                  "loaded",
+                  "error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pause Reason"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
+          "tick": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Tick"
+          },
+          "revision": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "control_version": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Control Version"
+          },
+          "sim_time_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Sim Time Seconds"
+          },
+          "speed_multiplier": {
+            "enum": [
+              0.25,
+              0.5,
+              1,
+              2,
+              5,
+              10
+            ],
+            "title": "Speed Multiplier"
+          },
+          "achieved_ticks_per_second": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Achieved Ticks Per Second"
+          },
+          "agent_count": {
+            "type": "integer",
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Agent Count"
+          },
+          "parent_simulation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Simulation Id"
+          },
+          "fork_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Snapshot Id"
+          },
+          "saved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved At"
+          },
+          "pending_outcome_event_ids": {
+            "items": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Pending Outcome Event Ids"
+          },
+          "initialization": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "initial_preview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScenarioPreview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "config",
+          "created_at",
+          "updated_at",
+          "status",
+          "pause_reason",
+          "archived",
+          "tick",
+          "revision",
+          "control_version",
+          "sim_time_seconds",
+          "speed_multiplier",
+          "achieved_ticks_per_second",
+          "agent_count",
+          "parent_simulation_id",
+          "fork_ref",
+          "latest_snapshot_id",
+          "saved_at",
+          "pending_outcome_event_ids",
+          "initialization",
+          "initial_preview"
+        ],
+        "title": "Simulation"
+      },
+      "Snapshot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "simulation_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Simulation Id"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "initial",
+              "manual",
+              "autosave",
+              "navigation",
+              "pre_event",
+              "branch"
+            ],
+            "title": "Reason"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "simulation_id",
+          "ref",
+          "created_at",
+          "reason",
+          "label"
+        ],
+        "title": "Snapshot"
+      },
+      "StateView": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "2.0.0",
+            "title": "Schema Version"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "sim_time_seconds": {
+            "type": "number",
+            "title": "Sim Time Seconds"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "service_changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Service Changes"
+          },
+          "vocal_states": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/VocalState"
+            },
+            "type": "object",
+            "title": "Vocal States"
+          },
+          "conditions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ConditionView"
+            },
+            "type": "object",
+            "title": "Conditions"
+          },
+          "terrain": {
+            "items": {
+              "$ref": "#/components/schemas/TerrainDamage"
+            },
+            "type": "array",
+            "title": "Terrain"
+          },
+          "damage": {
+            "items": {
+              "$ref": "#/components/schemas/DamageRecord"
+            },
+            "type": "array",
+            "title": "Damage"
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/Reaction"
+            },
+            "type": "array",
+            "title": "Reactions"
+          },
+          "repairs": {
+            "items": {
+              "$ref": "#/components/schemas/Repair"
+            },
+            "type": "array",
+            "title": "Repairs"
+          },
+          "rescue_needs": {
+            "items": {
+              "$ref": "#/components/schemas/RescueNeed"
+            },
+            "type": "array",
+            "title": "Rescue Needs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "rule_version",
+          "simulation_id",
+          "ref",
+          "sim_time_seconds",
+          "events",
+          "service_changes",
+          "vocal_states",
+          "conditions",
+          "terrain",
+          "damage",
+          "reactions",
+          "repairs",
+          "rescue_needs"
+        ],
+        "title": "StateView"
+      },
+      "Success_ExportView_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExportView"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Success[ExportView]"
+      },
+      "Success_PreviewResult_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PreviewResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Success[PreviewResult]"
+      },
+      "Success_Repair_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Repair"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Success[Repair]"
+      },
+      "Success_ScenarioResult_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScenarioResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Success[ScenarioResult]"
+      },
+      "Success_StateView_": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Schema Version"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StateView"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "request_id",
+          "data"
+        ],
+        "title": "Success[StateView]"
+      },
+      "TerrainDamage": {
+        "properties": {
+          "col": {
+            "type": "integer",
+            "title": "Col"
+          },
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "blocked": {
+            "type": "boolean",
+            "title": "Blocked"
+          },
+          "cause_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cause Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "col",
+          "row",
+          "stage",
+          "blocked"
+        ],
+        "title": "TerrainDamage"
+      },
+      "Traits": {
+        "properties": {
+          "curiosity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Curiosity"
+          },
+          "empathy": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Empathy"
+          },
+          "sociability": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Sociability"
+          },
+          "trust": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Trust"
+          },
+          "cooperation": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Cooperation"
+          },
+          "risk_tolerance": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Risk Tolerance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "curiosity",
+          "empathy",
+          "sociability",
+          "trust",
+          "cooperation",
+          "risk_tolerance"
+        ],
+        "title": "Traits"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Vec2": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "Vec2"
+      },
+      "VocalState": {
+        "properties": {
+          "alive": {
+            "type": "boolean",
+            "title": "Alive"
+          },
+          "conscious": {
+            "type": "boolean",
+            "title": "Conscious"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "alive",
+          "conscious"
+        ],
+        "title": "VocalState"
+      },
+      "WellbeingEffect": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "wellbeing",
+            "title": "Type"
+          },
+          "happiness_delta": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": -2.0,
+            "title": "Happiness Delta"
+          },
+          "stress_delta": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": -2.0,
+            "title": "Stress Delta"
+          },
+          "health_delta": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": -2.0,
+            "title": "Health Delta"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "happiness_delta",
+          "stress_delta",
+          "health_delta"
+        ],
+        "title": "WellbeingEffect"
+      }
+    }
+  }
+}

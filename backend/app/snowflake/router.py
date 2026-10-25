@@ -59,6 +59,18 @@ class ComparisonService:
                 local_request, item.simulation_id, format="json", through_revision=item.revision
             )
             value = exported["data"].model_dump(mode="json")
+            pinned = service.owned(owner, item.simulation_id, item.revision)
+            if pinned.conditions:
+                from app.disasters.physics import view
+
+                value["disaster_projection"] = view(pinned)
+                value["disaster_projection"]["totals"] = dict(
+                    damaged_buildings=sum(c.integrity < 100 for c in pinned.conditions.values()),
+                    structural_transitions=sum(d.units == "integrity" for d in pinned.damage_records),
+                    stock_units_lost=sum(
+                        d.before - d.after for d in pinned.damage_records if d.units == "stock"
+                    ),
+                )
             results.append(stage(value))
         return results
 

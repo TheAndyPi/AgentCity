@@ -22,6 +22,9 @@ class VoiceAssignments:
         if source_type == "decision":
             record = next((d for d in state.decisions if d.id == source_id), None)
             agent_id = record.agent_id if record else None
+        elif source_type == "reaction":
+            record = next((r for r in state.reactions if r.id == source_id), None)
+            agent_id = record.agent_id if record else None
         else:
             record = next((d for d in state.dialogue if d.id == source_id), None)
             agent_id = record.speaker_id if record else None

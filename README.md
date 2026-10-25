@@ -74,6 +74,14 @@ With server-side ElevenLabs configuration, select a citizen or watch a conversat
 then choose **Enable live voices** for automatic committed dialogue. Sound starts
 with new turns; replay is explicit. See [live voices setup and limits](docs/release/live-voices-handoff.md).
 
+Choose **Introduce an event → Disaster type** for independent earthquake magnitude,
+tornado wind/track, flood depth, fire heat, and storm controls. Committed damage
+persists; the City condition panel exposes repairs and doorway debris clearing.
+See [disaster rules and versioned API](docs/release/disaster-controls-handoff.md).
+Optional original ElevenLabs effects, instrumental music and assigned-voice cries
+use the shared sound mixer; each category is independently configured and disabled
+by default. See [disaster audio setup and verification](docs/release/disaster-audio-handoff.md).
+
 ## Verify
 
 ```sh

@@ -12,6 +12,7 @@ from app.simulation.navigation import distance
 def eligible(state, helper):
     return (
         conscious(helper)
+        and not helper.trapped_building_id
         and helper.needs.health > RULES["helper_health"]
         and 100 - helper.needs.fatigue > RULES["helper_energy"]
         and 100 - helper.needs.hunger > RULES["helper_fullness"]

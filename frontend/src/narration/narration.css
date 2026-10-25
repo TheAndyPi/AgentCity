@@ -58,3 +58,28 @@
     max-height: 24vh;
   }
 }
+
+.live-voice-controls input[type="checkbox"] {
+  width: auto;
+}
+.sound-mix summary {
+  cursor: pointer;
+  padding: 5px 8px;
+}
+.sound-mix-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+}
+.sound-mix-options small {
+  flex-basis: 100%;
+}
+
+.simulation-page.life-mode .city-bottom-left,
+.simulation-page.life-mode .camera-tools {
+  bottom: calc(44px + var(--audio-dock-height, 0px));
+}
+.simulation-page.life-focused .cast-dock {
+  bottom: calc(25px + var(--audio-dock-height, 0px));
+}

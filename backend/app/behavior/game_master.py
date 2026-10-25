@@ -30,7 +30,7 @@ def act(state, actor, action, target_id, context=None):
         evaluate(state, target, "Before v2 interaction")
     try:
         check(
-            conscious(actor) and actor.condition.care != "hospital",
+            conscious(actor) and not actor.trapped_building_id and actor.condition.care != "hospital",
             "INCAPACITATED",
             "A conscious free actor is required",
         )

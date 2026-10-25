@@ -62,6 +62,18 @@ def _byte_range(header, size):
 def create_narration_app(narration: NarrationService):
     child = FastAPI(title="AgentCity narration extension", version="1.0.0")
     child.state.narration = narration
+    from app.narration.disaster import AssetRequest, SoundLibrary
+
+    library = SoundLibrary(narration)
+    child.state.library = library
+
+    @child.get("/v2/disaster-capabilities")
+    async def sound_capabilities(request: Request):
+        return dict(schema_version="1.0.0", request_id=request.state.request_id, data=library.capabilities())
+
+    @child.post("/v2/simulations/{sid}/disaster-audio")
+    async def disaster_audio(request: Request, sid: str, body: AssetRequest):
+        return await library.request(request, sid, body)
 
     @child.post(
         "/v1/simulations/{sid}/dialogue",

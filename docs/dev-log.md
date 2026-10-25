@@ -621,3 +621,70 @@ The full original store then recovered successfully. The merged app is running o
 A read-only Chrome visit to the existing city was LIVE with no page/API errors
 or mutation requests; smoke JSON/screenshot evidence is in the ignored merge
 evidence directory. Cold-history recovery remains slow, despite the larger allowance.
+## 2026-10-25 — persistent disasters and shared soundscapes
+
+Continued `origin/codex/disaster-controls-damage` at `16bed98`; its scoped live
+voices were already present. Implemented independent typed earthquake/tornado/
+flood/fire/storm controls, clipped/revision-bound previews, origin/track editing,
+late-request generations and exact commits/repeats. The versioned disaster
+extension leaves frozen core v1 contracts unchanged and projects newer types
+compatibly. A live activation bridge preserves existing flood/fire/storm scenarios.
+
+Added one deterministic physical hook after movement, persistent integrity and
+terrain/stock damage, service derivation across concurrent closures, obstruction
+routing, trapped/egress evidence, timed supply-consuming repairs and separate
+occupied-doorway clearing. Zero-health actors cannot receive actions through a
+provider proposal or be counted as safely evacuated. Conditions, causes, service
+transitions, reactions, repairs and parameters persist through checkpoints/history
+and independent branches. Both map modes and inspectors expose real condition;
+exports and additive Tiger/Snowflake projections retain canonical records.
+
+Extended existing narration transports, cache, receipts, voice assignments and
+signed private media for distinct ElevenLabs effects/music/expressive reactions.
+The page coordinator retains one foreground voice, mixes bounded background beds,
+ducks them, follows the listener, honors mute/visibility/replay/focus and discards
+obsolete results. Citizen voice failures stay local to their assigned identity.
+Provider-disabled tests use real marked/decoded MP3 transport and browser playback.
+Added a four-sample opt-in live helper; it never bills by default.
+
+Verification on this implementation:
+
+- Broad root `npm test`: **448 backend passed / 2 opt-in SQL skips**, **174 frontend
+  tests**, all **43 frozen hashes/DTO/OpenAPI/stream checks**, Ruff and format passed.
+- Final physics/action/routing refinements: **127 backend functional cases** passed;
+  final provider/identity/audio refinements: **19 backend audio cases** passed.
+  The extra assigned-voice rejection case was added after the broad collection.
+- `npm run build`: TypeScript and production bundle passed on final frontend sources.
+- Narration/browser suite: **8 passed** (existing live/manual voice cases plus
+  disaster controls/damage, decoded environmental/music playback and preview races).
+  The **3 disaster browser cases** were rerun after final source changes and passed.
+- Existing core browsers: **26 passed**; Snowflake browsers: **3 passed**.
+  Run latency-sensitive voice tests separately from the GPU-heavy core suite.
+- Configuration-only smoke: narration configured, **24** supplied character voice
+  IDs, disaster effects/music/reactions all disabled. **No paid verification calls**.
+  Real music entitlement, expressive delivery, voice quality, loop quality and
+  loudness audition remain unverified; the helper reports `audition_required`.
+
+Testing caught and fixed aborted unlock promises incorrectly disabling sound,
+mobile audio/control overlap, disappearing condition controls between live frames,
+late preview response races, zero-health agency/evacuation counting, truncated MP3
+acceptance and a single unavailable reaction voice affecting other citizens.
+Screenshots are in `frontend/artifacts/disasters/`.
+
+Configuration, exact routes/rules, compatibility, measured bounds and remaining
+limits: [disaster controls handoff](release/disaster-controls-handoff.md),
+[disaster audio handoff](release/disaster-audio-handoff.md). The separate survival
+state machine and live SQL/provider audition are not claimed as shipped here.
+The tested source commit is recorded in the following verification note.
+
+### Disaster verification note
+
+Tested implementation commit: **`b10701f`**. Final source checks after the broad
+448-case collection passed the **127** physics/action/routing regressions and
+**19** controlled audio cases (including one unavailable voice while another
+assigned voice remains usable). Final frontend build and all **174** unit tests
+passed. The **8** combined narration/disaster browser cases passed; the **3**
+disaster cases passed again with the final cancellation/scenery and voice-error
+isolation code. All **43** frozen core checks and Ruff/format gates passed.
+The following evidence update waits for the reloaded damaged map before taking
+its screenshot; it changes test readiness and reporting only.

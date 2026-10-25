@@ -31,6 +31,17 @@ import { useEngine } from "../scenarios/Insights";
 import { PlanPreview } from "../scenarios/PlanPreview";
 import { PlanEditor, manualPlan } from "../scenarios/PlanEditor";
 import type { EngineCapabilities, Plan, PlanResult } from "../scenarios/schema";
+import DisasterControls from "../disasters/Controls";
+import {
+  kinds,
+  defaults,
+  fromPrompt,
+  previewDisaster,
+  commitDisaster,
+  loadDisasters,
+  type DisasterParameters,
+} from "../disasters/client";
+
 function describeEffect(effect: EffectSpec): string {
   switch (effect.type) {
     case "wellbeing":
@@ -158,7 +169,7 @@ export function PreviewCard({
         </span>
         <span>
           <MapPin size={15} />
-          Severity {preview.spec.severity}/100
+          Derived severity {Number(preview.spec.severity.toFixed(1))}/100
         </span>
       </div>
       <div className="supported-effects">
@@ -213,7 +224,6 @@ export default function ScenarioDialog({
     [editing, setEditing] = useState(false),
     [caps, setCaps] = useState<EngineCapabilities | null>(null),
     [catalog, setCatalog] = useState(false);
-  const useEngineFlow = source === "custom" && engine.available && !catalog;
   const [intervention, setIntervention] = useState<Intervention | null>(null),
     [preview, setPreview] = useState<ScenarioPreview | null>(null),
     [prompt, setPrompt] = useState(""),
@@ -221,6 +231,21 @@ export default function ScenarioDialog({
     [busy, setBusy] = useState(true),
     [error, setError] = useState(""),
     [examples, setExamples] = useState(0);
+  const [physical, setPhysical] = useState<DisasterParameters | null>(null);
+  const useEngineFlow =
+    source === "custom" && engine.available && !catalog && !physical;
+  const physicalPreview = useRef(false);
+  const [projectedLoss, setProjectedLoss] = useState<number | null>(null);
+  const previewGeneration = useRef(0);
+  const isPreviewing = useRef(false);
+  const previewAbort = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      previewGeneration.current++;
+      previewAbort.current?.abort();
+    },
+    [],
+  );
   const [policy, setPolicy] = useState<Policies>({
     evacuation_order: false,
     ration_units_per_agent: null,
@@ -422,24 +447,61 @@ export default function ScenarioDialog({
     if (useEngineFlow) return interpretPlan();
     setBusy(true);
     setError("");
+    isPreviewing.current = true;
+    const generation = ++previewGeneration.current;
+    previewAbort.current?.abort();
+    previewAbort.current = new AbortController();
     try {
-      const p = await client.preview(
-        simulation.id,
-        {
-          intervention_id: intervention.id,
-          source,
-          source_event_id: source === "repeat" ? eventId : null,
-          prompt: source === "custom" ? prompt : null,
-          policy: source === "policy" ? policy : null,
-        },
-        previewKey.current,
-      );
+      let params = physical;
+      if (source === "repeat") {
+        const recorded = await loadDisasters(
+          client,
+          simulation.id,
+          simulation.revision,
+          previewAbort.current.signal,
+        );
+        const original = recorded.events.find((e) => e.id === eventId);
+        params =
+          original && !original.legacy_projection ? original.parameters : null;
+      }
+      const result = params
+        ? await previewDisaster(
+            client,
+            simulation.id,
+            intervention.id,
+            params,
+            previewKey.current,
+            previewAbort.current.signal,
+            source === "custom" ? prompt : undefined,
+            generation,
+          )
+        : null;
+      const p =
+        result?.preview ??
+        (await client.preview(
+          simulation.id,
+          {
+            intervention_id: intervention.id,
+            source,
+            source_event_id: source === "repeat" ? eventId : null,
+            prompt: source === "custom" ? prompt : null,
+            policy: source === "policy" ? policy : null,
+          },
+          previewKey.current,
+        ));
+      if (generation !== previewGeneration.current) return;
+      setProjectedLoss(result?.damage_projection.max_integrity_loss ?? null);
+      physicalPreview.current = !!params;
+      if (params) setPhysical(params);
       setPreview(p);
       commitKey.current = crypto.randomUUID();
     } catch (e) {
-      setError(messageOf(e));
+      if (generation === previewGeneration.current) setError(messageOf(e));
     } finally {
-      setBusy(false);
+      if (generation === previewGeneration.current) {
+        isPreviewing.current = false;
+        setBusy(false);
+      }
     }
   };
   const commit = async () => {
@@ -447,12 +509,23 @@ export default function ScenarioDialog({
     setBusy(true);
     setError("");
     try {
-      const result = await client.commit(
-        simulation.id,
-        intervention,
-        preview,
-        commitKey.current,
-      );
+      const result = physicalPreview.current
+        ? ((await commitDisaster(
+            client,
+            simulation.id,
+            {
+              intervention_id: intervention.id,
+              preview_id: preview.id,
+              expected_control_version: intervention.control_version,
+            },
+            commitKey.current,
+          )) as { simulation: Simulation })
+        : await client.commit(
+            simulation.id,
+            intervention,
+            preview,
+            commitKey.current,
+          );
       await onUpdated();
       notice(
         result.simulation.status === "paused"
@@ -484,10 +557,17 @@ export default function ScenarioDialog({
     }
   };
   const edit = () => {
+    if (isPreviewing.current) {
+      isPreviewing.current = false;
+      setBusy(false);
+    }
+    previewGeneration.current++;
+    previewAbort.current?.abort();
     setPreview(null);
     setPlanResult(null);
     setPlan(null);
     setEditing(false);
+    commitKey.current = crypto.randomUUID();
     previewKey.current = crypto.randomUUID();
   };
   const useCatalog = async () => {
@@ -582,11 +662,61 @@ export default function ScenarioDialog({
                     placeholder="What if…"
                     onChange={(e) => {
                       setPrompt(e.target.value);
+                      setPhysical(
+                        fromPrompt(
+                          e.target.value,
+                          map.width_m,
+                          map.height_m,
+                          simulation.config.seed,
+                        ),
+                      );
                       edit();
                     }}
                     disabled={busy}
                   />
                 </Field>
+                <Field label="Disaster type">
+                  <select
+                    aria-label="Disaster type"
+                    disabled={busy && !isPreviewing.current}
+                    value={physical?.kind ?? ""}
+                    onChange={(e) => {
+                      setPhysical(
+                        e.target.value
+                          ? defaults(
+                              e.target.value as DisasterParameters["kind"],
+                              map.width_m,
+                              map.height_m,
+                              simulation.config.seed,
+                            )
+                          : null,
+                      );
+                      edit();
+                    }}
+                  >
+                    <option value="">Narrative / nonphysical scenario</option>
+                    {kinds.map((k) => (
+                      <option key={k} value={k}>
+                        {pretty(k)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {physical && (
+                  <DisasterControls
+                    value={physical}
+                    disabled={busy && !isPreviewing.current}
+                    width={map.width_m}
+                    height={map.height_m}
+                    cell={map.cell_size_m ?? 2}
+                    tickSeconds={simulation.config.tick_seconds}
+                    footprint={preview?.spec.affected_polygon}
+                    onChange={(value) => {
+                      setPhysical(value);
+                      edit();
+                    }}
+                  />
+                )}
                 <div className="example-heading">
                   <span>NEED A SPARK?</span>
                   <button
@@ -604,6 +734,14 @@ export default function ScenarioDialog({
                       key={s}
                       onClick={() => {
                         setPrompt(s);
+                        setPhysical(
+                          fromPrompt(
+                            s,
+                            map.width_m,
+                            map.height_m,
+                            simulation.config.seed,
+                          ),
+                        );
                         edit();
                       }}
                     >
@@ -691,6 +829,13 @@ export default function ScenarioDialog({
               <p className="warning">
                 Interpreted with the built-in keyword catalog because the AI
                 scenario engine was unavailable. Only the listed effects apply.
+              </p>
+            )}
+            {preview && projectedLoss !== null && (
+              <p className="helper-text">
+                Projected structural loss: 0–{projectedLoss.toFixed(1)}{" "}
+                integrity per fully exposed structure. Local exposure, duration
+                and early cancellation determine actual committed loss.
               </p>
             )}
             {preview && <PreviewCard preview={preview} map={map} />}{" "}
@@ -798,7 +943,7 @@ export default function ScenarioDialog({
                     type="submit"
                     disabled={
                       busy ||
-                      (source === "custom" && !prompt.trim()) ||
+                      (source === "custom" && !prompt.trim() && !physical) ||
                       (source === "repeat" && !eventId)
                     }
                   >
