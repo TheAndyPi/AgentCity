@@ -182,7 +182,7 @@ export default function Buildings({
   cutaway?: string[];
   theme?: WorldTheme;
   reducedMotion?: boolean;
-  /** A building was clicked, which also counts as clicking away from a citizen. */
+  /** A building was clicked; its tag can open without changing camera focus. */
   onClick?: () => void;
 }) {
   const signature = buildingSignature(buildings);

@@ -8,12 +8,20 @@ export function fitCityDepth(
 ) {
   const direction = target.clone().sub(camera.position).normalize();
   const centerDepth = bounds.center.clone().sub(camera.position).dot(direction);
-  const retreat = Math.max(0, camera.near + 1 + bounds.radius - centerDepth);
+  const padding = Math.max(2, bounds.radius * 0.05);
+  const retreat = Math.max(
+    0,
+    camera.near + padding + bounds.radius - centerDepth,
+  );
   if (retreat > 0) {
     camera.position.addScaledVector(direction, -retreat);
     camera.updateMatrixWorld();
   }
-  const far = Math.max(1000, centerDepth + retreat + bounds.radius + 1);
+  // A tight depth range keeps thin road/floor layers distinct at close zoom.
+  const far = Math.max(
+    camera.near + padding,
+    centerDepth + retreat + bounds.radius + padding,
+  );
   if (far !== camera.far) {
     camera.far = far;
     camera.updateProjectionMatrix();

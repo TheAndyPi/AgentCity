@@ -51,6 +51,7 @@ export default function LifeHUD({
   focused,
   onFocus,
   onClose,
+  onOverview,
   onProfile,
   onCommand,
   locked,
@@ -60,6 +61,7 @@ export default function LifeHUD({
   focused: string[];
   onFocus: (ids: string[], interactionId?: string) => void;
   onClose: () => void;
+  onOverview: () => void;
   onProfile: (id: string) => void;
   onCommand: (body: CommandBody) => Promise<void>;
   locked: boolean;
@@ -265,7 +267,7 @@ export default function LifeHUD({
           <div className={`life-focus-panel ${second ? "pair" : ""}`}>
             <div className="focus-heading">
               <div className="focus-breadcrumb">
-                <button onClick={onClose}>
+                <button onClick={onOverview}>
                   <ArrowLeft size={14} /> Back to neighborhood
                 </button>
                 <span className="focus-live">

@@ -91,6 +91,11 @@ export default function Simulation() {
   const [watchedInteraction, setWatchedInteraction] = useState<string | null>(
     null,
   );
+  const closeFocus = useCallback(() => {
+    setFocused([]);
+    setFollow(null);
+    setWatchedInteraction(null);
+  }, []);
   const [revision, setRevision] = useState<number | null>(null),
     [historical, setHistorical] = useState<WorldFrame | null>(null),
     [timeline, setTimeline] = useState<
@@ -276,11 +281,17 @@ export default function Simulation() {
       setStack((s) => (s.length > 1 ? s.slice(0, -1) : []));
       restoreFocus.current?.focus();
     } else if (focused.length) {
-      setFocused([]);
-      setFollow(null);
-      camera.current("reset");
+      closeFocus();
     }
-  }, [source, help, live.frame, menu, stack.length, focused.length]);
+  }, [
+    source,
+    help,
+    live.frame,
+    menu,
+    stack.length,
+    focused.length,
+    closeFocus,
+  ]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
@@ -306,6 +317,10 @@ export default function Simulation() {
   const onCameraReady = useCallback((action: (a: CameraAction) => void) => {
     camera.current = action;
   }, []);
+  const resetCamera = useCallback(() => {
+    closeFocus();
+    camera.current("reset");
+  }, [closeFocus]);
   const unfollow = useCallback(() => setFollow(null), []);
   const onFallback = useCallback(() => {
     setFallback(true);
@@ -497,6 +512,11 @@ export default function Simulation() {
           selected={selected}
           focus={focused}
           onSelect={(agentId) => {
+            if (
+              dragged.current ||
+              (focused.length === 1 && focused[0] === agentId)
+            )
+              return;
             setWatchedInteraction(null);
             setMenu(false);
             setStack([]);
@@ -507,11 +527,6 @@ export default function Simulation() {
             if (dragged.current) return;
             setMenu(false);
             setStack([]);
-            if (focused.length) {
-              setFocused([]);
-              setFollow(null);
-              camera.current("reset");
-            }
           }}
           overlay={overlay}
           hazards={hazards}
@@ -994,11 +1009,7 @@ export default function Simulation() {
         <button
           className="icon-button"
           aria-label="Reset camera"
-          onClick={() => {
-            setFollow(null);
-            setFocused([]);
-            camera.current("reset");
-          }}
+          onClick={resetCamera}
         >
           <Maximize2 size={17} />
         </button>
@@ -1014,11 +1025,8 @@ export default function Simulation() {
             setStack([]);
             setMenu(false);
           }}
-          onClose={() => {
-            setFocused([]);
-            setFollow(null);
-            camera.current("reset");
-          }}
+          onClose={closeFocus}
+          onOverview={resetCamera}
           onProfile={(agentId) => open({ type: "agent", id: agentId })}
           onCommand={execute}
           locked={locked}

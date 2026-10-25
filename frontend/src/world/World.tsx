@@ -169,7 +169,7 @@ function Camera({
   onUnfollow: () => void;
 }) {
   const controls = useRef<OrbitControlsType>(null);
-  const { size, scene } = useThree();
+  const { size, scene, gl, events } = useThree();
   const cityHeight = Math.max(
     20,
     ...frame.map.buildings.map((b) => b.height_m + 6),
@@ -186,16 +186,36 @@ function Camera({
       ),
     [frame.map.width_m, frame.map.height_m, cityHeight],
   );
+  const clipping = useMemo(
+    () => ({
+      bounds: new THREE.Sphere(),
+      propBounds: new THREE.Box3(),
+      propSphere: new THREE.Sphere(),
+    }),
+    [],
+  );
   const frameRef = useRef(frame);
   frameRef.current = frame;
+  const followedAgent = useRef(follow);
+  followedAgent.current = follow;
   const transition = useRef<{
     center: THREE.Vector3;
     offset: THREE.Vector3;
     zoom: number;
   } | null>(null);
+  const framedSimulation = useRef<string | null>(null);
+  const focusKey = JSON.stringify(focus);
   useEffect(() => {
     const c = controls.current;
     if (!c) return;
+    const initialView = framedSimulation.current !== frame.simulation.id;
+    framedSimulation.current = frame.simulation.id;
+    // Dismissing details leaves the eye, target and zoom where the user put them.
+    // Only entering a subject or opening a city automatically frames the view.
+    if (!focus.length && !initialView) {
+      transition.current = null;
+      return;
+    }
     const current = frameRef.current;
     const agents = focus.length
       ? current.agents.filter((a) => focus.includes(a.id))
@@ -231,17 +251,49 @@ function Camera({
         : new THREE.Vector3(90, 95, 100),
       zoom,
     };
-  }, [focus, frame.simulation.id, size.width, size.height]);
+  }, [focusKey, frame.simulation.id, size.width, size.height]);
+  useEffect(() => {
+    const input = events.connected || gl.domElement;
+    const pointers = new Map<number, { x: number; y: number }>();
+    const interrupt = () => {
+      transition.current = null;
+      followedAgent.current = null;
+      onUnfollow();
+    };
+    const down = (e: PointerEvent) => {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    };
+    const move = (e: PointerEvent) => {
+      const start = pointers.get(e.pointerId);
+      if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5)
+        interrupt();
+    };
+    const up = (e: PointerEvent) => pointers.delete(e.pointerId);
+    // OrbitControls emits "start" on a simple press as well as an actual drag.
+    // Listen before it handles movement so clicks cannot cancel a close-up glide.
+    input.addEventListener("pointerdown", down, true);
+    input.addEventListener("pointermove", move, true);
+    input.addEventListener("pointerup", up, true);
+    input.addEventListener("pointercancel", up, true);
+    input.addEventListener("wheel", interrupt, true);
+    return () => {
+      input.removeEventListener("pointerdown", down, true);
+      input.removeEventListener("pointermove", move, true);
+      input.removeEventListener("pointerup", up, true);
+      input.removeEventListener("pointercancel", up, true);
+      input.removeEventListener("wheel", interrupt, true);
+    };
+  }, [events.connected, gl, onUnfollow]);
   useEffect(() => {
     onCameraReady((action) => {
       const c = controls.current;
       if (!c) return;
       transition.current = null;
+      // Stop synchronously: one old follow frame must not move a reset camera
+      // before React commits the corresponding selection/follow state change.
+      followedAgent.current = null;
+      onUnfollow();
       const cam = c.object as THREE.OrthographicCamera;
-      if (
-        ["zoom_in", "zoom_out", "rotate_left", "rotate_right"].includes(action)
-      )
-        onUnfollow();
       if (action === "zoom_in") cam.zoom = Math.min(maxZoom, cam.zoom * 1.2);
       else if (action === "zoom_out") cam.zoom = Math.max(2, cam.zoom / 1.2);
       else if (action === "rotate_left" || action === "rotate_right") {
@@ -277,7 +329,6 @@ function Camera({
         );
         c.target.add(delta);
         cam.position.add(delta);
-        onUnfollow();
       }
       cam.updateProjectionMatrix();
       c.update();
@@ -309,9 +360,10 @@ function Camera({
         transition.current = null;
       return;
     }
-    if (!follow) return;
+    const following = followedAgent.current;
+    if (!following) return;
     const agents = frame.agents.filter((a) =>
-      focus.length > 1 ? focus.includes(a.id) : a.id === follow,
+      focus.length > 1 ? focus.includes(a.id) : a.id === following,
     );
     if (!agents.length) {
       onUnfollow();
@@ -360,12 +412,23 @@ function Camera({
     const c = controls.current;
     if (!c) return;
     const camera = c.object as THREE.OrthographicCamera;
-    fitCityDepth(camera, c.target, cityBounds);
+    clipping.bounds.copy(cityBounds);
+    // Event props can extend above or outside the base map. Fit their rendered
+    // geometry too, including floating/generated props, without changing zoom.
+    for (const group of scene.getObjectsByProperty("name", "scenario-scene")) {
+      group.updateWorldMatrix(true, true);
+      clipping.propBounds.setFromObject(group);
+      if (!clipping.propBounds.isEmpty())
+        clipping.bounds.union(
+          clipping.propBounds.getBoundingSphere(clipping.propSphere),
+        );
+    }
+    fitCityDepth(camera, c.target, clipping.bounds);
     // Fog follows scene depth, so moving the orthographic eye cannot hide the city.
     if (scene.fog instanceof THREE.Fog) {
       const distance = camera.position.distanceTo(c.target);
       scene.fog.near = distance + 100;
-      scene.fog.far = distance + 440;
+      scene.fog.far = Math.max(distance + 440, camera.far);
     }
   });
   return (
@@ -383,10 +446,6 @@ function Camera({
       onChange={() => {
         const target = controls.current?.target;
         if (target) onListenerMoved?.({ x: target.x, y: target.z });
-      }}
-      onStart={() => {
-        transition.current = null;
-        onUnfollow();
       }}
     />
   );
@@ -822,13 +881,19 @@ function World2D(props: Props) {
     simulation: string;
   }>({ ids: undefined, simulation: "" });
   useEffect(() => {
-    const changed =
-      lastViewFocus.current.ids !== props.focus ||
+    const initialView =
       lastViewFocus.current.simulation !== frame.simulation.id;
+    const changed =
+      JSON.stringify(lastViewFocus.current.ids) !==
+        JSON.stringify(props.focus) || initialView;
     lastViewFocus.current = {
       ids: props.focus,
       simulation: frame.simulation.id,
     };
+    if (!props.focus?.length && !props.follow && !initialView) {
+      stopGlide();
+      return;
+    }
     if (!props.follow && !changed) return;
     if (!props.focus?.length && !props.follow && frame.agents.length > 10)
       return;
@@ -886,7 +951,6 @@ function World2D(props: Props) {
       aria-label="Interactive top-down city map. Hover or focus a building for its purpose. Select a citizen or use Search agent."
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
       onPointerDown={(e) => {
-        stopGlide();
         drag.current = {
           x: e.clientX,
           y: e.clientY,
@@ -899,6 +963,7 @@ function World2D(props: Props) {
         const d = drag.current;
         if (!d || e.buttons !== 1) return;
         if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 5) {
+          stopGlide();
           d.moved = true;
           onUnfollow();
           const ratio = view.w / e.currentTarget.getBoundingClientRect().width;

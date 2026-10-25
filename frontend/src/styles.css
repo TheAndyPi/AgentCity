@@ -1069,8 +1069,10 @@ dd {
   left: 27px;
   z-index: 12;
   width: 218px;
+  pointer-events: none;
 }
 .city-brand {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1492,6 +1494,7 @@ dd {
   color: var(--muted);
 }
 .logo-menu {
+  pointer-events: auto;
   padding: 8px;
   border-radius: 10px;
   margin-top: 5px;
