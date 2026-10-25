@@ -109,6 +109,15 @@ export async function waitFor(url, child, seconds = 30) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
+export function backendStartupTimeout(env) {
+  const seconds = Number(env.BACKEND_STARTUP_TIMEOUT_SECONDS ?? 600);
+  if (!Number.isInteger(seconds) || seconds < 30 || seconds > 1800)
+    throw new Error(
+      "BACKEND_STARTUP_TIMEOUT_SECONDS must be an integer between 30 and 1800.",
+    );
+  return seconds;
+}
+
 export function checkedPort(value, fallback) {
   const port = Number(value || fallback);
   if (!Number.isInteger(port) || port < 1 || port > 65535)

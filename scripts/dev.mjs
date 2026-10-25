@@ -2,6 +2,7 @@ import { join } from "node:path";
 import {
   backend,
   backendEnv,
+  backendStartupTimeout,
   checkedPort,
   freePort,
   frontend,
@@ -32,6 +33,7 @@ try {
   const uiPort = checkedPort(process.env.FRONTEND_PORT, 5173);
   await freePort(uiPort);
   if (!mock) {
+    const startupTimeout = backendStartupTimeout(env);
     await freePort(apiPort);
     const origins =
       env.ALLOWED_ORIGINS ||
@@ -59,7 +61,14 @@ try {
     api.once("exit", () => {
       if (!stopping) void stop(1);
     });
-    await waitFor(`http://127.0.0.1:${apiPort}/health/ready`, api, 300);
+    console.log(
+      `Waiting for backend readiness; saved-history verification allows up to ${startupTimeout}s.`,
+    );
+    await waitFor(
+      `http://127.0.0.1:${apiPort}/health/ready`,
+      api,
+      startupTimeout,
+    );
   }
   const ui = spawnProcess(
     process.execPath,
