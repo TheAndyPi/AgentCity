@@ -650,12 +650,22 @@ def test_unauthenticated_media_and_post_use_parent_security(tmp_path):
 
 def test_media_mount_precedes_generic_integrations_mount_and_spa():
     parent = FastAPI()
-    generic = FastAPI()
-    parent.mount("/api/v1/integrations", generic)
+    parent.mount("/api/v1/integrations", FastAPI())
     parent.mount("/", FastAPI())
     install_narration(parent, config(enabled=False))
     paths = [getattr(route, "path", "") for route in parent.router.routes]
     assert paths.index(MOUNT_PATH) < paths.index("/api/v1/integrations") < paths.index("")
+
+
+def test_media_mount_precedes_a_generic_mount_installed_later():
+    parent = FastAPI()
+    install_narration(parent, config(enabled=False))
+    # Same placement as the Snowflake extension's installer: inserted first.
+    parent.mount("/api/v1/integrations", FastAPI())
+    parent.router.routes.insert(0, parent.router.routes.pop())
+    with TestClient(parent):
+        paths = [getattr(route, "path", "") for route in parent.router.routes]
+        assert paths.index(MOUNT_PATH) < paths.index("/api/v1/integrations")
 
 
 def test_extension_openapi_matches_documented_snapshot():

@@ -132,26 +132,35 @@ def create_narration_app(narration: NarrationService):
     return child
 
 
+def _precede_enclosing_mounts(parent, mount):
+    routes = parent.router.routes
+    routes.remove(mount)
+    enclosing = next(
+        (
+            index
+            for index, route in enumerate(routes)
+            if isinstance(route, Mount) and MOUNT_PATH.startswith(route.path + "/")
+        ),
+        0,
+    )
+    routes.insert(enclosing, mount)
+
+
 def install_narration(parent, config=None, transport=None):
     """Mount media delivery before the SPA catch-all and any generic integrations mount."""
     config = config or NarrationConfig.from_env()
     narration = NarrationService(parent, config, transport)
     parent.state.narration = narration
     parent.mount(MOUNT_PATH, create_narration_app(narration))
-    mount = parent.router.routes.pop()
-    generic = next(
-        (
-            index
-            for index, route in enumerate(parent.router.routes)
-            if isinstance(route, Mount) and MOUNT_PATH.startswith(route.path + "/")
-        ),
-        0,
-    )
-    parent.router.routes.insert(generic, mount)
+    mount = parent.router.routes[-1]
+    _precede_enclosing_mounts(parent, mount)
     original = parent.router.lifespan_context
 
     @asynccontextmanager
     async def lifespan(app):
+        # Mounts installed after this one (for example a generic integrations child)
+        # must not shadow the more specific media path.
+        _precede_enclosing_mounts(parent, mount)
         async with original(app) as state:
             narration.start()
             try:

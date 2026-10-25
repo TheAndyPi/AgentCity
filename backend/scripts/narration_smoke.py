@@ -29,7 +29,7 @@ REQUIRED = ("ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL_ID")
 
 
 def write(client, path, body, method="POST"):
-    key = str(uuid4())
+    key = body.get("request_id", str(uuid4()))
     return client.request(method, "/api/v1" + path, json=body, headers={"Idempotency-Key": key})
 
 
@@ -75,7 +75,7 @@ def main():
                     sys.exit("City initialization timed out")
                 time.sleep(0.05)
             simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
-            write(
+            stepped = write(
                 client,
                 f"/simulations/{sid}/commands",
                 dict(
@@ -84,8 +84,12 @@ def main():
                     command=dict(type="step", count=1),
                 ),
             )
+            if stepped.status_code != 200:
+                sys.exit("Smoke city could not step")
             state = app.state.service.heads[sid]
             decision = min(state.decisions, key=lambda d: len(d.concise_rationale + d.outcome_description))
+            selected_voice = app.state.narration.voices.resolve(state, "decision", decision.id, config)
+            evidence["voice_id_suffix"] = selected_voice[-4:]
             started = time.monotonic()
             response = write(
                 client, f"/simulations/{sid}/narration", dict(source_type="decision", source_id=decision.id)
