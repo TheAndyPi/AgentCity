@@ -57,7 +57,7 @@ export default function LifeHUD({
 }: {
   frame: WorldFrame;
   focused: string[];
-  onFocus: (ids: string[]) => void;
+  onFocus: (ids: string[], interactionId?: string) => void;
   onClose: () => void;
   onProfile: (id: string) => void;
   onCommand: (body: CommandBody) => Promise<void>;
@@ -393,7 +393,12 @@ export default function LifeHUD({
             {conversation && !second && (
               <button
                 className="watch-chat"
-                onClick={() => onFocus(conversation.participants.slice(0, 2))}
+                onClick={() =>
+                  onFocus(
+                    conversation.participants.slice(0, 2),
+                    conversation.id,
+                  )
+                }
               >
                 <MessageCircle size={15} />
                 Watch{" "}

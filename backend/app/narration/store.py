@@ -36,6 +36,7 @@ class Store:
         self.audio = directory / "audio"
         self.audio.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
+        self.writing = set()
         self.db = sqlite3.connect(directory / "narration.sqlite3", check_same_thread=False)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
@@ -130,9 +131,9 @@ class Store:
             damaged = [entry.audio_id for entry in map(self._entry, rows) if not self._intact(entry)]
             self._remove(damaged)
             known = {r[0] for r in self.db.execute("SELECT audio_id FROM audio")}
-        for path in self.audio.iterdir():
-            if path.suffix != ".mp3" or path.stem not in known:
-                path.unlink(missing_ok=True)
+            for path in self.audio.iterdir():
+                if path not in self.writing and (path.suffix != ".mp3" or path.stem not in known):
+                    path.unlink(missing_ok=True)
 
     def make_room(self, now, size, reserved_bytes, reserved_entries):
         """Evict least-recently-used entries without live URLs. False if still full."""
@@ -164,36 +165,40 @@ class Store:
         audio_id = secrets.token_hex(16)
         path = self.path(audio_id)
         temp = path.with_suffix(".tmp")
-        with temp.open("wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temp, path)
         with self.lock:
-            # A concurrent identical insert cannot happen (single flight), but a stale
-            # expired row for the same content may still exist until swept.
-            stale = [
-                r[0]
-                for r in self.db.execute(
-                    "SELECT audio_id FROM audio WHERE owner=? AND content_key=?", (owner, content_key)
+            self.writing.update((temp, path))
+        try:
+            with temp.open("wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp, path)
+            with self.lock:
+                stale = [
+                    r[0]
+                    for r in self.db.execute(
+                        "SELECT audio_id FROM audio WHERE owner=? AND content_key=?", (owner, content_key)
+                    )
+                ]
+                self._remove(stale)
+                self.db.execute(
+                    "INSERT INTO audio VALUES (?,?,?,?,?,?,?,?,?)",
+                    (
+                        audio_id,
+                        owner,
+                        content_key,
+                        simulation_id,
+                        len(data),
+                        now,
+                        now + self.config.cache_ttl,
+                        0,
+                        now,
+                    ),
                 )
-            ]
-            self._remove(stale)
-            self.db.execute(
-                "INSERT INTO audio VALUES (?,?,?,?,?,?,?,?,?)",
-                (
-                    audio_id,
-                    owner,
-                    content_key,
-                    simulation_id,
-                    len(data),
-                    now,
-                    now + self.config.cache_ttl,
-                    0,
-                    now,
-                ),
-            )
-            self.db.commit()
+                self.db.commit()
+        finally:
+            with self.lock:
+                self.writing.difference_update((temp, path))
         return self.get(audio_id, now)
 
     def issue(self, entry, until):

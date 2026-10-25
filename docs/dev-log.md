@@ -358,3 +358,38 @@ real interactions/rest/nutrition, time scaling, feedback/deduplication, restart 
 long-run recovery. Existing Mental <=10 OR Stress >=80 crisis thresholds and
 Health/Fullness death precedence remain unchanged. This is a task-specification
 update, not implementation or validation of the new engine model.
+
+## 2026-10-25 - Live conversation voices
+
+Implemented `docs/prompts/live-conversation-voices.md` on
+`codex/live-conversation-voices`, based on fetched dev `720ecab`. One page-level
+coordinator follows the selected citizen's direct replies or an explicitly watched
+interaction, consumes committed WorldStore dialogue and plays one line at a time.
+New controls provide gesture-based enable/resume, mute/volume, audio pause,
+explicit replay, Retry/Skip and bounded catch-up. Focus, branch, history, page exit
+and session revocation invalidate pending audio immediately. The existing design
+and manual event/decision narration remain in use.
+
+The strict versioned narration extension pins sources to owned revisions and
+speaks dialogue without name prefixes. Voice assignments remain persisted and
+inherited, reserve historical identities, and keep assigned speakers usable when
+the pool runs short. Server-side bounded voice access checks, exact operation-key
+retries and existing authorized signed media/cache paths remain enforced. Tests
+exposed and fixed a concurrent cache sweep deleting an in-progress recording;
+active files are protected through metadata commit. Cache reservations are also
+serialized across concurrent syntheses.
+
+Final verification: **165 frontend tests**, **54 narration/voice/cross-adapter
+backend tests**, **5 narration browser tests**, **26 core browser tests**, **3
+Snowflake browser tests**, production build, all **43 frozen core hashes/DTO/
+OpenAPI/stream checks**, Ruff and formatting passed. A broad implementation-stage
+run additionally passed **403 backend tests / 2 opt-in SQL skips**; final cache
+and browser-permission refinements were covered by the final focused gates.
+Controlled cached transitions were **75.1 / 35.7 / 46.8 ms**, with one active player.
+
+Current machine has **zero configured ElevenLabs character voices**, so real
+synthesis and cold latency remain unverified. The opt-in live helper reports this
+honestly and never calls a paid vendor without `--live`. No mortality/crisis
+mechanics, frozen contract changes, secret changes or public deployment were made.
+Configuration, limits, acceptance evidence and commands:
+[live voices handoff](release/live-voices-handoff.md).

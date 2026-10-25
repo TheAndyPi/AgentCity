@@ -2,13 +2,14 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./narration-e2e",
-  testMatch: "narration.spec.ts",
+  testMatch: ["narration.spec.ts", "live-voices.spec.ts"],
   workers: 1,
   timeout: 120_000,
   expect: { timeout: 15_000 },
   reporter: [["line"]],
   outputDir: "test-results/narration",
   use: {
+    actionTimeout: 15_000,
     baseURL: "http://127.0.0.1:15175",
     viewport: { width: 1440, height: 900 },
     channel:

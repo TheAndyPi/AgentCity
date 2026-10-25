@@ -57,6 +57,8 @@ import ScenarioDialog, {
 } from "../components/ScenarioDialog";
 import LifeHUD from "../components/LifeHUD";
 import OutcomeDialog from "../components/OutcomeDialog";
+import LiveVoiceProvider from "../narration/LiveVoiceProvider";
+import { resolveSubject } from "../narration/live";
 export default function Simulation() {
   const { id } = useParams();
   const { client, settings, capabilities, notice } = useApp();
@@ -76,6 +78,9 @@ export default function Simulation() {
     [busy, setBusy] = useState(false),
     [saveState, setSaveState] = useState("");
   const [focused, setFocused] = useState<string[]>([]);
+  const [watchedInteraction, setWatchedInteraction] = useState<string | null>(
+    null,
+  );
   const [revision, setRevision] = useState<number | null>(null),
     [historical, setHistorical] = useState<WorldFrame | null>(null),
     [timeline, setTimeline] = useState<
@@ -98,6 +103,7 @@ export default function Simulation() {
     setHistorical(null);
     setFollow(null);
     setFocused([]);
+    setWatchedInteraction(null);
     setSource(null);
     setReplaying(false);
     seenEvents.current.clear();
@@ -273,12 +279,16 @@ export default function Simulation() {
     return () => window.removeEventListener("keydown", key);
   }, [dismiss]);
   const push = (n: DrawerNode) => {
+    if (n.type === "agent" && !focused.includes(n.id))
+      setWatchedInteraction(null);
     if (!stack.length)
       restoreFocus.current = document.activeElement as HTMLElement;
     setStack((s) => [...s, n]);
     setMenu(false);
   };
   const open = (n: DrawerNode) => {
+    if (n.type === "agent" && !focused.includes(n.id))
+      setWatchedInteraction(null);
     restoreFocus.current = document.activeElement as HTMLElement;
     setStack([n]);
     setMenu(false);
@@ -434,7 +444,7 @@ export default function Simulation() {
       }
     } else camera.current(action);
   };
-  return (
+  const scene = (
     <div
       className={`simulation-page life-mode ${focused.length ? "life-focused" : ""} ${stack.length ? "drawer-open" : ""}`}
     >
@@ -464,6 +474,7 @@ export default function Simulation() {
           selected={selected}
           focus={focused}
           onSelect={(agentId) => {
+            setWatchedInteraction(null);
             setMenu(false);
             setStack([]);
             setFocused([agentId]);
@@ -973,7 +984,8 @@ export default function Simulation() {
         <LifeHUD
           frame={frame}
           focused={focused}
-          onFocus={(ids) => {
+          onFocus={(ids, interactionId) => {
+            setWatchedInteraction(interactionId ?? null);
             setFocused(ids);
             setFollow(ids[0] ?? null);
             setStack([]);
@@ -1039,7 +1051,8 @@ export default function Simulation() {
       )}
       {stack.length > 0 && (
         <Drawer
-          onWatch={(ids) => {
+          onWatch={(ids, interactionId) => {
+            setWatchedInteraction(interactionId ?? null);
             setFocused(ids);
             setFollow(ids[0] ?? null);
             setStack([]);
@@ -1092,10 +1105,7 @@ export default function Simulation() {
         />
       )}
       {help && (
-        <Modal
-          title="Keyboard shortcuts"
-          onClose={() => setHelp(false)}
-        >
+        <Modal title="Keyboard shortcuts" onClose={() => setHelp(false)}>
           <p className="muted">
             Shortcuts apply when the map has keyboard focus. Click an empty part
             of the map first.
@@ -1117,5 +1127,27 @@ export default function Simulation() {
         </Modal>
       )}
     </div>
+  );
+  return (
+    <LiveVoiceProvider
+      store={store}
+      frame={frame}
+      scope={{
+        simulation: s.id,
+        revision,
+        subject: resolveSubject(
+          focused.length ? watchedInteraction : null,
+          [...stack]
+            .reverse()
+            .find(
+              (n): n is Extract<DrawerNode, { type: "agent" }> =>
+                n.type === "agent",
+            )?.id ?? null,
+          focused,
+        ),
+      }}
+    >
+      {scene}
+    </LiveVoiceProvider>
   );
 }

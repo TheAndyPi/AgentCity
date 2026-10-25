@@ -52,6 +52,8 @@ def config(**overrides):
 class ElevenLabsFake:
     def __init__(self):
         self.requests = []
+        self.voice_checks = []
+        self.denied_voices = set()
         self.script = deque()
         self.gate = threading.Event()
         self.gate.set()
@@ -65,6 +67,10 @@ class ElevenLabsFake:
         self.script.extend(actions)
 
     async def handle(self, request):
+        if request.method == "GET" and request.url.path.startswith("/v1/voices/"):
+            voice = request.url.path.rsplit("/", 1)[-1]
+            self.voice_checks.append(voice)
+            return httpx.Response(404 if voice in self.denied_voices else 200, json={"voice_id": voice})
         record = dict(
             method=request.method,
             host=request.url.host,
