@@ -1,3 +1,4 @@
+import { conversationCameraZoom } from "./conversationCamera";
 import {
   Component,
   Suspense,
@@ -9,7 +10,8 @@ import {
   useId,
   type ReactNode,
 } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, events, useFrame, useThree } from "@react-three/fiber";
+import { prioritizeCharacterHighlights } from "./characterPicking";
 import {
   OrbitControls,
   OrthographicCamera,
@@ -40,6 +42,7 @@ export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
   | "zoom_out"
+  | "overview"
   | "rotate_left"
   | "rotate_right"
   | "pan_up"
@@ -204,6 +207,7 @@ function Camera({
     center: THREE.Vector3;
     offset: THREE.Vector3;
     zoom: number;
+    zoomOnly?: boolean;
   } | null>(null);
   const framedSimulation = useRef<string | null>(null);
   const focusKey = JSON.stringify(focus);
@@ -212,10 +216,10 @@ function Camera({
     if (!c) return;
     const initialView = framedSimulation.current !== frame.simulation.id;
     framedSimulation.current = frame.simulation.id;
-    // Dismissing details leaves the eye, target and zoom where the user put them.
-    // Only entering a subject or opening a city automatically frames the view.
+    // Dismissal can zoom out without changing the current eye or target.
+    // Only entering a subject or opening a city automatically reframes the view.
     if (!focus.length && !initialView) {
-      transition.current = null;
+      if (!transition.current?.zoomOnly) transition.current = null;
       return;
     }
     const current = frameRef.current;
@@ -238,13 +242,7 @@ function Camera({
       Math.max(...zs) - Math.min(...zs),
     );
     const zoom = focus.length
-      ? Math.min(
-          72,
-          Math.max(
-            12,
-            Math.min(size.width * 0.65, size.height * 0.64) / (span + 9),
-          ),
-        )
+      ? conversationCameraZoom(size.width, size.height, agents.map((a) => a.position))
       : Math.min(size.width, size.height) / Math.max(45, span + 26);
     transition.current = {
       center,
@@ -296,6 +294,20 @@ function Camera({
       followedAgent.current = null;
       onUnfollow();
       const cam = c.object as THREE.OrthographicCamera;
+      if (action === "overview") {
+        transition.current = {
+          zoomOnly: true,
+          center: c.target.clone(),
+          offset: cam.position.clone().sub(c.target),
+          zoom: Math.min(
+            cam.zoom,
+            frameRef.current.agents.length <= 10
+              ? Math.min(size.width, size.height) / 55
+              : 4.4,
+          ),
+        };
+        return;
+      }
       if (action === "zoom_in") cam.zoom = Math.min(maxZoom, cam.zoom * 1.2);
       else if (action === "zoom_out") cam.zoom = Math.max(2, cam.zoom / 1.2);
       else if (action === "rotate_left" || action === "rotate_right") {
@@ -386,19 +398,8 @@ function Camera({
         c.target.clone().add(closeupOffset(agents)),
         reducedMotion ? 1 : Math.min(1, dt * 3),
       );
-      const span =
-        Math.max(...agents.map((a) => a.position.x)) -
-        Math.min(...agents.map((a) => a.position.x));
-      const depth =
-        Math.max(...agents.map((a) => a.position.y)) -
-        Math.min(...agents.map((a) => a.position.y));
-      const zoom = Math.min(
-        72,
-        Math.max(
-          12,
-          Math.min(size.width * 0.65, size.height * 0.64) /
-            (Math.max(span, depth) + 9),
-        ),
+      const zoom = conversationCameraZoom(
+        size.width, size.height, agents.map((a) => a.position),
       );
       cam.zoom = THREE.MathUtils.lerp(
         cam.zoom,
@@ -484,6 +485,10 @@ export default function World(props: Props) {
         fallback={<div className="world-loading">Preparing the viewport…</div>}
       >
         <Canvas
+          events={(store) => ({
+            ...events(store),
+            filter: prioritizeCharacterHighlights,
+          })}
           data-day-phase={dayPhase(calendarTime(props.frame.simulation))}
           dpr={[1, 1.5]}
           orthographic
@@ -852,6 +857,7 @@ function World2D(props: Props) {
   const viewNow = useRef(view);
   viewNow.current = view;
   const glide = useRef(0);
+  const overviewGlide = useRef(false);
   const stopGlide = () => cancelAnimationFrame(glide.current);
   useEffect(() => stopGlide, []);
   const glideTo = (target: typeof view, duration: number) => {
@@ -880,6 +886,14 @@ function World2D(props: Props) {
       onCameraReady((a) => {
         onUnfollow();
         stopGlide();
+        overviewGlide.current = a === "overview";
+        if (a === "overview") {
+          const v = viewNow.current;
+          const w = Math.max(v.w, frame.map.width_m + 16);
+          const h = v.h * (w / v.w);
+          glideTo({ x: v.x + (v.w - w) / 2, y: v.y + (v.h - h) / 2, w, h }, 600);
+          return;
+        }
         setView((v) => {
           if (a === "reset")
             return {
@@ -921,9 +935,10 @@ function World2D(props: Props) {
       simulation: frame.simulation.id,
     };
     if (!props.focus?.length && !props.follow && !initialView) {
-      stopGlide();
+      if (!overviewGlide.current) stopGlide();
       return;
     }
+    overviewGlide.current = false;
     if (!props.follow && !changed) return;
     if (!props.focus?.length && !props.follow && frame.agents.length > 10)
       return;

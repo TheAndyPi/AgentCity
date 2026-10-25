@@ -57,6 +57,20 @@ async function expectSameView(page: Page, mode: Mode, before: number[]) {
     .toBe(true);
 }
 
+async function expectZoomedOut(page: Page, mode: Mode, before: number[]) {
+  const after = await settledView(page, mode);
+  if (mode === "3d") {
+    expect(after[10]).toBeLessThan(before[10]);
+    after.slice(0, 10).forEach((value, i) =>
+      expect(value).toBeCloseTo(before[i], 1),
+    );
+  } else {
+    expect(after[2]).toBeGreaterThan(before[2]);
+    expect(after[0] + after[2] / 2).toBeCloseTo(before[0] + before[2] / 2, 1);
+    expect(after[1] + after[3] / 2).toBeCloseTo(before[1] + before[3] / 2, 1);
+  }
+}
+
 async function setup(page: Page, mode: Mode) {
   const session = (await (await page.request.get("/api/v1/session")).json())
     .data;
@@ -160,7 +174,7 @@ for (const mode of ["3d", "2d"] as const) {
     await expect(focus).toBeVisible();
   });
 
-  test(`closing ${mode} details preserves framing until an explicit overview action`, async ({
+  test(`closing ${mode} details zooms out while preserving the viewpoint`, async ({
     page,
   }, info) => {
     const { focus, select } = await setup(page, mode);
@@ -169,7 +183,7 @@ for (const mode of ["3d", "2d"] as const) {
     const before = await settledView(page, mode);
     await focus.getByRole("button", { name: "Close character focus" }).click();
     await expect(focus).not.toBeVisible();
-    await expectSameView(page, mode, before);
+    await expectZoomedOut(page, mode, before);
     await page.screenshot({
       path: info.outputPath(`${mode}-dismissed-closeup.png`),
     });
@@ -178,7 +192,7 @@ for (const mode of ["3d", "2d"] as const) {
     const refocused = await settledView(page, mode);
     await page.keyboard.press("Escape");
     await expect(focus).not.toBeVisible();
-    await expectSameView(page, mode, refocused);
+    await expectZoomedOut(page, mode, refocused);
 
     await page
       .getByRole("button", { name: "Reset camera", exact: true })
@@ -188,9 +202,9 @@ for (const mode of ["3d", "2d"] as const) {
     else expect(reset[2]).toBeGreaterThan(refocused[2] * 1.5);
 
     await select();
-    await settledView(page, mode);
+    const lastClose = await settledView(page, mode);
     await page.getByRole("button", { name: "Back to neighborhood" }).click();
     await expect(focus).not.toBeVisible();
-    await expectSameView(page, mode, reset);
+    await expectZoomedOut(page, mode, lastClose);
   });
 }

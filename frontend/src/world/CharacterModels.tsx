@@ -414,16 +414,24 @@ export default function CharacterModels({
       if (!mesh) continue;
       mesh.instanceMatrix.needsUpdate = true;
       const overlay = highlightMeshes.current[part];
-      if (overlay) overlay.instanceMatrix.needsUpdate = true;
+      if (overlay) {
+        overlay.instanceMatrix.needsUpdate = true;
+        overlay.boundingSphere = null;
+      }
+      mesh.boundingSphere = null;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
   });
-  const pick = (part: Part, event: ThreeEvent<MouseEvent>) => {
+  const pick = (
+    part: Part,
+    event: ThreeEvent<MouseEvent>,
+    agents = frame.agents,
+  ) => {
     event.stopPropagation();
     const index = event.instanceId;
     if (index !== undefined) {
       const agent =
-        frame.agents[double.has(part) ? Math.floor(index / 2) : index];
+        agents[double.has(part) ? Math.floor(index / 2) : index];
       if (agent) onSelect(agent.id);
     }
   };
@@ -469,7 +477,8 @@ export default function CharacterModels({
             dispose={null}
             frustumCulled={false}
             renderOrder={10}
-            raycast={() => {}}
+            userData={{ characterHighlight: true }}
+            onClick={(event) => pick(part, event, highlightedAgents)}
           />
         ))}
       {labeled.map((a) => {
@@ -489,6 +498,11 @@ export default function CharacterModels({
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[0, 0.12, 0]}
                 renderOrder={11}
+                userData={{ characterHighlight: true }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect(a.id);
+                }}
               >
                 <ringGeometry args={[0.8, 0.96, 24]} />
                 <meshBasicMaterial

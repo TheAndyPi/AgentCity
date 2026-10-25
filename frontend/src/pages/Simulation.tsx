@@ -52,6 +52,7 @@ import {
   dayPhase,
 } from "../world/daylight";
 import World, { type CameraAction } from "../world/World";
+import { insideBuilding } from "../world/buildingAccess";
 import { Brand, Button, Busy, ErrorBox, Modal } from "../components/ui";
 import { formatChord } from "../platform";
 import Drawer, { type DrawerNode } from "../components/Drawer";
@@ -98,7 +99,7 @@ export default function Simulation() {
     setFocused([]);
     setFollow(null);
     setWatchedInteraction(null);
-    camera.current("reset");
+    camera.current("overview");
   }, []);
   const [revision, setRevision] = useState<number | null>(null),
     [historical, setHistorical] = useState<WorldFrame | null>(null),
@@ -428,6 +429,10 @@ export default function Simulation() {
       </div>
     );
   const s = frame.simulation;
+  const insideCount = frame.agents.filter((agent) =>
+    frame.map.buildings.some((building) => insideBuilding(agent.position, building)),
+  ).length;
+  const outsideCount = frame.agents.length - insideCount;
   const deadCount = frame.agents.filter((a) => !a.active).length;
   const unconsciousCount = frame.agents.filter(
     (a) => a.active && a.emotion === "unconscious",
@@ -1041,7 +1046,7 @@ export default function Simulation() {
             setMenu(false);
           }}
           onClose={closeFocus}
-          onOverview={resetCamera}
+          onOverview={closeFocus}
           onProfile={(agentId) => open({ type: "agent", id: agentId })}
           onCommand={execute}
           locked={locked}
@@ -1052,6 +1057,10 @@ export default function Simulation() {
         <span>
           <Users size={13} />
           {s.agent_count} citizens
+          <span className="footer-dot">·</span>
+          <span title="Citizens currently inside building footprints versus outside">
+            {insideCount} inside / {outsideCount} outside
+          </span>
           {(deadCount > 0 || unconsciousCount > 0) && (
             <span title={populationNote}>
               {" "}
