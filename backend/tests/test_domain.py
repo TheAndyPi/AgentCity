@@ -401,7 +401,7 @@ def test_full_length_custom_event_and_empty_event_validation(client):
     from app.infrastructure.errors import DomainError
 
     state = world(client)
-    prompt = "A" * 2000
+    prompt = "A festival " + "A" * 1989
     result = compile_preview(state, "custom", prompt)
     assert result.can_commit and result.spec.description == prompt
     assert len(result.interpretation) <= 2000

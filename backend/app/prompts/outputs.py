@@ -16,11 +16,19 @@ from app.contracts import (
     Text,
     Vec2,
 )
+from app.simulation.scenario_scene import CATALOG
 
 
 class SceneDesign(Model):
     label: Name
     parts: Annotated[list[ScenePart], Field(max_length=8)]
+
+
+RecipeId = Literal[tuple(recipe["id"] for recipe in CATALOG)]
+
+
+class ScenarioInterpretation(Model):
+    recipe_ids: Annotated[list[RecipeId], Field(max_length=4)]
 
 
 class LessonDraft(Model):

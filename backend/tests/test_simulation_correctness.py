@@ -9,7 +9,14 @@ from app.simulation.agents import hazard_severity, perception
 from app.simulation.game_master import apply_intent, make_intent, rule_intent
 from app.simulation.interactions import expire_interactions
 from app.simulation.scenario_scene import matches
-from app.simulation.scenarios import activate, apply_effects, compile_preview, queue_event, rectangle
+from app.simulation.scenarios import (
+    INTERPRETATION_FAILURE,
+    activate,
+    apply_effects,
+    compile_preview,
+    queue_event,
+    rectangle,
+)
 from app.simulation.state import State
 
 
@@ -159,9 +166,12 @@ def test_safe_helper_can_still_aid_a_nearby_victim_in_a_hazard(client):
 def test_negated_hazards_create_neither_damage_nor_hazard_scenery(client, prompt):
     state, a, _ = world(client)
     preview = compile_preview(state, "custom", prompt)
-    assert preview.can_commit
     assert all(effect.type != "hazard" for effect in preview.spec.effects)
     assert all(prop.model not in {"flood", "fire", "cloud"} for prop in preview.spec.scene)
+    if not preview.can_commit:
+        # A denial with nothing else to simulate asks the user to restate the scenario.
+        assert preview.unsupported_requests == [INTERPRETATION_FAILURE]
+        return
     before = a.needs.health
     queue_event(state, preview, state.snapshots[0].id, False)
     activate(state)
@@ -189,15 +199,15 @@ def test_negation_is_scoped_to_each_mention(prompt, expected):
 @pytest.mark.parametrize(
     ("prompt", "limitation"),
     [
-        ("Destroy the hospital", "destruction"),
+        ("Destroy the hospital during a festival", "destruction"),
         ("A dragon destroys the hospital during a fire", "destruction"),
-        ("The hospital was demolished", "destruction"),
-        ("Build a new hospital", "construction"),
-        ("A new building is constructed", "construction"),
-        ("Workers are building a new school", "construction"),
-        ("Create a new building", "construction"),
-        ("Add two houses", "construction"),
-        ("A new hospital appears", "construction"),
+        ("The hospital was demolished during a storm", "destruction"),
+        ("Build a new hospital during a festival", "construction"),
+        ("A new building is constructed. A festival opens", "construction"),
+        ("Workers are building a new school during a festival", "construction"),
+        ("Create a new building. A market opens", "construction"),
+        ("Add two houses. A concert starts", "construction"),
+        ("A new hospital appears. Visitors arrive", "construction"),
     ],
 )
 def test_unsupported_building_actions_remain_narrative_and_survive_repeat(client, prompt, limitation):
@@ -244,9 +254,11 @@ def test_regional_construction_request_gets_specific_notice(client):
     state, _, _ = world(client)
     preview = compile_preview(state, "custom", "Create a new building in the north")
     assert preview.unsupported_requests == [
-        "Building construction is unsupported; scene illustrations do not alter city buildings."
+        "Building construction is unsupported; scene illustrations do not alter city buildings.",
+        INTERPRETATION_FAILURE,
     ]
     assert any("construction is unsupported" in warning for warning in preview.warnings)
+    assert not preview.can_commit and preview.interpretation == INTERPRETATION_FAILURE
 
 
 @pytest.mark.parametrize(

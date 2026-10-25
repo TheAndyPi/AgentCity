@@ -82,20 +82,37 @@ describe("safe event and outcome transitions", () => {
       intervention_id: hold.id,
       source: "custom",
       source_event_id: null,
-      prompt: "Teleport everyone with a dragon",
+      prompt: "A dragon visits during a festival",
       policy: null,
     });
     expect(p.can_commit).toBe(true);
     expect(p.unsupported_requests).toEqual([]);
     expect(p.spec.effects).toContainEqual({
       type: "information",
-      message: "Teleport everyone with a dragon",
+      message: "A dragon visits during a festival",
       reliability: 100,
       delivery: "local",
     });
     const committed = await client.commit(s.id, hold, p, crypto.randomUUID());
     expect(committed.event.status).toBe("queued");
     expect((await sim()).status).toBe("paused");
+  });
+  it("uninterpretable events ask the user to restate them", async () => {
+    const { s, hold } = await preview();
+    const p = await client.preview(s.id, {
+      intervention_id: hold.id,
+      source: "custom",
+      source_event_id: null,
+      prompt: "Teleport everyone with a dragon",
+      policy: null,
+    });
+    expect(p.can_commit).toBe(false);
+    expect(p.unsupported_requests[0]).toContain(
+      "failed to interpret this scenario input",
+    );
+    await expect(
+      client.commit(s.id, hold, p, crypto.randomUUID()),
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
   it("explicit pause revokes cancellation auto-resume", async () => {
     const { s, hold } = await preview(true);

@@ -46,12 +46,36 @@ def test_composed_scene_is_deterministic_and_does_not_advance_physics(client):
     assert sum(e.type == "community" for e in first.spec.effects) == 1
 
 
-def test_unknown_premise_gets_honest_fallback_and_negated_fire_is_not_a_hazard(client):
+def test_uninterpretable_premise_asks_for_parameters_and_negated_fire_is_not_a_hazard(client):
+    from app.simulation.scenarios import INTERPRETATION_FAILURE
+
     state = world(client)
     p = compile_preview(state, "custom", "Gravity reverses for a moment without any fire")
-    assert p.warnings and "abstract landmark" in p.warnings[0]
+    assert not p.can_commit
+    assert p.unsupported_requests == [INTERPRETATION_FAILURE]
+    assert p.interpretation == INTERPRETATION_FAILURE
+    assert "failed to interpret this scenario input" in INTERPRETATION_FAILURE
     assert {o.model for o in p.spec.scene} == {"monument"}
     assert all(e.type != "hazard" for e in p.spec.effects)
+
+
+def test_uninterpretable_preview_cannot_be_committed(client):
+    sid = create_city(client)["id"]
+    hold, p = preview(client, sid, "Gravity reverses for a moment")
+    assert not p["can_commit"]
+    result = commit_preview(client, sid, hold, p)
+    assert result.status_code == 400
+    assert client.get(f"/api/v1/simulations/{sid}/state").json()["data"]["events"] == []
+
+
+def test_model_interpretation_supplies_effects_when_no_keyword_matches(client):
+    state = world(client)
+    p = compile_preview(state, "custom", "A whale is spotted in the harbor", interpreted=["wildlife"])
+    assert p.can_commit and p.unsupported_requests == []
+    assert "Interpreted by the model as: wildlife." in p.warnings
+    assert any(e.type != "information" for e in p.spec.effects)
+    failed = compile_preview(state, "custom", "A whale is spotted in the harbor", interpreted=[])
+    assert not failed.can_commit
 
 
 def test_scene_roundtrips_through_commit_history_and_repeat(client):
@@ -145,13 +169,16 @@ def test_freeform_provider_geometry_is_previewed_outside_writer_lock_and_persist
 
     async def handler(request):
         assert not service.writer.locked()
-        calls.append(1)
+        schema = json.loads(request.content)["generationConfig"]["responseJsonSchema"]
+        kind = "interpretation" if "recipe_ids" in schema["properties"] else "scene"
+        calls.append(kind)
+        answer = (
+            dict(recipe_ids=["wildlife"]) if kind == "interpretation" else dict(label="Whale", parts=[part])
+        )
         return httpx.Response(
             200,
             json={
-                "candidates": [
-                    {"content": {"parts": [{"text": json.dumps(dict(label="Whale", parts=[part]))}]}}
-                ],
+                "candidates": [{"content": {"parts": [{"text": json.dumps(answer)}]}}],
                 "usageMetadata": {"promptTokenCount": 30, "candidatesTokenCount": 40},
             },
         )
@@ -187,7 +214,9 @@ def test_freeform_provider_geometry_is_previewed_outside_writer_lock_and_persist
         # A committed/closed editor must not break idempotent preview retries.
         again = write(client, f"/simulations/{sid}/scenario-previews", body, key=key)
         assert again.status_code == 201 and again.json()["data"] == p
-    assert len(calls) == 1
+    assert calls == ["interpretation", "scene"]
+    assert p["can_commit"]
+    assert "Interpreted by the model as: wildlife." in p["warnings"]
     assert p["spec"]["scene"][0]["model"] == "generated"
     assert p["spec"]["scene"][0]["parts"] == [part]
     assert any("AI-composed" in w for w in p["warnings"])

@@ -32,7 +32,7 @@ from app.simulation.engine import list_tree, tick
 from app.simulation.game_master import apply_intent, make_intent
 from app.simulation.lessons import adopt_drafts, lesson_material
 from app.simulation.navigation import cell_at, distance, meeting_point, pathfind
-from app.simulation.scenario_scene import matches
+from app.simulation.scenario_scene import CATALOG, matches
 from app.simulation.scenarios import compile_preview, generate_map, queue_event, validate_spec
 from app.simulation.state import State, expired, expiry, now, uid
 
@@ -372,7 +372,7 @@ class Service:
                 ("ready", 100),
             ]
             for stage, progress in stages:
-                design = None
+                provider = {}
                 if stage == "scenario":
                     head = self.heads.get(sid)
                     premise = head.simulation.config.scenario_description if head else ""
@@ -384,9 +384,7 @@ class Service:
                         in {"queued", "map", "population", "relationships"}
                     ):
                         # Provider work and usage recording run outside the writer lock.
-                        design = await self.gateway.scene(
-                            sid, premise, [r["model"] for r in matches(premise)]
-                        )
+                        provider = await self.interpret_premise(sid, premise)
                 async with self.writer:
                     head = self.heads.get(sid)
                     if not head or head.simulation.status != "initializing":
@@ -449,7 +447,11 @@ class Service:
                     elif stage == "scenario":
                         if state.simulation.config.scenario_description.strip():
                             state.simulation.initial_preview = compile_preview(
-                                state, "initial", state.simulation.config.scenario_description, design=design
+                                state,
+                                "initial",
+                                state.simulation.config.scenario_description,
+                                design=provider.get("design"),
+                                interpreted=provider.get("interpreted"),
                             )
                     elif stage == "ready":
                         for citizen in state.citizens.values():
@@ -896,19 +898,36 @@ class Service:
         if identity not in self.scene_tasks:
             if len(self.scene_tasks) >= 64:
                 return None
-            self.scene_tasks[identity] = asyncio.create_task(
-                self.gateway.scene(sid, body.prompt or "", [r["model"] for r in matches(body.prompt or "")])
-            )
+            self.scene_tasks[identity] = asyncio.create_task(self.interpret_premise(sid, body.prompt or ""))
         return await asyncio.shield(self.scene_tasks[identity])
 
-    def preview(self, owner, sid, body, design=None):
+    async def interpret_premise(self, sid, premise):
+        """Provider work for a free-form premise. Runs outside the writer lock."""
+        recipes = matches(premise)
+        interpreted = None
+        if not recipes:
+            interpreted = await self.gateway.interpret(sid, premise)
+            if interpreted == []:
+                return dict(design=None, interpreted=interpreted)
+            recipes = [r for r in CATALOG if r["id"] in (interpreted or [])]
+        design = await self.gateway.scene(sid, premise, [r["model"] for r in recipes])
+        return dict(design=design, interpreted=interpreted)
+
+    def preview(self, owner, sid, body, provider=None):
+        provider = provider or {}
         state = self.owned(owner, sid).model_copy(deep=True)
         self.hold(state, body.intervention_id)
         previous_editor = self.repo.meta.get("editors", {}).get(sid, {})
         state.entity_sequence = max(state.entity_sequence, previous_editor.get("sequence", 0))
         try:
             preview = compile_preview(
-                state, body.source, body.prompt, body.source_event_id, body.policy, design
+                state,
+                body.source,
+                body.prompt,
+                body.source_event_id,
+                body.policy,
+                provider.get("design"),
+                provider.get("interpreted"),
             )
         except ValidationError as error:
             reasons = "; ".join(

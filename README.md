@@ -41,8 +41,11 @@ it can additionally compose an unfamiliar subject from up to eight basic shapes,
 using the existing provider timeout, rate limit and token budget. Malformed or
 unavailable provider output falls back to the local scene. The shared recipe and color files
 live in `contracts/scenario-catalog.json` and `contracts/scenario-palette.json`.
-Without a generated model, an unfamiliar premise gets an explicitly labeled
-abstract landmark and a citizen memory effect; the preview explains this approximation. Props illustrate events;
+A premise must map to at least one recipe's simulation effects. When no recipe
+term matches and Gemini is enabled, the model chooses recipes from the catalog
+and the preview names its interpretation. If neither can interpret the premise,
+the preview cannot be confirmed and asks for an event kind, region, severity and
+duration, or a differently worded description. Props illustrate events;
 they do not add autonomous creatures, new citizens or collision obstacles.
 
 ## Configuration
