@@ -32,10 +32,24 @@ def chunks(envelope):
     """Bound the actual bound JSON and avoid losing an oversized record silently."""
     metadata = {k: v for k, v in envelope.items() if k != "facts"}
     current = []
-    overhead = len(encode(dict(metadata, facts=[])))
+    # Include the second JSON escaping layer of the SQL API TEXT binding. The
+    # reserve covers approved SQL text/context/binding wrappers in the POST body.
+    overhead = len(encode(encode(dict(metadata, facts=[])).decode())) + 4096
     size = overhead
     for fact in envelope["facts"]:
-        fact_size = len(encode(fact)) + 1
+        # Preserve the exact canonical body as text so Snowflake can independently
+        # compute its digest before parsing VARIANT (whose key order is not stable).
+        uploaded = {
+            "id": fact["id"],
+            "record_json": encode(
+                {
+                    "kind": fact["kind"],
+                    "entity_id": fact["entity_id"],
+                    "payload": fact["payload"],
+                }
+            ).decode(),
+        }
+        fact_size = len(encode(encode(uploaded).decode())) + 1
         if len(current) >= MAX_FACTS or size + fact_size > MAX_BYTES:
             if not current:
                 raise ValueError("Observation fact exceeds ingestion budget")
@@ -44,7 +58,7 @@ def chunks(envelope):
             size = overhead
         if overhead + fact_size > MAX_BYTES:
             raise ValueError("Observation fact exceeds ingestion budget")
-        current.append(fact)
+        current.append(uploaded)
         size += fact_size
     if current:
         yield dict(metadata, facts=current)

@@ -6,6 +6,7 @@ not evidence that a real Snowflake account executed the supplied SQL.
 """
 
 import copy
+import hashlib
 import json
 import math
 from collections import Counter
@@ -72,7 +73,14 @@ class ObservationFake:
             assert len(values[0].encode()) <= 1_000_000
             assert len(envelope["facts"]) <= 2000
             for fact in envelope["facts"]:
-                record = dict(fact, revision=envelope["revision"], tick=envelope["tick"])
+                body = json.loads(fact["record_json"])
+                record = dict(
+                    body,
+                    id=fact["id"],
+                    sha256=hashlib.sha256(fact["record_json"].encode()).hexdigest(),
+                    revision=envelope["revision"],
+                    tick=envelope["tick"],
+                )
                 key = (envelope["owner_id"], envelope["simulation_id"], envelope["revision"], fact["id"])
                 self.facts.setdefault(key, record)
             return [["1"]]
@@ -353,16 +361,30 @@ class ObservationFake:
             return result
 
         baseline_agents = (payload.get("baseline") or {}).get("agents", [])
+
+        def denominators(agents):
+            result = {}
+            for name, subset in (
+                ("city", agents),
+                ("cohort", [a for a in agents if a["agent_id"] in cohort]),
+            ):
+                valid = [a for a in subset if living(a)]
+                result[name] = {k: sum(a.get(k) is not None for a in valid) for k in AGENT_METRICS}
+                result[name].update(population=len(valid), deaths=len(subset))
+            return result
+
         bas = dict(
             tick=payload.get("start_tick"),
             city=aggregate(baseline_agents, available=payload.get("baseline_available", False)),
             cohort=aggregate(baseline_agents, cohort, payload.get("baseline_available", False)),
+            denominators=denominators(baseline_agents),
         )
         res_agents = list(self.latest(facts, "agent", resolution).values()) if resolution is not None else []
         res = dict(
             tick=end,
             city=aggregate(res_agents, available=end is not None),
             cohort=aggregate(res_agents, cohort, end is not None),
+            denominators=denominators(res_agents),
         )
         follow_tick = min(end + 30, latest_tick) if end is not None else None
         follow_rev = max(
@@ -373,6 +395,7 @@ class ObservationFake:
             tick=follow_tick,
             city=aggregate(follow_agents, available=end is not None),
             cohort=aggregate(follow_agents, cohort, end is not None),
+            denominators=denominators(follow_agents),
         )
         changes = [
             f
