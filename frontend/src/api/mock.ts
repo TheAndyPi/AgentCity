@@ -165,6 +165,9 @@ export class MockTransport implements Transport {
     )
       return;
     s.tick++;
+    s.calendar_time_seconds =
+      (s.calendar_time_seconds ?? s.sim_time_seconds) +
+      (s.config.calendar_seconds_per_tick ?? s.config.tick_seconds * 12);
     s.sim_time_seconds = s.tick * s.config.tick_seconds;
     s.achieved_ticks_per_second =
       s.status === "running" ? 2 * s.speed_multiplier : 0;

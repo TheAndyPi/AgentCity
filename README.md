@@ -63,9 +63,54 @@ unsupported parts of a request.
 
 ## Configuration
 
-Defaults need no `.env` file. For server configuration, copy `backend/.env.example` to `backend/.env` and edit it. Root launchers load this file; environment variables take precedence. Relative server paths resolve from `backend/`. Secrets stay on the server. Never place provider keys in a `VITE_` variable.
+Defaults need no `.env` file. For server configuration, copy
+[`backend/.env.example`](backend/.env.example) to `backend/.env` and edit it.
+Both `npm run dev` and `npm start` load `backend/.env` automatically; the launchers
+do not read a root `.env`. Existing shell environment variables take precedence
+over the file. Relative server paths resolve from `backend/`. Restart the
+application after changing settings.
 
-### Gemini event generation
+Keep provider keys and credential files on the server, outside Git and the
+frontend. Never place provider keys in a `VITE_` variable. Replace the placeholders
+below with your own values and enable only the integrations you want to use.
+The example file lists additional timeout, rate, concurrency and cache settings.
+
+### Gemini
+
+Set `LLM_MODE=rules` to run without a model provider. To use Gemini, choose one
+of these authentication routes and set `GEMINI_MODEL` to a model available to
+that account/project.
+
+For the Developer API with an API key:
+
+```dotenv
+LLM_MODE=gemini
+GEMINI_BACKEND=developer
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=your_available_model_id
+```
+
+For Vertex AI with Google Cloud credentials:
+
+```dotenv
+LLM_MODE=gemini
+GEMINI_BACKEND=vertex
+GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_CLOUD_PROJECT=your_project_id
+GOOGLE_CLOUD_LOCATION=global
+GEMINI_MODEL=your_available_model_id
+# Optional: point to an existing service-account JSON file on this machine.
+# GOOGLE_APPLICATION_CREDENTIALS=C:/Users/YOUR_NAME/.agentcity/google-service-account.json
+```
+
+For local Vertex authentication, either set `GOOGLE_APPLICATION_CREDENTIALS` to
+an existing service-account JSON file or leave it unset and use
+`gcloud auth application-default login`. An explicitly configured missing file
+must be corrected or unset before using the latter method. `GEMINI_API_KEY` is
+used only with `GEMINI_BACKEND=developer`; it does not authenticate Vertex requests.
+An explicit `GEMINI_BACKEND` takes precedence over `GOOGLE_GENAI_USE_VERTEXAI`.
+See [backend Gemini setup](backend/README.md#gemini-and-optional-integrations)
+for project permissions and authentication details.
 
 `LLM_SESSION_TOKEN_BUDGET` defaults to `200000` and limits automatic citizen
 decisions and optional background generation. Recorded token usage and conservative
@@ -86,6 +131,84 @@ and validates every operation against the supported simulation changes. Partial
 plans explain unsupported parts. Budget, authentication, quota and connection
 failures show their cause and offer **Retry event**, manual composition or the
 keyword catalog.
+
+### ElevenLabs voices and narration
+
+```dotenv
+ENABLE_NARRATION=true
+ELEVENLABS_API_KEY=your_api_key
+ELEVENLABS_VOICE_ID=your_event_narrator_voice_id
+ELEVENLABS_CHARACTER_VOICE_IDS=voice_id_1,voice_id_2,voice_id_3
+ELEVENLABS_MODEL_ID=your_available_model_id
+ELEVENLABS_OUTPUT_FORMAT=mp3_44100_128
+```
+
+Use existing voices and a model that your ElevenLabs account can access.
+`ELEVENLABS_VOICE_ID` is the event narrator. `ELEVENLABS_CHARACTER_VOICE_IDS` is a
+comma-separated pool of distinct voices assigned persistently to citizens for
+dialogue and decisions. Supply one distinct voice per citizen you want voiced;
+citizens without an available assignment cannot speak. Keep established voice IDs
+in the pool so existing citizens retain access to their assigned voices.
+
+`ENABLE_NARRATION` defaults to `false`. After enabling and restarting, select a
+citizen or watch a conversation and click **Enable live voices** to hear new
+dialogue. Use **Replay this conversation** for recorded dialogue, or
+**Listen to this record** on supported events and decisions. If a reverse proxy
+requires an explicit browser origin for audio URLs, set `NARRATION_PUBLIC_ORIGIN`
+to that origin without a path; leave it unset for normal local use. See
+[live voices setup and limits](docs/release/live-voices-handoff.md).
+
+### Tiger Data
+
+```dotenv
+PERSISTENCE_MODE=local
+TIGER_ENABLED=true
+TIGER_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full
+TIGER_SCHEMA=agentcity_tiger
+```
+
+`TIGER_ENABLED` defaults to `false`. The adapter reads `TIGER_DATABASE_URL`;
+`DATABASE_URL` is ignored. Use a TCP hostname and certificate-verified TLS, and
+provision the configured schema with the required permissions. Local storage
+remains authoritative, so keep `PERSISTENCE_MODE=local`. See
+[Tiger database setup](docs/release/tiger-handoff.md#sql-credentials-and-configuration).
+
+### Snowflake
+
+```dotenv
+SNOWFLAKE_ENABLED=true
+SNOWFLAKE_ACCOUNT=your_account_identifier
+SNOWFLAKE_USER=YOUR_SERVICE_USER
+SNOWFLAKE_ROLE=YOUR_ROLE
+SNOWFLAKE_WAREHOUSE=YOUR_WAREHOUSE
+SNOWFLAKE_DATABASE=YOUR_DATABASE
+SNOWFLAKE_SCHEMA=YOUR_SCHEMA
+SNOWFLAKE_PRIVATE_KEY_FILE=C:/Users/YOUR_NAME/.agentcity/snowflake-key.pem
+# Optional: set only when the private key requires a passphrase.
+# SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_FILE=C:/Users/YOUR_NAME/.agentcity/snowflake-passphrase.txt
+SNOWFLAKE_CORTEX_MODEL=your_available_cortex_model
+```
+
+For automatic city trends and event observations, run the operator migration in
+[`Snowflake observations setup`](docs/release/snowflake-observations.md), then set
+`SNOWFLAKE_OBSERVATIONS_ENABLED=true`. The observation switch is independent of
+the comparison switch above. `SNOWFLAKE_OBSERVATION_POLL_SECONDS=30` controls
+background ingestion; the default is 30 seconds. Open **Simulation overview →
+Observations**, or follow the observation link from a citizen or event report.
+Graphs use recorded health, trust, relationships and beliefs, with evidence and
+revision coverage. Event reports distinguish recorded links from changes during
+the same interval.
+
+`SNOWFLAKE_ENABLED` defaults to `false`; `ENABLE_SNOWFLAKE` is ignored. This
+adapter uses key-pair JWT authentication. `SNOWFLAKE_PRIVATE_KEY_FILE` must point
+to an existing PEM RSA private key on the machine running the backend. If set,
+`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_FILE` must also exist and contain its passphrase.
+The paths above are Windows examples; use absolute paths appropriate to your
+machine. `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_TOKEN` and `SNOWFLAKE_AUTHENTICATOR` are
+not consumed. Provision the comparison schema and permissions described in
+[Snowflake setup](docs/release/snowflake-handoff.md#configuration-and-database-setup).
+
+### Running with custom settings
 
 `PORT` changes the API port and `FRONTEND_PORT` changes the development UI port. The launcher forwards both HTTP and WebSocket requests and derives matching loopback origins unless `ALLOWED_ORIGINS` is explicitly configured. An occupied port produces an error; the launcher does not stop other services.
 

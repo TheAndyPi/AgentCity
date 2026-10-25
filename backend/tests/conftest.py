@@ -55,6 +55,28 @@ def command(client, sid, type, **fields):
     )
 
 
+def advance_conversation_turn(state, actor):
+    """Direct-action tests wait for a legal speaking turn without running other agents."""
+    from app.simulation.interactions import active_conversation
+
+    session = active_conversation(state, actor)
+    if not session:
+        return
+    target_time = session.next_turn_calendar_seconds or state.simulation.calendar_time_seconds
+    if session.turns >= 3 and session.minimum_end_calendar_seconds is not None:
+        target_time = max(target_time, session.minimum_end_calendar_seconds)
+    elapsed = max(
+        1,
+        int(
+            (target_time - state.simulation.calendar_time_seconds)
+            / state.simulation.config.calendar_seconds_per_tick
+        ),
+    )
+    state.simulation.tick += elapsed
+    state.simulation.sim_time_seconds = state.simulation.tick * state.simulation.config.tick_seconds
+    state.simulation.calendar_time_seconds += elapsed * state.simulation.config.calendar_seconds_per_tick
+
+
 def preview(client, sid, prompt="A flood for 2 ticks"):
     simulation = client.get(f"/api/v1/simulations/{sid}").json()["data"]
     hold = write(

@@ -250,6 +250,24 @@
         "active": {
           "title": "Active",
           "type": "boolean"
+        },
+        "routine_state": {
+          "default": "free",
+          "title": "Routine State",
+          "type": "string"
+        },
+        "activity_until_calendar_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activity Until Calendar Seconds"
         }
       },
       "required": [
@@ -845,6 +863,13 @@
           "title": "Tick Seconds",
           "type": "integer"
         },
+        "calendar_seconds_per_tick": {
+          "default": 120,
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Calendar Seconds Per Tick",
+          "type": "integer"
+        },
         "max_ticks": {
           "maximum": 100000,
           "minimum": 1,
@@ -949,6 +974,13 @@
           "title": "Tick Seconds",
           "type": "integer"
         },
+        "calendar_seconds_per_tick": {
+          "default": 12,
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Calendar Seconds Per Tick",
+          "type": "integer"
+        },
         "max_ticks": {
           "default": 100000,
           "maximum": 100000,
@@ -983,6 +1015,88 @@
       "title": "Consequence",
       "type": "object"
     },
+    "ConversationSession": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "participant_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Participant Ids",
+          "type": "array"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "accepted_calendar_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Accepted Calendar Seconds"
+        },
+        "minimum_end_calendar_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Minimum End Calendar Seconds"
+        },
+        "next_turn_calendar_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Turn Calendar Seconds"
+        },
+        "end_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Reason"
+        }
+      },
+      "required": [
+        "id",
+        "participant_ids",
+        "status",
+        "accepted_calendar_seconds",
+        "minimum_end_calendar_seconds",
+        "next_turn_calendar_seconds",
+        "end_reason"
+      ],
+      "title": "ConversationSession",
+      "type": "object"
+    },
     "CreateSimulation": {
       "additionalProperties": false,
       "properties": {
@@ -994,6 +1108,48 @@
         "config"
       ],
       "title": "CreateSimulation",
+      "type": "object"
+    },
+    "CurfewPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "start_minute": {
+          "default": 1320,
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "end_minute": {
+          "default": 360,
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "End Minute",
+          "type": "integer"
+        },
+        "revision": {
+          "default": 0,
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "informed_agent_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Informed Agent Ids",
+          "type": "array"
+        }
+      },
+      "title": "CurfewPolicy",
       "type": "object"
     },
     "CustomAgent": {
@@ -2080,6 +2236,16 @@
             "$ref": "#/$defs/Hazard"
           },
           "title": "Active Hazards",
+          "type": "array"
+        },
+        "curfew": {
+          "$ref": "#/$defs/CurfewPolicy"
+        },
+        "conversation_sessions": {
+          "items": {
+            "$ref": "#/$defs/ConversationSession"
+          },
+          "title": "Conversation Sessions",
           "type": "array"
         },
         "map_updates": {
@@ -4660,6 +4826,12 @@
           "title": "Sim Time Seconds",
           "type": "number"
         },
+        "calendar_time_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Calendar Time Seconds",
+          "type": "number"
+        },
         "speed_multiplier": {
           "enum": [
             0.25,
@@ -5371,6 +5543,16 @@
           },
           "title": "Active Hazards",
           "type": "array"
+        },
+        "curfew": {
+          "$ref": "#/$defs/CurfewPolicy"
+        },
+        "conversation_sessions": {
+          "items": {
+            "$ref": "#/$defs/ConversationSession"
+          },
+          "title": "Conversation Sessions",
+          "type": "array"
         }
       },
       "required": [
@@ -5532,8 +5714,14 @@
     "Consequence": {
       "$ref": "#/$defs/Consequence"
     },
+    "ConversationSession": {
+      "$ref": "#/$defs/ConversationSession"
+    },
     "CreateSimulation": {
       "$ref": "#/$defs/CreateSimulation"
+    },
+    "CurfewPolicy": {
+      "$ref": "#/$defs/CurfewPolicy"
     },
     "CustomAgent": {
       "$ref": "#/$defs/CustomAgent"

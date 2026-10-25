@@ -165,7 +165,7 @@ export function PreviewCard({
         </span>
         <span>
           <Clock size={15} />
-          {preview.spec.duration_ticks} ticks
+          {preview.spec.duration_ticks} physical simulation ticks
         </span>
         <span>
           <MapPin size={15} />

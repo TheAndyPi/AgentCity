@@ -6,9 +6,14 @@ export function speechBySpeaker(frame: WorldFrame, focus: string[] = []) {
   const agents = new Set(frame.agents.map((agent) => agent.id));
   for (const line of frame.recent_dialogue) {
     const age = frame.ref.tick - line.tick;
+    const session = frame.conversation_sessions?.find(
+      (s) => s.id === line.interaction_id,
+    );
+    const live =
+      session?.status === "invited" || session?.status === "accepted";
     if (
       age < 0 ||
-      age > 3 ||
+      (!live && age > 3) ||
       !agents.has(line.speaker_id) ||
       (focus.length > 1 &&
         (!focus.includes(line.speaker_id) ||

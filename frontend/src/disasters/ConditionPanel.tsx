@@ -3,6 +3,7 @@ import { useApp, messageOf } from "../state/app";
 import type { WorldFrame } from "../api/types";
 import { repairBuilding, stopDisaster, type DisasterState } from "./client";
 import "./disasters.css";
+import { eventCauseNames } from "./eventNames";
 export default function ConditionPanel({
   data,
   frame,
@@ -96,7 +97,7 @@ export default function ConditionPanel({
                 {b.functional ? "Open" : "Closed"} · Capacity {b.capacity}/
                 {c.design_capacity} · Occupants {b.occupancy}
               </div>
-              <small>Cause: {c.cause_ids.join(", ")}</small>
+              <small>Cause: {eventCauseNames(c.cause_ids, frame.events)}</small>
               {job ? (
                 <p>Repair in progress · finishes tick {job.finish_tick}</p>
               ) : (

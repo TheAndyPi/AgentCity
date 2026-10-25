@@ -47,6 +47,12 @@ import type {
   WorldFrame,
 } from "../api/types";
 import { colors, metricLabels, pretty, simTime } from "../api/defaults";
+import {
+  calendarTime,
+  clockTime,
+  curfewActive,
+  dayPhase,
+} from "../world/daylight";
 import World, { type CameraAction, type Overlay } from "../world/World";
 import { Brand, Button, Busy, ErrorBox, Modal } from "../components/ui";
 import { formatChord } from "../platform";
@@ -700,7 +706,16 @@ export default function Simulation() {
         <div className="transport-bar glass">
           <div className="sim-clock">
             <Clock size={16} />
-            <span>{simTime(s.sim_time_seconds)}</span>
+            <span>
+              {simTime(calendarTime(s))} · {dayPhase(calendarTime(s))}
+            </span>
+            {frame.curfew?.enabled && (
+              <small>
+                {curfewActive(frame) ? "Curfew active" : "Curfew"}{" "}
+                {clockTime(frame.curfew.start_minute * 60)}–
+                {clockTime(frame.curfew.end_minute * 60)}
+              </small>
+            )}
           </div>
           <div className="transport-divider" />
           <button

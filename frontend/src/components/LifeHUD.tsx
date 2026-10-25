@@ -21,6 +21,7 @@ import type {
 import { readBehavior } from "../behavior/client";
 import { insideBuilding } from "../world/buildingAccess";
 import { pretty } from "../api/defaults";
+import { activityLabel, clockTime } from "../world/daylight";
 import { messageOf, useApp, useQuery } from "../state/app";
 import { useDialoguePages } from "../state/dialogue";
 import { CitizenPortrait, groupConversations } from "./LifePanels";
@@ -161,10 +162,12 @@ export default function LifeHUD({
   }
   const lines = conversation?.messages ?? [];
   const last = lines.at(-1);
-  const liveChat =
-    last &&
-    !last.end_conversation &&
-    (frame.ref.tick - last.tick) * frame.simulation.config.tick_seconds <= 50;
+  const session = frame.conversation_sessions?.find(
+    (s) => s.id === conversation?.id,
+  );
+  const liveChat = session
+    ? ["invited", "accepted"].includes(session.status)
+    : last && !last.end_conversation && (frame.ref.tick - last.tick) * frame.simulation.config.tick_seconds <= 50;
   const neighbors = selected
     ? frame.agents
         .filter(
@@ -320,6 +323,7 @@ export default function LifeHUD({
               <div className="focus-thought">
                 <span>ON THEIR MIND</span>
                 <p>
+                  {activityLabel(selected)}.{" "}
                   {selected.thought_bubble ||
                     detail.data?.profile.primary_goal ||
                     "Taking in the neighborhood."}
@@ -581,9 +585,13 @@ export default function LifeHUD({
               </div>
               <footer>
                 <span>
-                  {last?.end_conversation
-                    ? "Until next time. ♡"
-                    : "Let them take their time."}
+                  {session?.end_reason && session.end_reason !== "completed"
+                    ? `Interrupted: ${pretty(session.end_reason)}`
+                    : session?.minimum_end_calendar_seconds && liveChat
+                      ? `Talking until ${clockTime(session.minimum_end_calendar_seconds)}`
+                      : last?.end_conversation
+                        ? "Until next time. ♡"
+                        : "Let them take their time."}
                 </span>
                 <button
                   disabled={disabled}

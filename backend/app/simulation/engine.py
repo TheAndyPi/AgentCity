@@ -15,7 +15,7 @@ from app.simulation.agents import (
 from app.simulation.characters import upgrade_placeholder_citizens
 from app.simulation.game_master import advance_movement, apply_intent, rule_intent
 from app.simulation.indexes import TickContext
-from app.simulation.interactions import expire_interactions
+from app.simulation.interactions import conversation_benefits, expire_interactions, interrupt_conversations
 from app.simulation.navigation import restore_personal_space
 from app.simulation.scenarios import activate, apply_effects, finish_events
 from app.simulation.timing import legacy_ticks
@@ -49,7 +49,7 @@ def tick(state, proposals=None):
     from app.behavior.classes import encounter, mutual_aid
     from app.behavior.crisis import crisis_intent, evaluate_crisis
     from app.behavior.game_master import fire_effects
-    from app.behavior.vitals import activate_rules, background, conscious, evaluate, impact, living, passive
+    from app.behavior.vitals import activate_rules, background, conscious, evaluate, living, passive
 
     upgrade_placeholder_citizens(state)
     activate_rules(state)
@@ -64,9 +64,15 @@ def tick(state, proposals=None):
         return
     state.simulation.tick += 1
     state.simulation.sim_time_seconds = state.simulation.tick * state.simulation.config.tick_seconds
+    from app.simulation import calendar
+
+    calendar.advance(state)
     activate(state)
     systems.on_tick_start(state)
     state._tick_context = TickContext(state)
+    expire_interactions(state)
+    interrupt_conversations(state)
+    conversation_benefits(state)
     restore_personal_space(state)
     state.dialogue_index()
     rng = random.Random()
@@ -92,15 +98,30 @@ def tick(state, proposals=None):
 
         threatened = hazard_severity(state, citizen.summary.position) > 0 or state.policies.evacuation_order
         intent, handled = (None, False) if threatened else rescue_choice(state, citizen, context)
+        committed_proposal = False
         if not handled and not threatened:
             intent, handled = crisis_intent(state, citizen, context)
+        if not handled and not threatened:
+            from app.simulation.daily import commitment_intent
+
+            intent, handled = commitment_intent(state, citizen, context)
+            if (
+                handled
+                and intent is not None
+                and intent.action == "talk"
+                and candidate
+                and candidate[0].action == "talk"
+                and candidate[0].target_id == intent.target_id
+            ):
+                intent = candidate[0]
+                committed_proposal = True
         from app.behavior.personality import suppress_visible_fire
 
         if not handled and not threatened and suppress_visible_fire(state, citizen, context):
             handled = True
         if not handled and not threatened and mutual_aid(state, citizen, context):
             handled = True
-        proposed = candidate if not handled and not threatened else None
+        proposed = candidate if (not handled or committed_proposal) and not threatened else None
         if proposed and proposed[0].action == "talk":
             current_lines = state.dialogue_index().by_participant.get(aid, [])
             if current_lines:
@@ -147,14 +168,14 @@ def tick(state, proposals=None):
     for citizen in state.citizens.values():
         evaluate(state, citizen, "After physical disaster exposure")
     # Consumption/rest happens before decay. Patients still decay and can die.
-    dt = state.simulation.config.tick_seconds / 10
+    dt = state.simulation.config.calendar_seconds_per_tick / 600
     for citizen in state.citizens.values():
         if not living(citizen):
             continue
         passive(state, citizen)
-        impact(state, citizen, "fullness", -RULES["hunger_per_tick"] * dt, "Baseline hunger", "base_decay")
-        impact(state, citizen, "energy", -RULES["fatigue_per_tick"] * dt, "Baseline fatigue", "base_decay")
-        impact(state, citizen, "social", -RULES["social_per_tick"] * dt, "Baseline isolation", "base_decay")
+        from app.simulation.daily import decay
+
+        decay(state, citizen)
         if citizen.needs.hunger > 80:
             metric_delta(citizen, "stress", 0.5 * dt, evidence("Hunger exceeds 80 under need-decay rules"))
             metric_delta(

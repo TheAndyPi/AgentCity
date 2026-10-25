@@ -155,7 +155,15 @@ def test_citizens_keep_moving_after_scenario_outcome_and_resume(client, populati
                 and decision.intent.action
                 in {"rest", "work", "gather", "consume", "help", "talk", "trade", "warn"}
             )
-        # Citizens can legitimately stay put to eat, rest or work. A majority
+            acted.update(
+                aid
+                for aid, citizen in state.citizens.items()
+                if citizen.summary.routine_state == "visiting"
+                and citizen.inside_building_id == citizen.routine_target_id
+                and citizen.routine_until > state.simulation.calendar_time_seconds
+                and citizen.summary.action == "idle"
+            )
+        # Citizens can stay to eat, rest, work or complete a timed visit. A majority
         # must still travel, and every other citizen must complete useful actions.
         assert len(moved) > len(state.citizens) // 2
         assert moved | acted == set(state.citizens), {

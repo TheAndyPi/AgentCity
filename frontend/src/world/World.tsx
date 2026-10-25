@@ -33,7 +33,9 @@ import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
 import ScenarioScene from "./ScenarioScene";
 import type { DisasterState } from "../disasters/client";
+import { eventCauseNames } from "../disasters/eventNames";
 import { fitCityDepth } from "./cameraBounds";
+import { activityLabel, calendarTime, daylight, dayPhase } from "./daylight";
 export type Overlay = Metric | "density" | null;
 export type CameraAction =
   | "zoom_in"
@@ -469,6 +471,10 @@ export default function World(props: Props) {
   if (props.mode === "2d") return <World2D {...props} />;
   const light = props.theme === "light";
   const palette = worldPalette(light ? "light" : "dark");
+  const sun = daylight(calendarTime(props.frame.simulation));
+  const sky = new THREE.Color("#151a35")
+    .lerp(new THREE.Color(light ? palette.sky : "#657b9d"), sun)
+    .getStyle();
   return (
     <WebGLErrorBoundary
       onError={props.onFallback}
@@ -478,6 +484,7 @@ export default function World(props: Props) {
         fallback={<div className="world-loading">Preparing the viewport…</div>}
       >
         <Canvas
+          data-day-phase={dayPhase(calendarTime(props.frame.simulation))}
           dpr={[1, 1.5]}
           orthographic
           onPointerMissed={(e) => {
@@ -502,8 +509,8 @@ export default function World(props: Props) {
               />
             )}
           <ContextGuard onFallback={props.onFallback} />
-          <color attach="background" args={[palette.sky]} />
-          <fog attach="fog" args={[palette.sky, 260, 600]} />
+          <color attach="background" args={[sky]} />
+          <fog attach="fog" args={[sky, 260, 600]} />
           <OrthographicCamera
             makeDefault
             position={[
@@ -517,20 +524,25 @@ export default function World(props: Props) {
           />
           {light ? (
             <>
-              <ambientLight intensity={1.4} />
+              <ambientLight intensity={0.8 + sun * 0.6} />
               <directionalLight
                 position={[50, 100, 30]}
-                intensity={2.1}
+                intensity={0.45 + sun * 1.65}
                 color="#f5e7ff"
               />
-              <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
+              <hemisphereLight
+                args={["#c8b6e4", "#37314a", 0.45 + sun * 0.55]}
+              />
             </>
           ) : (
             <>
-              <ambientLight intensity={1.4} color="#8f85ff" />
+              <ambientLight
+                intensity={0.95 + sun * 0.65}
+                color={sun < 0.5 ? "#8f85ff" : "#d9e4ff"}
+              />
               <directionalLight
                 position={[50, 100, 30]}
-                intensity={1.9}
+                intensity={0.6 + sun * 1.3}
                 color="#b9c4ff"
               />
               <directionalLight
@@ -547,6 +559,8 @@ export default function World(props: Props) {
             theme={light ? "light" : "dark"}
             reducedMotion={props.reducedMotion}
             conditions={props.disasters?.conditions}
+            events={props.frame.events}
+            nightBrightness={1 - sun}
             buildings={props.frame.map.buildings.map((b) =>
               props.disasters?.conditions[b.id]?.integrity === 0
                 ? { ...b, height_m: 0.5 }
@@ -610,7 +624,10 @@ export default function World(props: Props) {
                       <Html
                         position={[bounds.x, b.height_m + 1, bounds.y]}
                         center
-                        distanceFactor={110}
+                        // Keep labels in screen pixels: distanceFactor scales
+                        // by orthographic zoom and can cover the whole window.
+                        zIndexRange={[6, 0]}
+                        style={{ pointerEvents: "none" }}
                       >
                         <span className="damage-label">
                           {c.stage} · {c.integrity.toFixed(0)}%
@@ -792,6 +809,7 @@ function World2D(props: Props) {
   const ground = useGround(frame.map);
   const theme = props.theme === "light" ? "light" : "dark";
   const palette = worldPalette(theme);
+  const sun = daylight(calendarTime(frame.simulation));
   const speech = speechBySpeaker(frame, props.focus);
   const patternId = useId().replace(/:/g, "");
   const [hovered, setHovered] = useState<Building | null>(null);
@@ -953,6 +971,8 @@ function World2D(props: Props) {
   return (
     <svg
       className="world-2d"
+      data-day-phase={dayPhase(calendarTime(frame.simulation))}
+      style={{ backgroundColor: sun < 0.5 ? "#151a35" : palette.sky }}
       role="img"
       aria-label="Interactive top-down city map. Hover or focus a building for its purpose. Select a citizen or use Search agent."
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
@@ -1158,7 +1178,10 @@ function World2D(props: Props) {
                   <title>
                     {props.disasters.conditions[b.id].stage} · Integrity{" "}
                     {props.disasters.conditions[b.id].integrity.toFixed(1)} ·{" "}
-                    {props.disasters.conditions[b.id].cause_ids.join(", ")}
+                    {eventCauseNames(
+                      props.disasters.conditions[b.id].cause_ids,
+                      frame.events,
+                    )}
                   </title>
                   ×
                 </text>
@@ -1204,12 +1227,22 @@ function World2D(props: Props) {
               pointerEvents="none"
             />
           ))}
+      <rect
+        x={0}
+        y={0}
+        width={frame.map.width_m}
+        height={frame.map.height_m}
+        fill="#111b49"
+        opacity={(1 - sun) * 0.32}
+        pointerEvents="none"
+      />
       {frame.agents.map((a) => (
         <g
           key={a.id}
           role="button"
           tabIndex={0}
           aria-label={`${a.name}, ${a.role}`}
+          data-routine-state={a.routine_state ?? "free"}
           onClick={(e) => {
             e.stopPropagation();
             if (!drag.current?.moved) onSelect(a.id);
@@ -1221,6 +1254,7 @@ function World2D(props: Props) {
             }
           }}
         >
+          <title>{activityLabel(a)}</title>
           <MapWalker
             agent={a}
             frame={frame}
@@ -1236,6 +1270,11 @@ function World2D(props: Props) {
               />
             )}
             <circle r="2.6" fill="transparent" />
+            {a.routine_state === "sleeping" && (
+              <text y={-2} textAnchor="middle" fontSize={1.5} fill={neon.cyan}>
+                Sleeping
+              </text>
+            )}
             {(!a.active || a.emotion === "unconscious") && (
               <text y={-2} textAnchor="middle" fontSize={1.5} fill={neon.cyan}>
                 {!a.active ? "Dead" : "Unconscious"}
@@ -1307,6 +1346,7 @@ function World2D(props: Props) {
               building={currentBuilding}
               theme={theme}
               condition={props.disasters?.conditions[currentBuilding.id]}
+              events={frame.events}
             />
           </div>
         </foreignObject>

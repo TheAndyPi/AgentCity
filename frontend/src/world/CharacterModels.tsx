@@ -451,7 +451,7 @@ export default function CharacterModels({
                 {line && <span>{a.name.split(" ")[0]}</span>}
                 {line
                   ? line.text
-                  : `${a.name.split(" ")[0]}${!a.active ? " · Dead" : a.emotion === "unconscious" ? " · Unconscious" : ""}`}
+                  : `${a.name.split(" ")[0]}${!a.active ? " · Dead" : a.emotion === "unconscious" ? " · Unconscious" : a.routine_state === "sleeping" ? " · Sleeping" : a.routine_state === "returning_home" ? " · Heading home" : ""}`}
               </div>
             </Html>
           </group>

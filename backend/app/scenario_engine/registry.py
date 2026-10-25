@@ -396,6 +396,14 @@ class BroadcastInformation(Base):
     accurate: bool = True
 
 
+class SetCurfew(Base):
+    type: Literal["set_curfew"]
+    enabled: bool = True
+    start_minute: Annotated[int, Field(ge=0, le=1439)] = 1320
+    end_minute: Annotated[int, Field(ge=0, le=1439)] = 360
+    audience: Audience = Field(default_factory=Audience)
+
+
 class AdjustInstitutionalCredibility(Base):
     type: Literal["adjust_institutional_credibility"]
     audience: Audience = Field(default_factory=Audience)
@@ -487,6 +495,7 @@ Operation = Annotated[
     | ModifyResourceStock
     | ModifyHousingSupply
     | BroadcastInformation
+    | SetCurfew
     | AdjustInstitutionalCredibility
     | IntroduceSocialNorm
     | CreateOrganization
@@ -509,6 +518,7 @@ OPERATION_MODELS = {
         ModifyResourceStock,
         ModifyHousingSupply,
         BroadcastInformation,
+        SetCurfew,
         AdjustInstitutionalCredibility,
         IntroduceSocialNorm,
         CreateOrganization,
@@ -527,6 +537,11 @@ OperationType = Literal[tuple(OPERATION_MODELS)]
 # Description, the systems an operation touches, and whether it is a physical
 # event that shares the event's single map region.
 OPERATIONS: dict[str, tuple[str, tuple[str, ...], bool]] = {
+    "set_curfew": (
+        "Announce a daily curfew to an audience, with clock-based homeward behavior and personality-based compliance. Times are minutes after midnight; default 22:00–06:00. Safety and medical care override it.",
+        ("safety", "public_trust", "information"),
+        False,
+    ),
     "modify_policy": (
         "Set, increase, decrease, multiply or clear one registered policy target.",
         (),

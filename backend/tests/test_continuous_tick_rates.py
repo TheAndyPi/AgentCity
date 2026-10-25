@@ -21,6 +21,7 @@ def paired_states(client):
     legacy.citizens[aid].profile = legacy.citizens[aid].profile.model_copy(deep=True)
     modern = legacy.model_copy(deep=True)
     modern.simulation.config.tick_seconds = 1
+    modern.simulation.config.calendar_seconds_per_tick = 12
     return legacy, modern, aid
 
 

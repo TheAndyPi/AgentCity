@@ -19,7 +19,7 @@ IDs are opaque server-issued strings. Simulation and custom-profile IDs are glob
 
 World coordinates are meters on a flat navigable ground plane: `{x,y}`, +x east, +y north. Three.js maps this to `[x,elevation_m,y]`. Building height is visual elevation, not a third navigation coordinate. Rotation is radians, clockwise from north. Frontend consumes backend map geometry, never regenerates topology from a seed. Navigability uses square cells and authoritative A* paths. The initial map default is 64 by 64 cells, each 2 meters wide. Exact dimensions are returned by the backend. Region polygons are simple, closed implicitly, with at least three vertices. No teleportation or client-authoritative collision checks.
 
-Default `tick_seconds=1`, baseline `ticks_per_real_second=20` (legacy `tick_seconds=10` saves run at 2 ticks/s), `speed_multiplier` in `[0.25,0.5,1,2,5,10]`. A displayed 1x means the baseline simulation rate, not real-time seconds. Speed changes scheduling frequency, not tick duration or movement physics. A duration in ticks means ticks, not milliseconds. Human walking default is 1.4 m/s, modified by explicit mobility. Server reports achieved tick rate rather than pretending an overloaded 10x run is keeping up. Configuration defaults: population 30, allowed 10 through 100; sliders 50; simulation mode `sandbox`; settlement `suburb`; max_ticks 100000 for new worlds (legacy 10000 is retained)0 for new worlds (legacy 10000 is retained)0 for new worlds (legacy 10000 is retained). Custom profiles selected at setup are included in the population count, not added on top. These are implementation assumptions, not claims about limits established by the PDF.
+Default physical `tick_seconds=1`, baseline `ticks_per_real_second=20` (legacy ten-second saves run at 2 ticks/s), `speed_multiplier` in `[0.25,0.5,1,2,5,10]`. The independent calendar advances `calendar_seconds_per_tick=12` (120 for ten-second worlds): 30 game minutes take 150 one-second ticks or 15 ten-second ticks / 7.5 real seconds at an achieved 1x. New calendars start at Day 1, 08:00. `sim_time_seconds` retains elapsed physical simulation time; `calendar_time_seconds` drives the visible clock and daily routines. A displayed 1x means the baseline simulation rate. Speed changes scheduling frequency, not either tick duration or movement physics. Existing event durations remain physical ticks. Human walking default is 1.4 m/s, modified by explicit mobility. Server reports achieved tick rate rather than pretending an overloaded 10x run is keeping up. Configuration defaults: population 30, allowed 10 through 100; sliders 50; simulation mode `sandbox`; settlement `suburb`; max_ticks 100000 for new worlds (legacy 10000 is retained). Custom profiles selected at setup are included in the population count, not added on top.
 
 #### C3. Exact data models
 
@@ -425,3 +425,23 @@ Running heads publish an in-memory revision every tick. Ordered background commi
 Snapshot stream messages carry the full map and `map_version`. Frame messages carry the changing world fields with `map_version`, and omit `map` unless a snapshot is required by a changed blocked-cell set. Frame `map_updates` carry current zone metrics and population, building occupancy/capacity/function, and resource stock without resending geometry. All sockets share the revision's encoded bytes, receive at most 20 frames/s, and skip superseded revisions.
 
 `GET /simulations/{id}/dialogue` accepts optional `agent_id` (speaker or recipient) and `interaction_id` filters, plus `cursor` and `limit` (1..100). Lines are newest-first by append sequence, with no full-history sort. Signed cursors bind owner, simulation, filters, revision and append-position boundary; live appends do not shift subsequent pages.
+
+
+#### Coordinated calendar extension (snapshot revision 3)
+
+The wire envelope remains 1.0.0. Config adds calendar_seconds_per_tick (integer
+1..600, default 12 for one-second worlds or 120 for ten-second worlds). Simulation adds calendar_time_seconds. Missing legacy
+calendar values read as sim_time_seconds; the first resumed tick activates
+calendar rule version 3.0.0 without rewriting historical revisions.
+
+AgentSummary adds routine_state and activity_until_calendar_seconds. WorldFrame
+adds curfew (enabled, start_minute, end_minute, revision, informed_agent_ids) and
+conversation_sessions (id, participant_ids, status, accepted_calendar_seconds,
+minimum_end_calendar_seconds, next_turn_calendar_seconds, end_reason). Additive
+defaults permit older checkpoints and frontend historical responses.
+
+Accepted conversations last at least 3600 calendar seconds and alternate turns
+at 1200-second intervals. Danger, urgent needs, medical care and a known curfew
+can interrupt; warnings remain immediate. Routine sleep uses rest, never medical
+unconsciousness. Structured scenario set_curfew announces a daily window (default
+22:00-06:00) to an audience and supports expiry/reversion and personal compliance.

@@ -1,4 +1,6 @@
 import type { DisasterState } from "../disasters/client";
+import type { EventSummary } from "../api/types";
+import { eventCauseNames } from "../disasters/eventNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Html } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
@@ -17,7 +19,9 @@ export function BuildingTag({
   building,
   theme = "dark",
   condition,
+  events = [],
 }: {
+  events?: readonly Pick<EventSummary, "id" | "title">[];
   condition?: DisasterState["conditions"][string];
   building: Building;
   theme?: WorldTheme;
@@ -37,7 +41,7 @@ export function BuildingTag({
       {condition && (
         <span>
           {condition.stage} · Integrity {condition.integrity.toFixed(1)} / 100 ·
-          Cause {condition.cause_ids.join(", ") || "none"}
+          Cause: {eventCauseNames(condition.cause_ids, events)}
         </span>
       )}
       <small>
@@ -53,6 +57,7 @@ function Parts({
   roof = false,
   glow = false,
   blink = false,
+  nightBrightness = 1,
   onHover,
   onPick = onHover,
 }: {
@@ -60,6 +65,7 @@ function Parts({
   roof?: boolean;
   glow?: boolean;
   blink?: boolean;
+  nightBrightness?: number;
   onHover: (id: string | null) => void;
   onPick?: (id: string | null) => void;
 }) {
@@ -112,7 +118,8 @@ function Parts({
         <meshBasicMaterial
           ref={beacon}
           toneMapped={false}
-          transparent={blink}
+          opacity={blink ? 1 : 0.3 + nightBrightness * 0.7}
+          transparent
           depthWrite={!blink}
         />
       ) : (
@@ -176,7 +183,11 @@ export default function Buildings({
   reducedMotion = false,
   onClick,
   conditions,
+  events = [],
+  nightBrightness = 1,
 }: {
+  nightBrightness?: number;
+  events?: readonly Pick<EventSummary, "id" | "title">[];
   conditions?: DisasterState["conditions"];
   buildings: Building[];
   cutaway?: string[];
@@ -212,6 +223,7 @@ export default function Buildings({
       <Parts
         parts={visible(layout.glows)}
         glow
+        nightBrightness={nightBrightness}
         onHover={setHovered}
         onPick={pick}
       />
@@ -291,6 +303,7 @@ export default function Buildings({
             building={building}
             theme={theme}
             condition={conditions?.[building.id]}
+            events={events}
           />
         </Html>
       )}

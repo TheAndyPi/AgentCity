@@ -2,7 +2,7 @@
 
 import random
 
-from conftest import create_city
+from conftest import advance_conversation_turn, create_city
 
 from app import contracts as c
 from app.simulation.agents import generated_profile, remember
@@ -28,6 +28,7 @@ def world(client):
 
 
 def talk(state, a, b, message=None):
+    advance_conversation_turn(state, a)
     intent = make_intent("talk", target=b.summary.id)
     intent.parameters.message = message
     decision = apply_intent(state, a, intent)
@@ -176,6 +177,8 @@ def test_saved_placeholder_upgrade_is_durable_and_keeps_historical_revision(tmp_
         original_revision = client.portal.call(save_original_cast)
     with TestClient(create_app(config), **options) as client:
         service = client.app.state.service
+        assert sid not in service.heads
+        assert client.get(f"/api/v1/simulations/{sid}").status_code == 200
         state = service.heads[sid]
         assert state.simulation.revision == original_revision + 1
         assert state.simulation.status == "paused"
@@ -184,6 +187,7 @@ def test_saved_placeholder_upgrade_is_durable_and_keeps_historical_revision(tmp_
         assert next(iter(old.citizens.values())).summary.name == "Alex 1"
         upgraded = state.model_dump()
     with TestClient(create_app(config), **options) as client:
+        assert client.get(f"/api/v1/simulations/{sid}").status_code == 200
         assert client.app.state.service.heads[sid].model_dump() == upgraded
 
 

@@ -847,14 +847,11 @@ test("mobile settings and profiles preserve setup drafts, copy citizens, archive
     page.getByRole("button", { name: `Unarchive ${name}`, exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Permanently delete all", exact: true })
+    .getByRole("button", { name: "Delete all archived", exact: true })
     .click();
   await page
     .getByRole("dialog")
-    .getByRole("textbox", { name, exact: true })
-    .fill(name);
-  await page
-    .getByRole("button", { name: "Permanently delete", exact: true })
+    .getByRole("button", { name: "Delete save", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect((await page.request.get(`/api/v1/simulations/${id}`)).status()).toBe(

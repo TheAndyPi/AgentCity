@@ -82,6 +82,13 @@ def check(condition, code, message):
         raise Rejected(code, message)
 
 
+def current_decisions(state):
+    for decision in reversed(state.decisions):
+        if decision.tick != state.simulation.tick:
+            break
+        yield decision
+
+
 def apply_intent(state, citizen, intent, source="rules", context=None):
     from app.behavior.vitals import conscious, evaluate
 
@@ -158,6 +165,24 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 "Physical interactions require a distance of at most 3 meters",
             )
         action = intent.action
+        from app.simulation.daily import emergency
+        from app.simulation.interactions import active_conversation
+
+        session = active_conversation(state, citizen)
+        if not emergency(state, citizen) and citizen.needs.hunger <= 80 and citizen.needs.fatigue < 90:
+            if session is not None:
+                check(
+                    action in {"idle", "talk", "warn"},
+                    "ACTIVITY_COMMITMENT",
+                    "Finish or interrupt the accepted conversation before another activity",
+                )
+            if citizen.summary.routine_state in {"sleeping", "resting", "returning_home", "seeking_shelter"}:
+                check(
+                    action in {"rest", "consume", "warn", "evacuate", "help"}
+                    or (action == "move" and intent.target_id == citizen.routine_target_id),
+                    "ACTIVITY_COMMITMENT",
+                    "Continue the current homeward or rest commitment",
+                )
         if action in {"talk", "trade", "warn"}:
             check(conscious(target), "INCAPACITATED", "Target cannot participate while unconscious")
         if action in {"help", "trade"}:
@@ -290,7 +315,7 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
             if state.policies.ration_units_per_agent is not None:
                 already = sum(
                     d.intent.parameters.amount or 0
-                    for d in state.decisions
+                    for d in current_decisions(state)
                     if d.agent_id == citizen.summary.id
                     and d.tick == state.simulation.tick
                     and d.intent.action == "gather"
@@ -330,7 +355,7 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 and d.intent.action == "work"
                 and d.intent.target_id == workplace.id
                 and d.outcome == "accepted"
-                for d in state.decisions
+                for d in current_decisions(state)
             )
             check(working < workplace.capacity, "CAPACITY", "Workplace is at capacity")
             # Work draws stock from the supply depot; it never creates unlogged resources.
@@ -428,6 +453,54 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 social_delta(state, citizen, target, did, 2)
                 decision.outcome_description = "Both parties accepted; resource exchange committed atomically"
         elif action in {"talk", "warn"}:
+            if action == "talk":
+                from app.simulation import calendar
+                from app.simulation.daily import can_start_conversation
+
+                other_session = active_conversation(state, target)
+                check(
+                    target.summary.routine_state not in {"sleeping", "returning_home", "seeking_shelter"},
+                    "PARTICIPANT_BUSY",
+                    "This neighbor is committed to sleep or homeward travel",
+                )
+                check(
+                    other_session is None or citizen.summary.id in other_session.participant_ids,
+                    "PARTICIPANT_BUSY",
+                    "This neighbor is already talking with someone else",
+                )
+                if session is not None:
+                    check(
+                        session.status != "invited" or session.initiator_id != citizen.summary.id,
+                        "AWAITING_ACCEPTANCE",
+                        "The recipient must accept before the initiator can continue the conversation",
+                    )
+                    check(
+                        target.summary.id in session.participant_ids,
+                        "PARTICIPANT_BUSY",
+                        "Continue with the current conversation partner",
+                    )
+                    lines = state.dialogue_index().by_interaction.get(session.id, [])
+                    check(
+                        not lines
+                        or (
+                            lines[-1].speaker_id != citizen.summary.id
+                            and lines[-1].tick < state.simulation.tick
+                        ),
+                        "AWAITING_TURN",
+                        "Listen until the other speaker has finished their turn",
+                    )
+                    check(
+                        session.next_turn_calendar_seconds is None
+                        or calendar.now(state) >= session.next_turn_calendar_seconds,
+                        "AWAITING_TURN",
+                        "Take time to listen before replying",
+                    )
+                else:
+                    check(
+                        can_start_conversation(state, citizen) and can_start_conversation(state, target),
+                        "CURFEW_SOON",
+                        "There is not an hour available before the known curfew",
+                    )
             interaction, accepted = accept_invitation(
                 state,
                 citizen,
@@ -448,29 +521,6 @@ def apply_intent(state, citizen, intent, source="rules", context=None):
                 decision.outcome_description = "Conversation invited; awaiting explicit recipient acceptance"
             else:
                 decision.outcome_description = "Both participants accepted the conversation"
-                from app.behavior.rules import RULES as BEHAVIOR_RULES
-                from app.behavior.rules import social_multiplier
-                from app.behavior.vitals import impact
-
-                tie = citizen.relationships.get(target.summary.id)
-                if not tie or tie.conflict < 50:
-                    impact(
-                        state,
-                        citizen,
-                        "social",
-                        5 * social_multiplier(citizen, target),
-                        "Accepted friendly conversation",
-                        proof=proof,
-                    )
-                    impact(
-                        state,
-                        citizen,
-                        "mental",
-                        BEHAVIOR_RULES["comfort_mental"],
-                        "Accepted social support",
-                        proof=proof,
-                    )
-                    metric_delta(citizen, "stress", BEHAVIOR_RULES["comfort_stress"], proof)
                 metric_delta(citizen, "happiness", 0.3, proof)
         citizen.summary.action = action
         citizen.summary.action_target_id = intent.target_id
@@ -622,6 +672,7 @@ def advance_movement(state, citizen):
             citizen.plan = None
             citizen.task_generation += 1
             citizen.next_deliberation_tick = state.simulation.tick + legacy_ticks(state, 1)
+            citizen.routine_retry_tick = state.simulation.tick + legacy_ticks(state, 4)
             citizen.blocked_movement_ticks = 0
     else:
         citizen.blocked_movement_ticks = 0
@@ -695,7 +746,12 @@ def rule_intent(state, citizen, context):
             motivation="Someone I can see needs help and I have supplies",
             emotion="concerned",
         )
-    if citizen.needs.hunger >= 45:
+    from app.simulation.daily import commitment_intent
+
+    commitment, committed = commitment_intent(state, citizen, context)
+    if committed:
+        return commitment
+    if citizen.needs.hunger >= 70:
         for kind in ("food", "water"):
             if getattr(citizen.inventory, kind) >= 1:
                 return make_intent("consume", kind=kind, amount=1, motivation="I need to eat or drink")
@@ -858,7 +914,9 @@ def rule_intent(state, citizen, context):
                     destination=meeting_point(state.map, p, other.summary.position),
                     motivation=reason,
                 )
-    if citizen.inside_building_id and citizen.visit_until_tick > state.simulation.tick:
+    from app.simulation import calendar
+
+    if citizen.inside_building_id and citizen.routine_until > calendar.now(state):
         building = next(b for b in state.map.buildings if b.id == citizen.inside_building_id)
         if building.kind == "work" and citizen.inventory.supplies < citizen.target_inventory_units:
             return make_intent("work", target=building.id, motivation="Do a short shift at my workplace")

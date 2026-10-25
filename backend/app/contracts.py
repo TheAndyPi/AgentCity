@@ -227,7 +227,16 @@ class Config(Model):
     scenario_description: Annotated[str, Field(max_length=4000)]
     custom_agent_ids: IDs
     tick_seconds: Literal[1, 10]
+    calendar_seconds_per_tick: Annotated[int, Field(ge=1, le=600), BeforeValidator(integer_number)] = 120
     max_ticks: Annotated[int, Field(ge=1, le=100000), BeforeValidator(integer_number)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def calendar_rate(cls, value):
+        if isinstance(value, dict) and "calendar_seconds_per_tick" not in value:
+            # Preserve the daily clock's pace across one- and ten-second worlds.
+            value = dict(value, calendar_seconds_per_tick=12 if value.get("tick_seconds", 1) == 1 else 120)
+        return value
 
     @model_validator(mode="after")
     def profile_count(self):
@@ -246,6 +255,7 @@ class ConfigRequest(Config):
     scenario_description: Annotated[str, Field(max_length=4000)] = ""
     custom_agent_ids: IDs = Field(default_factory=list)
     tick_seconds: Literal[1, 10] = 1
+    calendar_seconds_per_tick: Annotated[int, Field(ge=1, le=600), BeforeValidator(integer_number)] = 12
     max_ticks: Annotated[int, Field(ge=1, le=100000), BeforeValidator(integer_number)] = 100000
 
     def normalized(self):
@@ -274,6 +284,7 @@ class Simulation(Model):
     revision: Counter
     control_version: Counter
     sim_time_seconds: Units
+    calendar_time_seconds: Units = 0
     speed_multiplier: Speed
     achieved_ticks_per_second: Units
     agent_count: Counter
@@ -284,6 +295,13 @@ class Simulation(Model):
     pending_outcome_event_ids: list[ID]
     initialization: Job
     initial_preview: ScenarioPreview | None
+
+    @model_validator(mode="before")
+    @classmethod
+    def legacy_calendar(cls, value):
+        if isinstance(value, dict) and "calendar_time_seconds" not in value:
+            value = dict(value, calendar_time_seconds=value.get("sim_time_seconds", 0))
+        return value
 
 
 class Cell(Model):
@@ -370,6 +388,8 @@ class AgentSummary(Model):
     latest_decision_id: ID | None
     thought_bubble: Text | None
     active: bool
+    routine_state: str = "free"
+    activity_until_calendar_seconds: Units | None = None
 
 
 class Memory(Model):
@@ -684,6 +704,24 @@ class Hazard(Model):
     severity: Pct
 
 
+class CurfewPolicy(Model):
+    enabled: bool = False
+    start_minute: Annotated[int, Field(ge=0, le=1439)] = 1320
+    end_minute: Annotated[int, Field(ge=0, le=1439)] = 360
+    revision: Counter = 0
+    informed_agent_ids: list[ID] = Field(default_factory=list)
+
+
+class ConversationSession(Model):
+    id: ID
+    participant_ids: list[ID]
+    status: str
+    accepted_calendar_seconds: Units | None
+    minimum_end_calendar_seconds: Units | None
+    next_turn_calendar_seconds: Units | None
+    end_reason: str | None
+
+
 class WorldFrame(Model):
     ref: Ref
     simulation: Simulation
@@ -695,6 +733,8 @@ class WorldFrame(Model):
     metrics: MetricPoint
     recent_dialogue: list[Dialogue]
     active_hazards: list[Hazard]
+    curfew: CurfewPolicy = Field(default_factory=CurfewPolicy)
+    conversation_sessions: list[ConversationSession] = Field(default_factory=list)
 
 
 class ZoneUpdate(Model):

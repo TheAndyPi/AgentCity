@@ -34,6 +34,7 @@ from app.simulation.agents import (
 )
 from app.simulation.building_visits import same_room, sync_building_location
 from app.simulation.characters import upgrade_placeholder_citizens
+from app.simulation.daily import model_available
 from app.simulation.engine import list_tree, tick
 from app.simulation.game_master import apply_intent, make_intent
 from app.simulation.lessons import adopt_drafts, lesson_material
@@ -595,6 +596,7 @@ class Service:
             revision=0,
             control_version=0,
             sim_time_seconds=0,
+            calendar_time_seconds=8 * 3600,
             speed_multiplier=1,
             achieved_ticks_per_second=0,
             agent_count=0,
@@ -666,6 +668,9 @@ class Service:
                         state.map = await asyncio.to_thread(generate_map, state, rng)
                     elif stage == "population":
                         homes = [b for b in state.map.buildings if b.kind == "home"]
+                        from app.simulation.building_visits import interior_capacity
+
+                        assigned = {b.id: 0 for b in homes}
                         for i in range(state.simulation.config.population):
                             template = (
                                 state.initialization_profiles[i]
@@ -677,7 +682,12 @@ class Service:
                                 if template
                                 else generated_profile(i, state.simulation.config, rng)
                             )
-                            home = homes[i % len(homes)].entrance
+                            available = [b for b in homes if assigned[b.id] < interior_capacity(b)]
+                            residence = min(
+                                available or homes, key=lambda b: (assigned[b.id], homes.index(b))
+                            )
+                            assigned[residence.id] += 1
+                            home = residence.entrance
                             position = home
                             if state.simulation.config.population <= 10:
                                 for dx, dy in [(-0.55, -0.55), (0.55, 0.55), (-0.55, 0.55), (0.55, -0.55)]:
@@ -695,6 +705,7 @@ class Service:
                                         break
                             citizen = spawn(state, profile, position, template)
                             citizen.home = home.model_copy()
+                            citizen.home_building_id = residence.id
                             citizen.next_deliberation_tick = legacy_ticks(state, i % 8) if i % 8 else 0
                         from app.behavior.classes import initialize_distribution
 
@@ -1492,6 +1503,7 @@ class Service:
                 citizen
                 for citizen in state.citizens.values()
                 if conscious(citizen)
+                and model_available(state, citizen)
                 and citizen.condition.care == "none"
                 and not (citizen.condition.episode and citizen.condition.episode.end_tick is None)
                 and not citizen.summary.path

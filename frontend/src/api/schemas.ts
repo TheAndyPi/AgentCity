@@ -89,6 +89,7 @@ const configObject = obj({
   scenario_description: z.string().max(4000),
   custom_agent_ids: ids,
   tick_seconds: z.union([z.literal(1), z.literal(10)]),
+  calendar_seconds_per_tick: count.min(1).max(600).optional(),
   max_ticks: count.min(1).max(100000),
 }).strict();
 export const config: z.ZodType<T.Config, T.Config> = configObject.refine(
@@ -109,6 +110,7 @@ export const configRequest = configObject
     scenario_description: true,
     custom_agent_ids: true,
     tick_seconds: true,
+    calendar_seconds_per_tick: true,
     max_ticks: true,
   })
   .extend({
@@ -291,6 +293,7 @@ export const simulation: z.ZodType<T.Simulation> = obj({
   revision: count,
   control_version: count,
   sim_time_seconds: finite.nonnegative(),
+  calendar_time_seconds: finite.nonnegative().optional(),
   speed_multiplier: speed,
   achieved_ticks_per_second: finite.nonnegative(),
   agent_count: count,
@@ -399,6 +402,8 @@ export const intent = obj({
   emotion: text,
 }).strict();
 export const agent: z.ZodType<T.AgentSummary> = obj({
+  routine_state: z.string().optional(),
+  activity_until_calendar_seconds: finite.nonnegative().nullable().optional(),
   id,
   name,
   role: name,
@@ -541,6 +546,28 @@ export const metricPoint = obj({
   exposed_count: count,
 }).strict();
 const worldFields = {
+  curfew: obj({
+    enabled: z.boolean(),
+    start_minute: count.max(1439),
+    end_minute: count.max(1439),
+    revision: count,
+    informed_agent_ids: recordIds,
+  })
+    .strict()
+    .optional(),
+  conversation_sessions: z
+    .array(
+      obj({
+        id,
+        participant_ids: recordIds,
+        status: z.string(),
+        accepted_calendar_seconds: finite.nonnegative().nullable(),
+        minimum_end_calendar_seconds: finite.nonnegative().nullable(),
+        next_turn_calendar_seconds: finite.nonnegative().nullable(),
+        end_reason: z.string().nullable(),
+      }).strict(),
+    )
+    .optional(),
   ref,
   simulation,
   map,

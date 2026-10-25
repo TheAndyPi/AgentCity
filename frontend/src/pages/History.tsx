@@ -22,6 +22,7 @@ import {
   Field,
 } from "../components/ui";
 import { pretty, simTime } from "../api/defaults";
+import { calendarTime } from "../world/daylight";
 import {
   nameKey,
   simulationNames,
@@ -43,7 +44,6 @@ export default function History() {
   }, [client]);
   const [selected, setSelected] = useState<string[]>([]),
     [deleting, setDeleting] = useState<Simulation[] | null>(null),
-    [confirmations, setConfirmations] = useState<Record<string, string>>({}),
     [duplicating, setDuplicating] = useState<Simulation | null>(null),
     [compare, setCompare] = useState<WorldFrame | null>(null),
     [overview, setOverview] = useState<WorldFrame | null>(null),
@@ -66,21 +66,37 @@ export default function History() {
       setBusy(false);
     }
   };
+  const confirmDelete = (saves: Simulation[]) => {
+    setError("");
+    setDeleting(saves);
+  };
   const remove = async () => {
     if (!deleting) return;
     setBusy(true);
     setError("");
     const results = await Promise.allSettled(
-      deleting.map((s) => client.delete(s)),
+      deleting.map(async (s) => {
+        const current = await client.simulation(s.id);
+        if (current.name !== s.name)
+          throw new Error(
+            `${s.name} was renamed. Refresh the list before deleting it.`,
+          );
+        if (!current.archived)
+          await client.command(current, { type: "archive" });
+        return client.delete(current);
+      }),
     );
     const failed = deleting.filter((_, i) => results[i].status === "rejected");
     const failures = results.filter(
       (r): r is PromiseRejectedResult => r.status === "rejected",
     );
     worlds.reload();
-    setSelected((ids) =>
-      ids.filter((id) => !deleting.some((s) => s.id === id)),
+    const removed = new Set(
+      deleting
+        .filter((_, i) => results[i].status === "fulfilled")
+        .map((s) => s.id),
     );
+    setSelected((ids) => ids.filter((id) => !removed.has(id)));
     if (failed.length) {
       setDeleting(failed);
       setError(
@@ -89,7 +105,7 @@ export default function History() {
     } else {
       setDeleting(null);
       notice(
-        `${results.length} archived ${results.length === 1 ? "world" : "worlds"} deleted.`,
+        `${results.length} ${results.length === 1 ? "save" : "saves"} deleted.`,
       );
     }
     setBusy(false);
@@ -148,15 +164,17 @@ export default function History() {
           .finally(() => setBusy(false));
       }}
       onArchive={() => void update(s, archived ? "unarchive" : "archive")}
+      onDelete={() => confirmDelete([s])}
       onOverview={setOverview}
     />
   );
   const activeSelected = worlds.data
     ? worlds.data.active.filter((s) => selected.includes(s.id)).length
     : 0;
-  const archivedSelected = worlds.data
-    ? worlds.data.archived.filter((s) => selected.includes(s.id)).length
-    : 0;
+  const saves = worlds.data
+    ? [...worlds.data.active, ...worlds.data.archived]
+    : [];
+  const selectedSaves = saves.filter((s) => selected.includes(s.id));
   return (
     <Page
       title="Previous simulations"
@@ -175,6 +193,31 @@ export default function History() {
         <Busy text="Finding your saved worlds…" />
       ) : (
         <>
+          {saves.length > 0 && (
+            <div className="history-selection-bar">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedSaves.length === saves.length}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setSelected(e.target.checked ? saves.map((s) => s.id) : [])
+                  }
+                />
+                Select all saves
+              </label>
+              <span>{selectedSaves.length} selected</span>
+              <Button
+                kind="danger"
+                disabled={busy || selectedSaves.length === 0}
+                onClick={() => confirmDelete(selectedSaves)}
+              >
+                <Trash2 size={15} />
+                Delete selected
+                {selectedSaves.length > 0 && ` (${selectedSaves.length})`}
+              </Button>
+            </div>
+          )}
           <div className="history-section-heading">
             <h2>
               Active simulations <span>{worlds.data.active.length}</span>
@@ -209,20 +252,10 @@ export default function History() {
               <Button
                 kind="ghost"
                 disabled={busy}
-                onClick={() => {
-                  setConfirmations({});
-                  setError("");
-                  setDeleting(
-                    worlds.data!.archived.filter(
-                      (s) => !archivedSelected || selected.includes(s.id),
-                    ),
-                  );
-                }}
+                onClick={() => confirmDelete(worlds.data!.archived)}
               >
                 <Trash2 size={15} />
-                {archivedSelected
-                  ? `Delete selected (${archivedSelected})`
-                  : "Permanently delete all"}
+                Delete all archived
               </Button>
             )}
           </div>
@@ -237,25 +270,19 @@ export default function History() {
       )}
       {deleting && (
         <Modal
-          title={`Permanently delete ${deleting.length} ${deleting.length === 1 ? "simulation" : "simulations"}?`}
+          title={`Delete ${deleting.length === 1 ? "saved simulation" : `${deleting.length} saved simulations`}?`}
           onClose={() => setDeleting(null)}
           busy={busy}
         >
           <p>
-            Type each simulation’s exact name to confirm. Its stored history
-            will be removed and cannot be recovered.
+            These saves and their history will be permanently deleted. This
+            cannot be undone.
           </p>
-          {deleting.map((s) => (
-            <Field key={s.id} label={s.name}>
-              <input
-                value={confirmations[s.id] ?? ""}
-                onChange={(e) =>
-                  setConfirmations((c) => ({ ...c, [s.id]: e.target.value }))
-                }
-                placeholder={s.name}
-              />
-            </Field>
-          ))}
+          <ul className="delete-save-list">
+            {deleting.map((s) => (
+              <li key={s.id}>{s.name}</li>
+            ))}
+          </ul>
           {error && <ErrorBox error={error} />}
           <div className="modal-actions">
             <Button
@@ -265,14 +292,12 @@ export default function History() {
             >
               Cancel
             </Button>
-            <Button
-              kind="danger"
-              disabled={
-                busy || deleting.some((s) => confirmations[s.id] !== s.name)
-              }
-              onClick={() => void remove()}
-            >
-              Permanently delete
+            <Button kind="danger" disabled={busy} onClick={() => void remove()}>
+              {busy
+                ? "Deleting…"
+                : deleting.length === 1
+                  ? "Delete save"
+                  : `Delete ${deleting.length} saves`}
             </Button>
           </div>
         </Modal>
@@ -305,6 +330,7 @@ function WorldCard({
   onDuplicate,
   onCompare,
   onArchive,
+  onDelete,
   onOverview,
 }: {
   simulation: Simulation;
@@ -316,6 +342,7 @@ function WorldCard({
   onDuplicate: () => void;
   onCompare: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   onOverview: (frame: WorldFrame) => void;
 }) {
   const { client } = useApp();
@@ -386,6 +413,7 @@ function WorldCard({
             aria-label={`Select ${s.name}`}
             type="checkbox"
             checked={selected}
+            disabled={busy}
             onChange={(e) => onSelect(e.target.checked)}
           />
         </label>
@@ -405,7 +433,7 @@ function WorldCard({
           </span>
           <span>
             <Clock size={14} />
-            {simTime(s.sim_time_seconds)}
+            {simTime(calendarTime(s))}
           </span>
           <span>Tick {s.tick}</span>
         </div>
@@ -454,6 +482,15 @@ function WorldCard({
             onClick={onArchive}
           >
             {archived ? <ArchiveRestore size={17} /> : <Archive size={17} />}
+          </button>
+          <button
+            className="button ghost world-card-delete"
+            disabled={busy}
+            aria-label={`Delete ${s.name}`}
+            onClick={onDelete}
+          >
+            <Trash2 size={15} />
+            Delete save
           </button>
         </div>
       </div>

@@ -1,11 +1,14 @@
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { ChevronDown, ChevronUp, Volume2 } from "lucide-react";
 import type { WorldFrame } from "../api/types";
 import type { WorldStore } from "../state/world";
 import { useApp } from "../state/app";
@@ -44,7 +47,9 @@ export default function LiveVoiceProvider({
   disasters?: DisasterState | null;
   listeningPoint?: { x: number; y: number };
 }) {
-  const { client, capabilities } = useApp();
+  const { client } = useApp();
+  const [audioOpen, setAudioOpen] = useState(false);
+  const audioPanelId = useId();
   const voices = useMemo(
     () => new LiveVoices(client, new Audio(), preferences()),
     [client, store],
@@ -55,24 +60,6 @@ export default function LiveVoiceProvider({
   );
   const sound = useSyncExternalStore(sounds.subscribe, sounds.getSnapshot);
   const view = useSyncExternalStore(voices.subscribe, voices.getSnapshot);
-  const dock = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const node = dock.current;
-    const stage = node?.previousElementSibling;
-    if (!node || !(stage instanceof HTMLElement)) return;
-    const sync = () =>
-      stage.style.setProperty(
-        "--audio-dock-height",
-        `${node.getBoundingClientRect().height + 12}px`,
-      );
-    sync();
-    const observer = new ResizeObserver(sync);
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
-      stage.style.removeProperty("--audio-dock-height");
-    };
-  }, [capabilities?.narration, sounds]);
   const currentAudio = useRef({ view, sound });
   currentAudio.current = { view, sound };
   const scopeKey = JSON.stringify(scope);
@@ -151,19 +138,42 @@ export default function LiveVoiceProvider({
     frame.agents.find((a) => a.id === view.speaking?.speaker_id)?.name ??
     view.speaking?.speaker_id;
   return (
-    <>
+    <div className="simulation-shell">
       {children}
-      {(capabilities?.narration ||
-        Object.values(sound.categories).some((v) => v !== "unconfigured")) && (
-        <section
-          ref={dock}
-          className="live-voices glass"
-          aria-label="Live voices"
-          data-sound-enabled={sound.enabled}
-          data-sound-events={
-            disasters?.events.filter((e) => e.phase === "active").length ?? 0
-          }
-        >
+      <section
+        className={`live-voices ${audioOpen ? "glass" : "live-voices-closed"}`}
+        aria-label="Live voices"
+        data-sound-enabled={sound.enabled}
+        data-sound-events={
+          disasters?.events.filter((e) => e.phase === "active").length ?? 0
+        }
+      >
+        <header className="live-voice-header">
+          {audioOpen && (
+            <h2>
+              <Volume2 size={16} aria-hidden="true" />
+              Sound &amp; voices
+            </h2>
+          )}
+          <button
+            type="button"
+            className="live-voice-toggle"
+            aria-label={
+              audioOpen ? "Close audio controls" : "Open audio controls"
+            }
+            aria-expanded={audioOpen}
+            aria-controls={audioPanelId}
+            onClick={() => setAudioOpen((open) => !open)}
+          >
+            {audioOpen ? "Close audio" : "Open audio"}
+            {audioOpen ? (
+              <ChevronDown size={16} aria-hidden="true" />
+            ) : (
+              <ChevronUp size={16} aria-hidden="true" />
+            )}
+          </button>
+        </header>
+        <div className="live-voice-panel" id={audioPanelId} hidden={!audioOpen}>
           <div className="live-voice-controls">
             <button
               onClick={() => {
@@ -173,8 +183,8 @@ export default function LiveVoiceProvider({
             >
               Enable sound
             </button>
-            <details className="sound-mix">
-              <summary>Sound mix</summary>
+            <div className="sound-mix" role="group" aria-label="Sound mix">
+              <span className="sound-mix-title">Sound mix</span>
               <div className="sound-mix-options">
                 {(["effects", "music", "voices"] as const).map((category) => (
                   <label key={category}>
@@ -200,7 +210,7 @@ export default function LiveVoiceProvider({
                 </small>
                 {sound.error && <span role="status">{sound.error}</span>}
               </div>
-            </details>
+            </div>
             {!view.enabled ? (
               <button
                 onClick={() => {
@@ -301,8 +311,8 @@ export default function LiveVoiceProvider({
               }}
             />
           )}
-        </section>
-      )}
-    </>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -21,3 +21,9 @@ already having a conversation. You can also take time alone or visit a known
 facility: move with its id as target_id and a null destination to walk through
 its entrance and enter when room is available. Work inside workplaces, rest at
 home, run errands, and leave after your visit; do not repeat one task forever.
+
+Respect daily_life commitments and the known curfew. An accepted conversation
+occupies at least a game hour, with alternating replies about 20 game minutes
+apart. Listening between turns needs no repeated line. Nighttime sleep is not
+medical unconsciousness. The backend enforces speaking turns and homeward/rest
+commitments, with urgent safety and medical needs taking precedence.

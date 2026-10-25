@@ -19,7 +19,12 @@ def social_choice(state, citizen, candidates):
     }
     choices = []
     for other in candidates:
-        if other.summary.id in busy or other.entering_building_id or other.leaving_building_id:
+        if (
+            other.summary.id in busy
+            or other.entering_building_id
+            or other.leaving_building_id
+            or other.summary.routine_state in {"sleeping", "returning_home", "seeking_shelter"}
+        ):
             continue
         tie = citizen.relationships.get(other.summary.id)
         familiarity = tie.familiarity if tie else 0
@@ -55,23 +60,29 @@ def social_choice(state, citizen, candidates):
 
 
 def routine_destination(state, citizen):
+    from app.simulation import calendar
+    from app.simulation.daily import home_building
+
+    hour = calendar.now(state) % calendar.DAY / calendar.HOUR
     preferred = responses.preferred_destination(state, citizen)
     if preferred:
         return preferred
-    homes = [b for b in state.map.buildings if b.kind == "home" and b.functional]
-    home = min(homes, key=lambda b: distance(citizen.home, b.entrance), default=None)
+    home = home_building(state, citizen)
     if (
-        citizen.needs.fatigue >= 45
+        citizen.needs.fatigue >= 65
         and home
         and citizen.inside_building_id != home.id
         and interior_slot(state, citizen, home) is not None
     ):
         return home, "Go home to rest and regain my energy"
-    phase = (
-        state.simulation.tick // legacy_ticks(state, 16)
-        + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])
-    ) % 3
-    kind = ["work", "community", "shop"][phase]
+    retired = citizen.profile.role.lower() in {"retired", "retiree", "student"}
+    if 9 <= hour < 17 and not retired:
+        kind = "shop" if 12 <= hour < 14 else "work"
+    elif 6 <= hour < 9:
+        kind = "shop" if citizen.inventory.food < 3 else "community"
+    else:
+        phase = (int(hour) + int.from_bytes(hashlib.sha256(citizen.summary.id.encode()).digest()[:2])) % 2
+        kind = ["community", "shop"][phase]
     facilities = [
         b
         for b in state.map.buildings

@@ -65,8 +65,10 @@ class VoiceAssignments:
             available = [voice for voice in pool if voice not in assigned.values()]
             for aid in agents:
                 if aid not in assigned:
-                    voice = available.pop(0) if available else min(
-                        pool, key=lambda candidate: sum(v == candidate for v in assigned.values())
+                    voice = (
+                        available.pop(0)
+                        if available
+                        else min(pool, key=lambda candidate: sum(v == candidate for v in assigned.values()))
                     )
                     additions[aid] = assigned[aid] = voice
             try:

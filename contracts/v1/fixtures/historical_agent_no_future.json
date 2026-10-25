@@ -30,7 +30,9 @@
       "action_target_id": null,
       "latest_decision_id": null,
       "thought_bubble": null,
-      "active": true
+      "active": true,
+      "routine_state": "free",
+      "activity_until_calendar_seconds": null
     },
     "profile": {
       "name": "Alex 1",

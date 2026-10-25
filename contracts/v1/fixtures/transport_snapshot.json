@@ -40,7 +40,8 @@
           "scenario_description": "",
           "custom_agent_ids": [],
           "tick_seconds": 10,
-          "max_ticks": 10000
+          "max_ticks": 10000,
+          "calendar_seconds_per_tick": 120
         },
         "created_at": "2026-10-24T10:47:53.443454Z",
         "updated_at": "2026-10-24T10:47:53.918771Z",
@@ -65,7 +66,8 @@
           "message": "Ready complete",
           "error": null
         },
-        "initial_preview": null
+        "initial_preview": null,
+        "calendar_time_seconds": 10.0
       },
       "map": {
         "id": "map_00000027",
@@ -33579,7 +33581,9 @@
           "action_target_id": "building_00000003",
           "latest_decision_id": "decision_00000046",
           "thought_bubble": "Reach a known safe facility",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000034",
@@ -33604,7 +33608,9 @@
           "action_target_id": null,
           "latest_decision_id": "decision_00000060",
           "thought_bubble": "Take a quiet moment before the next task",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000036",
@@ -33666,7 +33672,9 @@
           "action_target_id": "building_00000003",
           "latest_decision_id": "decision_00000057",
           "thought_bubble": "Reach a known safe facility",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000033",
@@ -33768,7 +33776,9 @@
           "action_target_id": "building_00000006",
           "latest_decision_id": "decision_00000053",
           "thought_bubble": "Travel to my workplace",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000037",
@@ -33806,7 +33816,9 @@
           "action_target_id": "building_00000006",
           "latest_decision_id": "decision_00000061",
           "thought_bubble": "Travel to my workplace",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000031",
@@ -33932,7 +33944,9 @@
           "action_target_id": "building_00000006",
           "latest_decision_id": "decision_00000054",
           "thought_bubble": "Travel to my workplace",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000029",
@@ -33957,7 +33971,9 @@
           "action_target_id": "agent_00000037",
           "latest_decision_id": "decision_00000048",
           "thought_bubble": "Check on a nearby neighbor",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000032",
@@ -33982,7 +33998,9 @@
           "action_target_id": null,
           "latest_decision_id": "decision_00000059",
           "thought_bubble": "Take a quiet moment before the next task",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000030",
@@ -34007,7 +34025,9 @@
           "action_target_id": null,
           "latest_decision_id": "decision_00000056",
           "thought_bubble": "Take a quiet moment before the next task",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         },
         {
           "id": "agent_00000035",
@@ -34032,7 +34052,9 @@
           "action_target_id": null,
           "latest_decision_id": "decision_00000055",
           "thought_bubble": "Take a quiet moment before the next task",
-          "active": true
+          "active": true,
+          "routine_state": "free",
+          "activity_until_calendar_seconds": null
         }
       ],
       "events": [
@@ -34131,7 +34153,15 @@
           ],
           "severity": 65.0
         }
-      ]
+      ],
+      "curfew": {
+        "enabled": false,
+        "start_minute": 1320,
+        "end_minute": 360,
+        "revision": 0,
+        "informed_agent_ids": []
+      },
+      "conversation_sessions": []
     }
   }
 }
