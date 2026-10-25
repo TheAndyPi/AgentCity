@@ -1,14 +1,5 @@
 import type { MapData, Vec2 } from "../api/types";
 
-export const groundColors = {
-  grass: "#527a45",
-  asphalt: "#414950",
-  water: "#467e90",
-  sidewalk: "#b4b6a6",
-  curb: "#d6d6c7",
-  markings: "#e7dfbc",
-};
-
 export type GroundRect = {
   x: number;
   y: number;

@@ -3,7 +3,7 @@ import type { Transport } from "./client";
 import { ApiError } from "./client";
 import * as S from "./schemas";
 import {
-  fixtureMap,
+  fixtureMapFor,
   fixtureWorld,
   fixtureSimulation,
   fixtureAgents,
@@ -51,10 +51,9 @@ export class MockTransport implements Transport {
           this.settings = S.settings.parse(stored.settings);
           for (const [id, raw] of stored.worlds) {
             const r = raw as RecordState;
-            r.frame = S.world.parse({ ...r.frame, map: fixtureMap });
-            r.frames = r.frames.map((f) =>
-              S.world.parse({ ...f, map: fixtureMap }),
-            );
+            const map = fixtureMapFor(r.frame.simulation.config);
+            r.frame = S.world.parse({ ...r.frame, map });
+            r.frames = r.frames.map((f) => S.world.parse({ ...f, map }));
             if (r.frame.simulation.status === "running" || r.hold) {
               r.frame.simulation.status = "paused";
               r.frame.simulation.pause_reason = "loaded";

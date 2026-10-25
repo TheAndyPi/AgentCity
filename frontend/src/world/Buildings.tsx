@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Html } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   buildingBounds,
@@ -10,9 +10,16 @@ import {
   type Building,
   type BuildingPart,
 } from "./buildingLayout";
+import { worldPalette, type WorldTheme } from "./palette";
 
-export function BuildingTag({ building }: { building: Building }) {
-  const info = buildingInfo(building);
+export function BuildingTag({
+  building,
+  theme = "dark",
+}: {
+  building: Building;
+  theme?: WorldTheme;
+}) {
+  const info = buildingInfo(building, theme);
   return (
     <div
       className="building-tag"
@@ -35,13 +42,23 @@ export function BuildingTag({ building }: { building: Building }) {
 function Parts({
   parts,
   roof = false,
+  glow = false,
+  blink = false,
   onHover,
 }: {
   parts: BuildingPart[];
   roof?: boolean;
+  glow?: boolean;
+  blink?: boolean;
   onHover: (id: string | null) => void;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const beacon = useRef<THREE.MeshBasicMaterial>(null);
+  useFrame(({ clock }) => {
+    if (blink && beacon.current)
+      beacon.current.opacity =
+        0.2 + 0.8 * Math.max(0, Math.sin(clock.elapsedTime * 2.4));
+  });
   useEffect(() => {
     if (!ref.current) return;
     const object = new THREE.Object3D(),
@@ -67,6 +84,7 @@ function Parts({
     event.stopPropagation();
     onHover(parts[event.instanceId ?? -1]?.buildingId ?? null);
   };
+  if (!parts.length) return null;
   return (
     <instancedMesh
       ref={ref}
@@ -79,16 +97,27 @@ function Parts({
       }}
     >
       {roof ? <coneGeometry args={[1, 1, 4]} /> : <boxGeometry />}
-      <meshStandardMaterial roughness={0.78} metalness={0.08} />
+      {glow ? (
+        <meshBasicMaterial
+          ref={beacon}
+          toneMapped={false}
+          transparent={blink}
+          depthWrite={!blink}
+        />
+      ) : (
+        <meshStandardMaterial roughness={0.7} metalness={0.1} />
+      )}
     </instancedMesh>
   );
 }
 
 function PolygonBuilding({
   building,
+  theme,
   onHover,
 }: {
   building: Building;
+  theme: WorldTheme;
   onHover: (id: string | null) => void;
 }) {
   const shape = useMemo(
@@ -115,7 +144,13 @@ function PolygonBuilding({
         args={[shape, { depth: building.height_m, bevelEnabled: false }]}
       />
       <meshStandardMaterial
-        color={building.functional ? buildingInfo(building).color : "#65636a"}
+        color={
+          building.functional
+            ? buildingInfo(building, theme).color
+            : worldPalette(theme).offline
+        }
+        emissive={buildingInfo(building, theme).accent}
+        emissiveIntensity={building.functional ? 0.08 : 0}
       />
     </mesh>
   );
@@ -124,31 +159,45 @@ function PolygonBuilding({
 export default function Buildings({
   buildings,
   cutaway = [],
+  theme = "dark",
+  reducedMotion = false,
 }: {
   buildings: Building[];
   cutaway?: string[];
+  theme?: WorldTheme;
+  reducedMotion?: boolean;
 }) {
   const signature = buildingSignature(buildings);
   // Reuse thousands of facade instances while citizens and occupancy update.
-  const layout = useMemo(() => buildingLayout(buildings), [signature]);
+  const layout = useMemo(
+    () => buildingLayout(buildings, theme),
+    [signature, theme],
+  );
+  const visible = (parts: BuildingPart[]) =>
+    parts.filter((p) => !cutaway.includes(p.buildingId));
   const [hovered, setHovered] = useState<string | null>(null);
   const building = buildings.find((b) => b.id === hovered);
   const bounds = building ? buildingBounds(building) : null;
   return (
     <>
+      <Parts parts={visible(layout.boxes)} onHover={setHovered} />
+      <Parts parts={visible(layout.roofs)} roof onHover={setHovered} />
+      <Parts parts={visible(layout.glows)} glow onHover={setHovered} />
       <Parts
-        parts={layout.boxes.filter((p) => !cutaway.includes(p.buildingId))}
-        onHover={setHovered}
-      />
-      <Parts
-        parts={layout.roofs.filter((p) => !cutaway.includes(p.buildingId))}
-        roof
+        parts={visible(layout.beacons)}
+        glow
+        blink={!reducedMotion}
         onHover={setHovered}
       />
       {layout.polygons
         .filter((b) => !cutaway.includes(b.id))
         .map((b) => (
-          <PolygonBuilding key={b.id} building={b} onHover={setHovered} />
+          <PolygonBuilding
+            key={b.id}
+            building={b}
+            theme={theme}
+            onHover={setHovered}
+          />
         ))}
       {buildings
         .filter((b) => cutaway.includes(b.id))
@@ -158,6 +207,7 @@ export default function Buildings({
             <group key={`interior-${b.id}`}>
               <PolygonBuilding
                 building={{ ...b, height_m: 0.04 }}
+                theme={theme}
                 onHover={setHovered}
               />
               {b.footprint.map((a, i) => {
@@ -175,7 +225,10 @@ export default function Buildings({
                         0.08,
                       ]}
                     />
-                    <meshStandardMaterial color={buildingInfo(b).accent} />
+                    <meshBasicMaterial
+                      color={buildingInfo(b, theme).accent}
+                      toneMapped={false}
+                    />
                   </mesh>
                 );
               })}
@@ -199,7 +252,7 @@ export default function Buildings({
           zIndexRange={[12, 0]}
           style={{ pointerEvents: "none" }}
         >
-          <BuildingTag building={building} />
+          <BuildingTag building={building} theme={theme} />
         </Html>
       )}
     </>

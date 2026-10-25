@@ -7,27 +7,32 @@ const skins = [
   "#654333",
   "#d9b396",
 ];
+// Natural shades plus a few neon dye jobs.
 const hairs = [
-  "#332820",
-  "#71442d",
+  "#2a2230",
+  "#5b3426",
   "#d3a15e",
-  "#292c39",
-  "#a45137",
-  "#ddd5c0",
+  "#1d2033",
+  "#e8e4f0",
+  "#ff4fc3",
+  "#00f0ff",
+  "#b98cff",
 ];
+// Techwear jackets: saturated enough to read against the dark streets.
 const shirts = [
-  "#dc745b",
-  "#69a9a1",
-  "#e5b85b",
-  "#8298ca",
-  "#b586ab",
-  "#8fa668",
-  "#e3a28b",
-  "#6494ac",
-  "#cb766f",
-  "#8c82b4",
+  "#3b2d6b",
+  "#6b1f4f",
+  "#1f5560",
+  "#2c3a78",
+  "#5a2a7a",
+  "#1f6b4e",
+  "#7a2140",
+  "#33456e",
+  "#4b2a60",
+  "#205a6e",
 ];
-const trousers = ["#354857", "#685a4c", "#434a44", "#73575c", "#ece0c6"];
+const trousers = ["#15131f", "#1e1a2e", "#24202f", "#2b2238", "#101820"];
+const neons = ["#00f0ff", "#ff0055", "#00ff66", "#ffe45c", "#ff4fc3", "#b98cff"];
 export function characterAppearance(name: string) {
   let seed = 2166136261;
   for (const char of name)
@@ -37,14 +42,23 @@ export function characterAppearance(name: string) {
     return seed / 4294967296;
   };
   const pick = (values: string[]) => values[Math.floor(next() * values.length)];
+  const skin = pick(skins),
+    hair = pick(hairs),
+    shirt = pick(shirts),
+    pants = pick(trousers),
+    accent = pick(neons);
+  const hairStyle = Math.floor(next() * 4);
+  const eyewear = next();
   return {
-    skin: pick(skins),
-    hair: pick(hairs),
-    shirt: pick(shirts),
-    pants: pick(trousers),
-    accent: pick(shirts),
-    hairStyle: Math.floor(next() * 4),
-    glasses: next() > 0.58,
+    skin,
+    hair,
+    shirt,
+    pants,
+    accent,
+    hairStyle,
+    /** A glowing visor band; otherwise some citizens wear plain glasses. */
+    visor: eyewear > 0.62,
+    glasses: eyewear > 0.38 && eyewear <= 0.62,
     height: 0.88 + next() * 0.25,
     width: 0.85 + next() * 0.28,
     pattern: Math.floor(next() * 3),

@@ -63,25 +63,16 @@ const modes: {
   },
 ];
 export default function Setup() {
-  const { client } = useApp();
+  const { client, capabilities } = useApp();
+  const maxAgents = Math.max(10, capabilities?.max_agents ?? 100);
   const location = useLocation(),
     navigate = useNavigate();
   const [config, setConfig] = useState<Config>(() => {
-    if (location.state?.config)
-      return {
-        ...location.state.config,
-        population: 10,
-        custom_agent_ids: location.state.config.custom_agent_ids.slice(0, 10),
-      };
+    if (location.state?.config) return { ...location.state.config };
     try {
-      const draft = S.config.parse(
+      return S.config.parse(
         JSON.parse(localStorage.getItem("agentcity-setup-draft") ?? "null"),
       );
-      return {
-        ...draft,
-        population: 10,
-        custom_agent_ids: draft.custom_agent_ids.slice(0, 10),
-      };
     } catch {
       return structuredClone(defaultConfig);
     }
@@ -201,21 +192,21 @@ export default function Setup() {
             title="Population"
             description="Starting personality and needs for the citizens."
           >
-            <div className="population-control">
-              <div>
-                <h3>Number of agents</h3>
-                <p>Simulations currently run with ten citizens.</p>
-              </div>
-              <div className="fixed-cast-size">
-                <input
-                  aria-label="Population"
-                  type="number"
-                  value={10}
-                  readOnly
-                />
-                <span>Citizens</span>
-              </div>
-            </div>
+            <Slider
+              label="Number of agents"
+              min={10}
+              max={maxAgents}
+              unit=" agents"
+              value={config.population}
+              onChange={(population) =>
+                setConfig((c) => ({
+                  ...c,
+                  population,
+                  custom_agent_ids: c.custom_agent_ids.slice(0, population),
+                }))
+              }
+              hint={`Between 10 and ${maxAgents} citizens. Custom agents count toward this total.`}
+            />
             {errors.population && (
               <p className="field-error">{errors.population}</p>
             )}
@@ -281,7 +272,7 @@ export default function Setup() {
                         type="checkbox"
                         checked={config.custom_agent_ids.includes(p.id)}
                         disabled={
-                          config.custom_agent_ids.length >= 10 &&
+                          config.custom_agent_ids.length >= config.population &&
                           !config.custom_agent_ids.includes(p.id)
                         }
                         onChange={(e) =>

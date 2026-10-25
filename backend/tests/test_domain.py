@@ -19,8 +19,9 @@ def nearby_pair(state):
     a, b = list(state.citizens.values())[:2]
     a.summary.position = c.Vec2(x=33, y=33)
     b.summary.position = c.Vec2(x=34, y=33)
-    a.summary.path = []
-    b.summary.path = []
+    for citizen in (a, b):
+        citizen.summary.path = []
+        citizen.inside_building_id = citizen.entering_building_id = None
     return a, b
 
 

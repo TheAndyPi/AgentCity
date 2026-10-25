@@ -168,6 +168,23 @@ select {
 }
 :root[data-theme="light"] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238f6ce0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+}
+.transport-bar select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%235ef0ff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+}
+.transport-bar select,
+:root[data-theme="light"] .transport-bar select {
+  width: 64px;
+  padding: 0 20px 0 8px;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 10px 7px;
+  text-align: center;
+  text-align-last: center;
+  font: 600 13px var(--font-tech);
 }
 select option {
   background: var(--surface);
@@ -1270,6 +1287,58 @@ kbd {
 .cast-faces {
   scrollbar-color: var(--line) transparent;
 }
+.city-brand-wrap {
+  z-index: 30;
+}
+.cast-dock[hidden] {
+  display: none;
+}
+.cast-dock-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--cyan);
+}
+.cast-dock:has(.cast-dock-close) {
+  padding-right: 42px;
+}
+.cast-dock-reopen {
+  position: absolute;
+  left: 50%;
+  bottom: 35px;
+  translate: -50% 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  color: var(--text);
+  font: 600 12px var(--font-tech);
+  letter-spacing: 0.04em;
+  box-shadow: var(--shadow);
+}
+.cast-dock-reopen > svg {
+  color: var(--cyan);
+}
+.cast-dock-reopen > span {
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pink) 22%, transparent);
+  color: var(--pink);
+}
 .cast-faces > button {
   color: var(--text);
 }
@@ -1460,6 +1529,126 @@ kbd {
   background: var(--panel);
   color: var(--text);
   box-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 25%, transparent);
+}
+
+/* Simulation FUI: digital readouts, chamfered panels and glitch titles. */
+.simulation-page {
+  --font-hud: "Rajdhani", var(--font-tech);
+  --font-readout: "Orbitron", var(--font-tech);
+}
+:root:not([data-theme="light"]) .simulation-page {
+  --bg: #0d0d11;
+  --cyan: #00f0ff;
+  --pink: #ff0055;
+  --green: #00ff66;
+}
+.simulation-page :is(.transport-bar, .quick-stats, .camera-tools, .city-brand, .logo-menu, .cast-dock, .life-focus-card, .closeup-chat, .map-legend) {
+  font-family: var(--font-hud);
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+  border-radius: 2px;
+}
+.simulation-page :is(.cast-dock, .quick-stats, .transport-bar) {
+  background-image:
+    linear-gradient(var(--cyan), var(--cyan)),
+    linear-gradient(var(--pink), var(--pink));
+  background-size:
+    22px 2px,
+    22px 2px;
+  background-position:
+    10px 0,
+    calc(100% - 10px) 100%;
+  background-repeat: no-repeat;
+}
+.simulation-page .sim-clock > span,
+.simulation-page .quick-stats strong,
+.simulation-page .connection,
+.simulation-page .cast-dock-heading strong {
+  font-family: var(--font-readout);
+  letter-spacing: 0.06em;
+}
+.simulation-page .quick-stats strong {
+  color: var(--text);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+.simulation-page .quick-stats > button > span {
+  font: 600 11px var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.simulation-page .world-caption h1,
+.simulation-page .city-name > span:first-child {
+  font-family: var(--font-readout);
+  letter-spacing: 0.05em;
+  text-shadow:
+    -1.5px 0 color-mix(in srgb, var(--pink) 70%, transparent),
+    1.5px 0 color-mix(in srgb, var(--cyan) 70%, transparent);
+  animation: hud-glitch 7s steps(1) infinite;
+}
+@keyframes hud-glitch {
+  0%,
+  92%,
+  100% {
+    transform: none;
+    clip-path: none;
+  }
+  93% {
+    transform: translateX(2px);
+    clip-path: inset(0 0 55% 0);
+  }
+  94% {
+    transform: translateX(-2px);
+    clip-path: inset(45% 0 0 0);
+  }
+  95% {
+    transform: none;
+    clip-path: none;
+  }
+}
+.simulation-page .event-notice.has-event {
+  color: var(--pink);
+  font-family: var(--font-hud);
+  letter-spacing: 0.04em;
+}
+.simulation-page .event-notice.has-event > .status-dot {
+  background: var(--pink);
+  box-shadow: 0 0 10px var(--pink);
+  animation: hud-warning 0.9s steps(2, jump-none) infinite;
+}
+@keyframes hud-warning {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}
+.simulation-page .character-nameplate,
+.simulation-page .character-speech {
+  font-family: var(--font-hud);
+  border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+.simulation-page .character-speech > span {
+  color: var(--cyan);
+  font-family: var(--font-readout);
+  letter-spacing: 0.06em;
+}
+.simulation-page .building-tag {
+  font-family: var(--font-hud);
+  border: 1px solid color-mix(in srgb, var(--cyan) 45%, transparent);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+:root[data-motion="reduced"] .simulation-page .world-caption h1,
+:root[data-motion="reduced"] .simulation-page .city-name > span:first-child,
+:root[data-motion="reduced"] .simulation-page .event-notice.has-event > .status-dot {
+  animation: none;
 }
 
 /* Reduced motion: ambient art holds still, transitions are instant. */

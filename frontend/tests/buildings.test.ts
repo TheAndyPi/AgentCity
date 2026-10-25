@@ -4,8 +4,11 @@ import {
   buildingInfo,
   buildingLayout,
   buildingSignature,
+  hospitalCross,
+  skyscraperHeight,
   type Building,
 } from "../src/world/buildingLayout";
+import { worldPalette } from "../src/world/palette";
 
 const building = (
   kind: Building["kind"],
@@ -60,10 +63,13 @@ describe("building architecture and purpose tags", () => {
     expect(layouts[0].boxes.length).toBeGreaterThan(layouts[3].boxes.length);
     expect(layouts[0].roofs).toHaveLength(0);
     expect(layouts[1].roofs).toHaveLength(1);
-    expect(layouts[5].boxes.some((p) => p.color === "#c4625f")).toBe(true);
+    expect(layouts[5].glows.some((p) => p.color === hospitalCross)).toBe(true);
     expect(
-      new Set(layouts.map((l) => JSON.stringify(l.boxes.map((p) => p.scale))))
-        .size,
+      new Set(
+        layouts.map((l) =>
+          JSON.stringify([...l.boxes, ...l.glows].map((p) => p.scale)),
+        ),
+      ).size,
     ).toBeGreaterThanOrEqual(6);
   });
   it("keeps rotated architecture on its authoritative lot and maps every part to its building", () => {
@@ -77,7 +83,12 @@ describe("building architecture and purpose tags", () => {
         const rotated = { ...b, entrance },
           bounds = buildingBounds(rotated),
           layout = buildingLayout([rotated]);
-        for (const p of [...layout.boxes, ...layout.roofs]) {
+        for (const p of [
+          ...layout.boxes,
+          ...layout.roofs,
+          ...layout.glows,
+          ...layout.beacons,
+        ]) {
           expect(p.buildingId).toBe(b.id);
           expect(p.position.every(Number.isFinite)).toBe(true);
           expect(p.scale.every((v) => v > 0)).toBe(true);
@@ -109,7 +120,10 @@ describe("building architecture and purpose tags", () => {
     expect(buildingLayout([b]).polygons).toEqual([b]);
     expect(
       buildingLayout([{ ...buildings[0], functional: false }]).boxes[0].color,
-    ).toBe("#65636a");
+    ).toBe(worldPalette("dark").offline);
+    expect(
+      buildingLayout([{ ...buildings[0], functional: false }]).glows,
+    ).toHaveLength(0);
   });
   it("does not rebuild facade geometry for live occupancy changes", () => {
     expect(buildingSignature(buildings)).toBe(
@@ -118,5 +132,23 @@ describe("building architecture and purpose tags", () => {
     expect(buildingSignature(buildings)).not.toBe(
       buildingSignature(buildings.map((b) => ({ ...b, functional: false }))),
     );
+  });
+  it("raises setback skyscrapers with neon trim and a beacon for tall towers", () => {
+    const tower = { ...buildings[2], height_m: skyscraperHeight + 40 };
+    const low = buildingLayout([buildings[2]]),
+      tall = buildingLayout([tower]);
+    expect(low.beacons).toHaveLength(0);
+    expect(tall.beacons).toHaveLength(1);
+    expect(tall.glows.length).toBeGreaterThan(low.glows.length);
+    const top = Math.max(
+      ...tall.boxes.map((p) => p.position[1] + p.scale[1] / 2),
+    );
+    expect(top).toBeGreaterThan(tower.height_m * 0.95);
+  });
+  it("gives the hospital roof a single solid top surface", () => {
+    const parts = buildingLayout([buildings[5]]).boxes;
+    const tops = parts.map((p) => +(p.position[1] + p.scale[1] / 2).toFixed(3));
+    const roof = Math.max(...tops);
+    expect(tops.filter((t) => t === roof)).toHaveLength(1);
   });
 });

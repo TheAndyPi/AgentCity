@@ -76,3 +76,24 @@ def test_dense_city_is_seeded_has_restaurants_and_responds_to_density():
     assert any("Restaurant" in building.name for building in dense.buildings)
     assert any("Market" in building.name for building in dense.buildings)
     assert len({b.height_m for b in dense.buildings if b.kind == "home"}) > 10
+
+
+def test_addresses_capacity_skyline_and_river_vary_by_seed():
+    town = city_map()
+    names = [b.name for b in town.buildings]
+    assert len(set(names)) == len(names)
+    assert not any(ch.isdigit() for name in names for ch in name)
+    assert all("Avenue" in name or "Street" in name for name in names)
+    assert len({b.capacity for b in town.buildings if b.kind == "home"}) > 5
+    assert max(b.height_m for b in town.buildings) >= 60
+    assert max(b.height_m for b in city_map(settlement="suburb").buildings) < 20
+    rivers = set()
+    for seed in range(12):
+        water = [cell for cell in city_map(seed=seed).cells if cell.terrain == "water"]
+        assert water and all(cell.col >= 60 or cell.row >= 60 for cell in water)
+        rivers.add(tuple((cell.col, cell.row) for cell in water))
+    assert len(rivers) == 12
+    assert {all(cell.col >= 60 for cell in city_map(seed=s).cells if cell.terrain == "water") for s in range(12)} == {
+        True,
+        False,
+    }

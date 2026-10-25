@@ -1,7 +1,9 @@
 """Seeded town construction and bounded, typed event compilation/lifecycle."""
 
+import math
 import random
 import re
+from collections import Counter
 from statistics import mean
 
 from app.contracts import (
@@ -49,11 +51,16 @@ def generate_map(state, rng):
         for y in range(2)
         for x in range(2)
     ]
+    # The river follows the east or south edge, beyond the last street, so it
+    # never cuts the grid. Its bank meanders differently for every seed.
+    river_side = rng.choice(("east", "south"))
+    phase, wavelength = rng.uniform(0, 2 * math.pi), rng.uniform(5, 11)
+    banks = [60 + round(1 + math.sin(i / wavelength + phase) + rng.uniform(-0.4, 0.4)) for i in range(64)]
     cells = []
     for row in range(64):
         for col in range(64):
             road = col % 8 == 0 or row % 8 == 0
-            water = col >= 60 and row % 16 != 0
+            water = col >= banks[row] if river_side == "east" else row >= banks[col]
             cells.append(
                 Cell(
                     col=col,
@@ -72,15 +79,22 @@ def generate_map(state, rng):
     sites = []
     for row in range(0, 57, 8):
         for col in range(0, 57, 8):
-            lots = [0, 2] if col == 56 else list(range(4))
+            # The east edge has no avenue beyond it; the south riverbank leaves
+            # one row of lots, and its corner lot opens onto the street above.
+            lots = list(range(4))
+            if col == 56:
+                lots = [0, 2]
+            if river_side == "south" and row == 56:
+                lots = [0, 4] if col == 56 else [0, 1]
             rng.shuffle(lots)
             for lot in lots[:lots_per_block]:
-                dx, dy = (2 if lot % 2 == 0 else 5), (2 if lot < 2 else 5)
-                entrance = (
-                    Vec2(x=col * 2 + 1, y=(row + dy) * 2 + 1)
-                    if lot % 2 == 0
-                    else Vec2(x=(col + 8) * 2 + 1, y=(row + dy) * 2 + 1)
-                )
+                dx, dy = (2 if lot % 2 == 0 else 5), (2 if lot in {0, 1, 4} else 5)
+                if lot == 4:
+                    dx, entrance = 5, Vec2(x=(col + 5) * 2 + 1, y=row * 2 + 1)
+                elif lot % 2 == 0:
+                    entrance = Vec2(x=col * 2 + 1, y=(row + dy) * 2 + 1)
+                else:
+                    entrance = Vec2(x=(col + 8) * 2 + 1, y=(row + dy) * 2 + 1)
                 sites.append((col + dx, row + dy, entrance))
     sites.sort(key=lambda p: (abs(p[0] - 32) + abs(p[1] - 32), p[0], p[1]))
     intimate = config.population <= 10
@@ -88,12 +102,19 @@ def generate_map(state, rng):
         # Ten households and the shared amenities fit into a few central blocks.
         # Keep the navigable map extent for existing event/replay geometry.
         sites = sites[:24]
-    street_names = ["Maple", "Cedar", "Willow", "Aster", "Harbor", "Oak", "Juniper", "Birch"]
+    avenues = ["Neon", "Circuit", "Cobalt", "Vector", "Quartz", "Helix", "Argon", "Ion"]
+    streets = ["Aurora", "Byte", "Chrome", "Datum", "Echo", "Flux", "Glow", "Halo"]
     mixed_use = ["home", "work", "home", "shop", "home", "work", "home", "community"]
-    buildings = []
+    buildings, addresses = [], []
     for i, (col, row, entrance) in enumerate(sites):
         kind = ["shelter", "hospital", "community"][i] if i < 3 else mixed_use[(i - 3) % len(mixed_use)]
-        street = street_names[i % len(street_names)]
+        avenue = (
+            f"{avenues[int(entrance.x // 2) // 8]} Avenue"
+            if int(entrance.x // 2) % 8 == 0
+            else f"{streets[int(entrance.y // 2) // 8]} Street"
+        )
+        cross = min(7, row // 8 + (row % 8 >= 4))
+        side = "East" if entrance.x < col * 2 else "West"
         purpose = {
             "home": "Apartments" if urban or i % 3 else "Townhouse",
             "work": "Company Offices" if i % 2 else "Studio Offices",
@@ -103,14 +124,14 @@ def generate_map(state, rng):
             "community": "Community Center",
         }[kind]
         heights = {
-            "home": (9, 18) if urban else (5, 11),
-            "work": (12, 22) if urban else (8, 15),
-            "shop": (3.5, 5),
+            "home": (18, 48) if urban else (5, 11),
+            "work": (32, 92) if urban else (8, 15),
+            "shop": (4, 7) if urban else (3.5, 5),
             "shelter": (4, 6),
-            "hospital": (8, 11),
+            "hospital": (14, 22) if urban else (8, 11),
             "community": (5, 8),
         }
-        if intimate:
+        if intimate and not urban:
             heights = {key: (3.2, 5.2) for key in heights}
             if kind == "home":
                 purpose = "Cottage"
@@ -118,25 +139,47 @@ def generate_map(state, rng):
         for dy in range(2):
             for dx in range(2):
                 cells[(row + dy) * 64 + col + dx].walkable = False
+        height = round(rng.uniform(*heights[kind]), 2)
+        floors = max(1, round(height / 3.2))
+        if kind == "home":
+            base = rng.randint(2, 5) if purpose in {"Townhouse", "Cottage"} else floors * rng.randint(2, 4)
+        else:
+            base = {
+                "work": floors * rng.randint(3, 6),
+                "shop": rng.randint(6, 18),
+                "hospital": rng.randint(30, 60),
+                "community": rng.randint(20, 45),
+                "shelter": rng.randint(80, 140),
+            }[kind]
+        addresses.append(
+            (
+                f"{avenue} {purpose}",
+                f"{purpose} at {avenue} & {streets[cross]} Street",
+                f"{purpose} on {side} {avenue}, {'south' if cross * 8 > row else 'north'} of {streets[cross]} Street",
+                f"{'Upper' if row % 8 >= 4 else 'Lower'} {purpose} on {side} {avenue}, north of {streets[cross]} Street",
+            )
+        )
         buildings.append(
             Building(
                 id=state.next_id("building"),
-                name=f"{street} {purpose} {i + 1}",
+                name=purpose,
                 kind=kind,
                 footprint=footprint,
                 entrance=entrance,
-                height_m=round(rng.uniform(*heights[kind]), 2),
-                capacity=max(
-                    1,
-                    round(
-                        (100 if kind == "shelter" else 8)
-                        * (0.5 + config.environment.infrastructure_capacity / 100)
-                    ),
-                ),
+                height_m=height,
+                capacity=max(1, round(base * (0.5 + config.environment.infrastructure_capacity / 100))),
                 occupancy=0,
                 functional=True,
             )
         )
+    # Name each building after the street it faces, adding the cross street or
+    # side of the avenue only when a shorter address is already taken.
+    taken = Counter(names[0] for names in addresses)
+    used = set()
+    for building, names in zip(buildings, addresses):
+        name = names[0] if taken[names[0]] == 1 else next((n for n in names[1:] if n not in used), names[-1])
+        used.add(name)
+        building.name = name
     resources = []
     for col, row in (
         [(24, 32), (32, 24), (32, 32), (40, 32)] if intimate else [(16, 16), (32, 16), (16, 32), (48, 48)]

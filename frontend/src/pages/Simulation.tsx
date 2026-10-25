@@ -602,8 +602,15 @@ export default function Simulation() {
             </button>
             <button
               onClick={() => open({ type: "agents" })}
-              disabled={readOnly || frame.agents.length >= 10}
-              title="This neighborhood has a cast of ten"
+              disabled={
+                readOnly ||
+                frame.agents.length >= (capabilities?.max_agents ?? 100)
+              }
+              title={
+                frame.agents.length >= (capabilities?.max_agents ?? 100)
+                  ? "This city is at its citizen limit"
+                  : undefined
+              }
             >
               <Users size={16} />
               Add agent
@@ -882,7 +889,7 @@ export default function Simulation() {
           {readOnly
             ? "Viewing a recorded revision. Branch from it to try another outcome."
             : s.status === "running"
-              ? "Simulation running."
+              ? "Simulation running. Zoom in to read conversations."
               : "Simulation paused. Press Play to continue."}
         </p>
       </div>

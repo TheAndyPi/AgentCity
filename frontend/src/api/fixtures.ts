@@ -79,7 +79,7 @@ for (let row = 0; row < 5; row++)
             ? "St. Eden Clinic"
             : kind === "shelter"
               ? "Westside Shelter"
-              : `${row * 5 + col + 1} Eden Avenue`,
+              : `${kind === "home" ? ((row + col) % 3 ? "Apartments" : "Townhouse") : kind === "work" ? "Company Offices" : (row + col) % 2 ? "Market" : "Restaurant"} at ${["Neon", "Circuit", "Cobalt", "Vector", "Quartz"][col]} Avenue & ${["Aurora", "Byte", "Chrome", "Datum", "Echo"][row]} Street`,
       kind,
       footprint: rect(x, y, 12, 10),
       entrance: { x: x + 6, y: y + 12 },
@@ -89,7 +89,14 @@ for (let row = 0; row < 5; row++)
           : kind === "community"
             ? 9
             : 6 + ((row * 3 + col) % 5) * 2,
-      capacity: 8,
+      capacity:
+        kind === "hospital"
+          ? 40
+          : kind === "shelter"
+            ? 110
+            : kind === "community"
+              ? 32
+              : 3 + ((row * 7 + col * 3) % 9) * 2,
       occupancy: 2,
       functional: true,
     });
@@ -234,6 +241,21 @@ export function fixtureSimulation(
     initial_preview: null,
   };
 }
+/** Urban review cities raise their homes and offices into towers. */
+export function fixtureMapFor(config: T.Config): T.MapData {
+  const map = structuredClone(fixtureMap);
+  if (config.environment.settlement !== "urban") return map;
+  return {
+    ...map,
+    buildings: map.buildings.map((b, i) => ({
+      ...b,
+      height_m:
+        b.kind === "work" || b.kind === "home"
+          ? 28 + ((i * 17) % 55)
+          : b.height_m,
+    })),
+  };
+}
 export function fixtureWorld(
   simulation = fixtureSimulation(),
   agents = fixtureAgents(simulation.agent_count),
@@ -241,7 +263,7 @@ export function fixtureWorld(
   return {
     ref: { tick: simulation.tick, revision: simulation.revision },
     simulation: structuredClone(simulation),
-    map: structuredClone(fixtureMap),
+    map: fixtureMapFor(simulation.config),
     agents,
     events: [],
     policies: {

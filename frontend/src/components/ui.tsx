@@ -328,6 +328,7 @@ export function Slider({
   min = 0,
   max = 100,
   hint,
+  unit,
 }: {
   label: string;
   value: number;
@@ -335,6 +336,7 @@ export function Slider({
   min?: number;
   max?: number;
   hint?: string;
+  unit?: string;
 }) {
   const inputId = useId();
   const share = max > min ? (value - min) / (max - min) : 0;
@@ -344,7 +346,7 @@ export function Slider({
         {label}
         <output>
           {value}
-          {max === 100 ? "%" : ""}
+          {unit ?? (max === 100 ? "%" : "")}
         </output>
       </span>
       <span

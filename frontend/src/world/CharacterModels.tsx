@@ -27,6 +27,9 @@ const parts = [
   "nose",
   "glasses",
   "collar",
+  "visor",
+  "belt",
+  "soles",
 ] as const;
 type Part = (typeof parts)[number];
 const double = new Set<Part>([
@@ -37,13 +40,17 @@ const double = new Set<Part>([
   "shoes",
   "eyes",
   "glasses",
+  "soles",
 ]);
+const glowing = new Set<Part>(["collar", "visor", "belt", "soles"]);
 const object = new THREE.Object3D(),
   color = new THREE.Color();
 const material = new THREE.MeshStandardMaterial({
   flatShading: true,
-  roughness: 0.9,
+  roughness: 0.6,
+  metalness: 0.15,
 });
+const glowMaterial = new THREE.MeshBasicMaterial({ toneMapped: false });
 const shape = {
   body: new THREE.CapsuleGeometry(0.38, 0.52, 2, 6),
   head: new THREE.SphereGeometry(0.43, 8, 6),
@@ -57,7 +64,12 @@ const shape = {
   nose: new THREE.SphereGeometry(0.075, 5, 4),
   glasses: new THREE.TorusGeometry(0.11, 0.018, 3, 8),
   collar: new THREE.BoxGeometry(0.55, 0.1, 0.12),
+  visor: new THREE.BoxGeometry(0.7, 0.13, 0.1),
+  belt: new THREE.BoxGeometry(0.8, 0.07, 0.62),
+  soles: new THREE.BoxGeometry(0.28, 0.04, 0.42),
 };
+/** Speech bubbles appear once the camera is close enough to read them. */
+export const conversationZoom = 11;
 export default function CharacterModels({
   frame,
   selected,
@@ -224,6 +236,18 @@ export default function CharacterModels({
         1,
         look.accent,
       );
+      put(
+        "visor",
+        i,
+        0,
+        2.04,
+        0.37,
+        look.visor ? 1 : 0,
+        look.visor ? 1 : 0,
+        look.visor ? 1 : 0,
+        look.accent,
+      );
+      put("belt", i, 0, 0.86, 0, 1, 1, 1, look.accent);
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? -1 : 1,
           slot = i * 2 + side;
@@ -265,7 +289,18 @@ export default function CharacterModels({
           1,
           1,
           1,
-          "#38363b",
+          "#1a1824",
+        );
+        put(
+          "soles",
+          slot,
+          sign * 0.18,
+          0.03,
+          0.07 + Math.sin(swing) * 0.26,
+          1,
+          1,
+          1,
+          look.accent,
         );
         put(
           "eyes",
@@ -287,7 +322,7 @@ export default function CharacterModels({
           look.glasses ? 1 : 0,
           look.glasses ? 1 : 0,
           look.glasses ? 1 : 0,
-          "#453949",
+          "#c9c2dc",
         );
         const long = look.hairStyle === 1 || look.hairStyle === 3;
         put(
@@ -304,9 +339,13 @@ export default function CharacterModels({
       }
     });
     const scale = speechScale(camera.zoom);
+    const readable = camera.zoom >= conversationZoom;
+    for (const [id, element] of bubbles.current)
+      element.style.visibility =
+        readable || id === selected || focus.includes(id) ? "" : "hidden";
     const screenBubbles = [...bubbles.current].flatMap(([id, element]) => {
       const label = labels.current.get(id);
-      if (!label) return [];
+      if (!label || element.style.visibility === "hidden") return [];
       const screen = new THREE.Vector3(
         label.position.x,
         3.25,
@@ -368,7 +407,7 @@ export default function CharacterModels({
           }}
           args={[
             shape[part],
-            material,
+            glowing.has(part) ? glowMaterial : material,
             frame.agents.length * (double.has(part) ? 2 : 1),
           ]}
           dispose={null}
@@ -391,7 +430,11 @@ export default function CharacterModels({
             {highlighted && (
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.12, 0]}>
                 <ringGeometry args={[0.8, 0.96, 24]} />
-                <meshBasicMaterial color="#e4c67f" side={THREE.DoubleSide} />
+                <meshBasicMaterial
+                  color="#00f0ff"
+                  side={THREE.DoubleSide}
+                  toneMapped={false}
+                />
               </mesh>
             )}
             <Html

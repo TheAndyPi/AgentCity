@@ -48,6 +48,13 @@ export function CitizenPortrait({
     >
       <svg viewBox="0 0 64 64" width="100%" height="100%">
         <path d="M8 68 Q8 43 32 43 Q56 43 56 68" fill={look.shirt} />
+        <path
+          d="M14 66 Q15 49 25 45 M50 66 Q49 49 39 45"
+          fill="none"
+          stroke={look.accent}
+          strokeWidth="1.6"
+          opacity=".85"
+        />
         <path d="M25 45 L32 53 L39 45" fill={look.accent} />
         {(look.hairStyle === 1 || look.hairStyle === 3) && (
           <rect
@@ -78,6 +85,17 @@ export function CitizenPortrait({
             <circle cx="39" cy="31" r="5" />
             <path d="M30 31H34" />
           </g>
+        )}
+        {look.visor && (
+          <rect
+            x="16"
+            y="27.5"
+            width="32"
+            height="7"
+            rx="3.5"
+            fill={look.accent}
+            opacity=".9"
+          />
         )}
         <path
           d="M28 39 Q32 42 36 39"

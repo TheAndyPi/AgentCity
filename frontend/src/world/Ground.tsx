@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { MapData } from "../api/types";
-import {
-  groundColors,
-  groundLayout,
-  groundSignature,
-  type GroundRect,
-} from "./groundLayout";
+import { groundLayout, groundSignature, type GroundRect } from "./groundLayout";
+import { worldPalette, type WorldTheme } from "./palette";
 
 export function useGround(map: MapData) {
   const signature = groundSignature(map);
@@ -14,7 +10,8 @@ export function useGround(map: MapData) {
 }
 
 // Local procedural grain keeps the ground detailed without downloaded textures.
-function surfaceTexture(seed: number, grass: boolean) {
+function surfaceTexture(seed: number, land: boolean, theme: WorldTheme) {
+  const palette = worldPalette(theme);
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 256;
   const context = canvas.getContext("2d")!;
@@ -23,23 +20,25 @@ function surfaceTexture(seed: number, grass: boolean) {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return state / 4294967296;
   };
-  context.fillStyle = grass ? groundColors.grass : groundColors.asphalt;
+  const [light, dark] = land ? palette.landGrain : palette.asphaltGrain;
+  context.fillStyle = land ? palette.land : palette.asphalt;
   context.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < (grass ? 16000 : 22000); i++) {
-    const light = random() > 0.5;
-    context.fillStyle = light
-      ? grass
-        ? "#adc18720"
-        : "#d3d8db13"
-      : grass
-        ? "#1c402a25"
-        : "#11182025";
-    context.fillRect(
-      random() * 256,
-      random() * 256,
-      grass ? 1 + random() * 2 : 1,
-      grass ? 1 + random() * 5 : 1,
-    );
+  for (let i = 0; i < (land ? 9000 : 16000); i++) {
+    context.fillStyle = (random() > 0.5 ? light : dark) + "22";
+    context.fillRect(random() * 256, random() * 256, 1 + random() * 2, 1);
+  }
+  if (land) {
+    // A faint holographic survey grid across the open ground.
+    context.strokeStyle = palette.grid + "26";
+    context.lineWidth = 1;
+    for (let i = 0; i <= 256; i += 32) {
+      context.beginPath();
+      context.moveTo(i + 0.5, 0);
+      context.lineTo(i + 0.5, 256);
+      context.moveTo(0, i + 0.5);
+      context.lineTo(256, i + 0.5);
+      context.stroke();
+    }
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -54,12 +53,16 @@ function Patches({
   elevation,
   thickness = 0.02,
   texture,
+  glow = false,
+  emissive,
 }: {
   pieces: GroundRect[];
   color: string;
   elevation: number;
   thickness?: number;
   texture?: THREE.Texture;
+  glow?: boolean;
+  emissive?: string;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   useEffect(() => {
@@ -79,37 +82,59 @@ function Patches({
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, pieces.length]}>
       <boxGeometry />
-      <meshStandardMaterial color={color} map={texture} roughness={1} />
+      {glow ? (
+        <meshBasicMaterial color={color} toneMapped={false} />
+      ) : (
+        <meshStandardMaterial
+          color={color}
+          map={texture}
+          roughness={emissive ? 0.25 : 1}
+          metalness={emissive ? 0.4 : 0}
+          emissive={emissive ?? "#000000"}
+          emissiveIntensity={emissive ? 0.35 : 0}
+        />
+      )}
     </instancedMesh>
   );
 }
 
-export default function Ground({ map }: { map: MapData }) {
+export default function Ground({
+  map,
+  theme = "dark",
+}: {
+  map: MapData;
+  theme?: WorldTheme;
+}) {
+  const palette = worldPalette(theme);
   const layout = useGround(map);
-  const grass = useMemo(() => {
-    const texture = surfaceTexture(map.seed, true);
-    texture.repeat.set(map.width_m / 8, map.height_m / 8);
+  const land = useMemo(() => {
+    const texture = surfaceTexture(map.seed, true, theme);
+    texture.repeat.set(map.width_m / 16, map.height_m / 16);
     return texture;
-  }, [map.seed, map.width_m, map.height_m]);
-  const asphalt = useMemo(() => surfaceTexture(map.seed, false), [map.seed]);
-  useEffect(() => () => grass.dispose(), [grass]);
+  }, [map.seed, map.width_m, map.height_m, theme]);
+  const asphalt = useMemo(
+    () => surfaceTexture(map.seed, false, theme),
+    [map.seed, theme],
+  );
+  useEffect(() => () => land.dispose(), [land]);
   useEffect(() => () => asphalt.dispose(), [asphalt]);
   return (
     <group name="city-ground">
       <mesh position={[map.width_m / 2, -0.24, map.height_m / 2]}>
         <boxGeometry args={[map.width_m, 0.45, map.height_m]} />
-        <meshStandardMaterial color="#51603d" roughness={1} />
+        <meshStandardMaterial color={palette.base} roughness={1} />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[map.width_m / 2, 0, map.height_m / 2]}
       >
         <planeGeometry args={[map.width_m, map.height_m]} />
-        <meshStandardMaterial map={grass} roughness={1} />
+        <meshStandardMaterial map={land} roughness={1} />
       </mesh>
       <Patches
         pieces={layout.water}
-        color={groundColors.water}
+        color={palette.water}
+        emissive={palette.waterGlow}
         elevation={0.018}
       />
       <Patches
@@ -120,26 +145,28 @@ export default function Ground({ map }: { map: MapData }) {
       />
       <Patches
         pieces={layout.sidewalks}
-        color={groundColors.sidewalk}
+        color={palette.sidewalk}
         elevation={0.055}
         thickness={0.055}
       />
       <Patches
         pieces={layout.entrances}
-        color={groundColors.sidewalk}
+        color={palette.sidewalk}
         elevation={0.058}
       />
       <Patches
         pieces={layout.curbs}
-        color={groundColors.curb}
+        color={palette.curb}
         elevation={0.085}
         thickness={0.06}
+        glow
       />
       <Patches
         pieces={layout.markings}
-        color={groundColors.markings}
+        color={palette.markings}
         elevation={0.045}
         thickness={0.005}
+        glow
       />
     </group>
   );

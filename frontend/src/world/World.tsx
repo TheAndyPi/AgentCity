@@ -26,7 +26,8 @@ import { subscribeToContextLoss } from "./contextLoss";
 import Ground, { useGround } from "./Ground";
 import Buildings, { BuildingTag } from "./Buildings";
 import { buildingBounds, buildingInfo, type Building } from "./buildingLayout";
-import { groundColors, type GroundRect } from "./groundLayout";
+import type { GroundRect } from "./groundLayout";
+import { neon, worldPalette } from "./palette";
 import { acknowledgedRoute, pointAlongRoute } from "./motion";
 import { insideBuilding } from "./buildingAccess";
 import { speechBySpeaker } from "./speech";
@@ -63,6 +64,8 @@ export const instanceAgentId = (
   index: number | undefined,
 ) => (index === undefined ? null : (agents[index]?.id ?? null));
 export { boundedPosition } from "./motion";
+/** Close enough to read speech bubbles above citizens. */
+export const maxZoom = 160;
 
 function ContextGuard({ onFallback }: { onFallback: () => void }) {
   const gl = useThree((state) => state.gl);
@@ -217,7 +220,7 @@ function Camera({
         ["zoom_in", "zoom_out", "rotate_left", "rotate_right"].includes(action)
       )
         onUnfollow();
-      if (action === "zoom_in") cam.zoom = Math.min(90, cam.zoom * 1.2);
+      if (action === "zoom_in") cam.zoom = Math.min(maxZoom, cam.zoom * 1.2);
       else if (action === "zoom_out") cam.zoom = Math.max(2, cam.zoom / 1.2);
       else if (action === "rotate_left" || action === "rotate_right") {
         const d = cam.position.clone().sub(c.target);
@@ -336,7 +339,7 @@ function Camera({
       makeDefault
       target={[frame.map.width_m / 2, 0, frame.map.height_m / 2]}
       minZoom={2}
-      maxZoom={90}
+      maxZoom={maxZoom}
       maxPolarAngle={Math.PI / 2.05}
       minPolarAngle={0.18}
       enableDamping={!reducedMotion}
@@ -365,6 +368,8 @@ class WebGLErrorBoundary extends Component<
 }
 export default function World(props: Props) {
   if (props.mode === "2d") return <World2D {...props} />;
+  const light = props.theme === "light";
+  const palette = worldPalette(light ? "light" : "dark");
   return (
     <WebGLErrorBoundary
       onError={props.onFallback}
@@ -398,14 +403,8 @@ export default function World(props: Props) {
               />
             )}
           <ContextGuard onFallback={props.onFallback} />
-          <color
-            attach="background"
-            args={[props.theme === "light" ? "#efe6fa" : "#140b24"]}
-          />
-          <fog
-            attach="fog"
-            args={[props.theme === "light" ? "#efe6fa" : "#140b24", 260, 600]}
-          />
+          <color attach="background" args={[palette.sky]} />
+          <fog attach="fog" args={[palette.sky, 260, 600]} />
           <OrthographicCamera
             makeDefault
             position={[
@@ -417,15 +416,36 @@ export default function World(props: Props) {
             near={0.1}
             far={1000}
           />
-          <ambientLight intensity={1.4} />
-          <directionalLight
-            position={[50, 100, 30]}
-            intensity={2.1}
-            color="#f5e7ff"
-          />
-          <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
-          <Ground map={props.frame.map} />
+          {light ? (
+            <>
+              <ambientLight intensity={1.4} />
+              <directionalLight
+                position={[50, 100, 30]}
+                intensity={2.1}
+                color="#f5e7ff"
+              />
+              <hemisphereLight args={["#c8b6e4", "#37314a", 1]} />
+            </>
+          ) : (
+            <>
+              <ambientLight intensity={1.4} color="#8f85ff" />
+              <directionalLight
+                position={[50, 100, 30]}
+                intensity={1.9}
+                color="#b9c4ff"
+              />
+              <directionalLight
+                position={[-60, 40, -40]}
+                intensity={0.9}
+                color={neon.magenta}
+              />
+              <hemisphereLight args={[neon.cyan, "#2a0a2e", 0.55]} />
+            </>
+          )}
+          <Ground map={props.frame.map} theme={light ? "light" : "dark"} />
           <Buildings
+            theme={light ? "light" : "dark"}
+            reducedMotion={props.reducedMotion}
             buildings={props.frame.map.buildings}
             cutaway={props.frame.map.buildings
               .filter((b) =>
@@ -577,6 +597,8 @@ function World2D(props: Props) {
     onUnfollow,
   } = props;
   const ground = useGround(frame.map);
+  const theme = props.theme === "light" ? "light" : "dark";
+  const palette = worldPalette(theme);
   const speech = speechBySpeaker(frame, props.focus);
   const patternId = useId().replace(/:/g, "");
   const [hovered, setHovered] = useState<Building | null>(null);
@@ -610,7 +632,7 @@ function World2D(props: Props) {
               h: frame.map.height_m + 16,
             };
           const scale = a === "zoom_in" ? 0.85 : a === "zoom_out" ? 1.15 : 1,
-            w = Math.max(8, Math.min(200, v.w * scale));
+            w = Math.max(4, Math.min(200, v.w * scale));
           return {
             x:
               v.x +
@@ -733,18 +755,12 @@ function World2D(props: Props) {
           height="4"
           patternUnits="userSpaceOnUse"
         >
-          <rect width="4" height="4" fill={groundColors.grass} />
+          <rect width="4" height="4" fill={palette.land} />
           <path
-            d="M.5 1l.15-.4M2 2l-.1-.45M3.2 3.6l.15-.5M.7 3.3l-.1-.3"
-            stroke="#91ad70"
-            strokeWidth=".08"
-            opacity=".45"
-          />
-          <path
-            d="M3 .7l.1-.3M1.6 3.3l.2-.35"
-            stroke="#315c38"
-            strokeWidth=".1"
-            opacity=".5"
+            d="M0 0H4M0 0V4"
+            stroke={palette.grid}
+            strokeWidth=".05"
+            opacity=".22"
           />
         </pattern>
         <pattern
@@ -753,10 +769,10 @@ function World2D(props: Props) {
           height="2"
           patternUnits="userSpaceOnUse"
         >
-          <rect width="2" height="2" fill={groundColors.asphalt} />
+          <rect width="2" height="2" fill={palette.asphalt} />
           <path
             d="M.3 .3h.1M1.2 .7h.12M.7 1.5h.1M1.7 1.7h.1"
-            stroke="#879099"
+            stroke={palette.asphaltGrain[0]}
             strokeWidth=".06"
             opacity=".4"
           />
@@ -768,12 +784,12 @@ function World2D(props: Props) {
         fill={`url(#${patternId}-grass)`}
         pointerEvents="none"
       />
-      {patches("water", ground.water, groundColors.water)}
+      {patches("water", ground.water, palette.water)}
       {patches("roads", ground.roads, `url(#${patternId}-asphalt)`)}
-      {patches("sidewalks", ground.sidewalks, groundColors.sidewalk)}
-      {patches("entrances", ground.entrances, groundColors.sidewalk)}
-      {patches("curbs", ground.curbs, groundColors.curb)}
-      {patches("markings", ground.markings, groundColors.markings)}
+      {patches("sidewalks", ground.sidewalks, palette.sidewalk)}
+      {patches("entrances", ground.entrances, palette.sidewalk)}
+      {patches("curbs", ground.curbs, palette.curb)}
+      {patches("markings", ground.markings, palette.markings)}
       {frame.events
         .filter((e) => e.status === "active")
         .flatMap((e) =>
@@ -804,7 +820,7 @@ function World2D(props: Props) {
           )),
         )}
       {frame.map.buildings.map((b) => {
-        const info = buildingInfo(b),
+        const info = buildingInfo(b, theme),
           bounds = buildingBounds(b);
         return (
           <g
@@ -832,22 +848,25 @@ function World2D(props: Props) {
           >
             <polygon
               points={polygon(b.footprint)}
-              fill={b.functional ? info.color : "#65636a"}
-              stroke="#eadfc9"
-              strokeWidth=".18"
+              fill={b.functional ? info.color : palette.offline}
+              stroke={b.functional ? info.accent : palette.trimOffline}
+              strokeWidth=".22"
             />
             <rect
               x={bounds.x - bounds.width * 0.3}
               y={frame.map.height_m - bounds.y - bounds.depth * 0.3}
               width={bounds.width * 0.6}
               height={bounds.depth * 0.6}
-              fill={info.accent}
+              fill="none"
+              stroke={info.accent}
+              strokeWidth=".14"
+              opacity=".7"
               pointerEvents="none"
             />
             {b.kind === "hospital" && (
               <path
                 d={`M${bounds.x - 0.7} ${frame.map.height_m - bounds.y}h1.4 M${bounds.x} ${frame.map.height_m - bounds.y - 0.7}v1.4`}
-                stroke="#fff7e9"
+                stroke={neon.magenta}
                 strokeWidth=".42"
                 pointerEvents="none"
               />
@@ -904,7 +923,7 @@ function World2D(props: Props) {
             reducedMotion={props.reducedMotion}
           >
             {(a.id === selected || props.focus?.includes(a.id)) && (
-              <circle r="1.8" fill="none" stroke="#e4c67f" strokeWidth=".18" />
+              <circle r="1.8" fill="none" stroke={neon.cyan} strokeWidth=".2" />
             )}
             <circle r="2.6" fill="transparent" />
             <ellipse
@@ -969,7 +988,7 @@ function World2D(props: Props) {
           pointerEvents="none"
         >
           <div className="building-tag-2d">
-            <BuildingTag building={currentBuilding} />
+            <BuildingTag building={currentBuilding} theme={theme} />
           </div>
         </foreignObject>
       )}

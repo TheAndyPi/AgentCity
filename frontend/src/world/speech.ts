@@ -82,4 +82,4 @@ export function layoutSpeech(bubbles: Bubble[], width: number, height: number) {
 
 /** Orthographic zoom should shrink speech along with the neighborhood. */
 export const speechScale = (zoom: number) =>
-  Math.max(0.25, Math.min(1.1, zoom / 45));
+  Math.max(0.45, Math.min(1.15, zoom / 28));

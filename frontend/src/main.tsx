@@ -16,6 +16,10 @@ import "@fontsource/chakra-petch/500.css";
 import "@fontsource/chakra-petch/600.css";
 import "@fontsource/chakra-petch/700.css";
 import "@fontsource-variable/manrope";
+import "@fontsource/orbitron/500.css";
+import "@fontsource/orbitron/700.css";
+import "@fontsource/rajdhani/500.css";
+import "@fontsource/rajdhani/600.css";
 import "./styles.css";
 import "./theme.css";
 const Setup = lazy(() => import("./pages/Setup")),
