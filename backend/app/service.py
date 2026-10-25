@@ -963,6 +963,49 @@ class Service:
                 affected.append(citizen.summary.id)
             state.simulation.agent_count = len(state.citizens)
             update_metrics(state)
+        elif cmd.type == "set_relationship":
+            self.ready(state, True)
+            require(state.intervention is None, "INTERVENTION_OPEN", "Close the editor first")
+            citizen, target = state.citizens.get(cmd.agent_id), state.citizens.get(cmd.target_id)
+            require(citizen is not None and target is not None, "NOT_FOUND", "Citizen not found", 404)
+            require(citizen is not target, "INVALID_REQUEST", "Choose two different citizens", 400)
+            require(
+                citizen.summary.active and target.summary.active,
+                "INVALID_STATE",
+                "Choose two active citizens",
+            )
+            presets = {
+                "lovers": ("romantic", 95, 80, 0, 60),
+                "friends": ("friend", 75, 75, 5, 50),
+                "rivals": ("rival", 15, 20, 75, 30),
+                "acquaintances": ("acquaintance", 35, 50, 10, 30),
+            }
+            kind, affection, trust, conflict, familiarity = presets[cmd.preset]
+            self.bump(state, True)
+            proof = evidence(f"Explicit owner relationship override: {cmd.preset}")
+            for actor, other in ((citizen, target), (target, citizen)):
+                connect(state, actor, other)
+                tie = actor.relationships[other.summary.id]
+                tie.kind, tie.affection, tie.trust, tie.conflict = kind, affection, trust, conflict
+                tie.familiarity = max(tie.familiarity, familiarity)
+                tie.desired_relationship = {
+                    "lovers": "Romantic connection",
+                    "friends": "Mutual friendship",
+                    "rivals": "Rivalry",
+                    "acquaintances": "Casual acquaintance",
+                }[cmd.preset]
+                tie.evidence = proof
+                remember(
+                    state,
+                    actor,
+                    f"The owner made {other.summary.name} and me {cmd.preset}.",
+                    "injected",
+                    70,
+                    subjects=[other.summary.id],
+                    proof=proof,
+                )
+            affected = [cmd.agent_id, cmd.target_id]
+            update_metrics(state)
         elif cmd.type == "override_agent":
             self.ready(state, True)
             require(
@@ -1047,6 +1090,15 @@ class Service:
             citizen.next_deliberation_tick = state.simulation.tick
             if cmd.intent:
                 intent = cmd.intent
+                if intent.action == "talk" and intent.parameters.message is not None:
+                    require(
+                        bool(intent.parameters.message.strip()),
+                        "INVALID_REQUEST",
+                        "Enter a line to say",
+                        400,
+                    )
+                # Each owner instruction replaces any previously pending social visit.
+                citizen.plan = None
                 if intent.action != "talk":
                     for interaction in state.interactions.values():
                         if (
@@ -1094,6 +1146,7 @@ class Service:
                     citizen.plan = dict(
                         kind="social_visit",
                         target_id=target.summary.id,
+                        message=intent.parameters.message,
                         expires_tick=state.simulation.tick + legacy_ticks(state, 30),
                     )
                 else:

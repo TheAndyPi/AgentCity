@@ -248,6 +248,8 @@ type CommandBody =
   | { type: "archive" }
   | { type: "unarchive" }
   | { type: "add_agents"; custom_agent_ids: ID[] }
+  | { type: "set_relationship"; agent_id: ID; target_id: ID;
+      preset: "lovers" | "friends" | "rivals" | "acquaintances" }
   | { type: "override_agent"; agent_id: ID;
       metrics: Partial<Metrics>; goal: string | null; memory_text: string | null;
       intent: Intent | null }
@@ -425,3 +427,10 @@ Running heads publish an in-memory revision every tick. Ordered background commi
 Snapshot stream messages carry the full map and `map_version`. Frame messages carry the changing world fields with `map_version`, and omit `map` unless a snapshot is required by a changed blocked-cell set. Frame `map_updates` carry current zone metrics and population, building occupancy/capacity/function, and resource stock without resending geometry. All sockets share the revision's encoded bytes, receive at most 20 frames/s, and skip superseded revisions.
 
 `GET /simulations/{id}/dialogue` accepts optional `agent_id` (speaker or recipient) and `interaction_id` filters, plus `cursor` and `limit` (1..100). Lines are newest-first by append sequence, with no full-history sort. Signed cursors bind owner, simulation, filters, revision and append-position boundary; live appends do not shift subsequent pages.
+
+
+### Citizen influence revision 4
+
+Additive command extension approved for direct citizen influence. `set_relationship` uses the existing owner command endpoint, control-version checks, idempotency and atomic persistence. It rejects missing, identical or inactive citizens and updates both directed ties, creating missing ties. Presets set kind/affection/trust/conflict/minimum familiarity respectively: lovers romantic/95/80/0/60, friends friend/75/75/5/50, rivals rival/15/20/75/30, acquaintances acquaintance/35/50/10/30. Respect and shared history are preserved; evidence and injected memories record owner intervention. It does not advance time or replace citizen tasks.
+
+Existing `override_agent` talk messages retain exact text (maximum 2,000 characters, nonblank) through a social visit until speech. The line is consumed once, or discarded when the visit expires or a new owner instruction replaces it. Delivery retains normal physical and interaction constraints. Existing requests and saved states remain valid; social-visit message fields are optional and no data migration is required. Backend contracts, frontend types/Zod validators and the mock adapter are coordinated consumers. Shared valid/invalid command fixtures cover this extension.

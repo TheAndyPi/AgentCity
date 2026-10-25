@@ -775,6 +775,7 @@ def rule_intent(state, citizen, context):
                 "talk",
                 target=other.summary.id,
                 motivation=visit.get("motivation", "Say hello after walking over to my neighbor"),
+                message=visit.get("message"),
             )
         elif citizen.summary.path:
             return None

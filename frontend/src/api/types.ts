@@ -534,7 +534,18 @@ export type Intervention = {
   was_running: boolean;
   control_version: number;
 };
+export type RelationshipPreset =
+  | "lovers"
+  | "friends"
+  | "rivals"
+  | "acquaintances";
 export type CommandBody =
+  | {
+      type: "set_relationship";
+      agent_id: ID;
+      target_id: ID;
+      preset: RelationshipPreset;
+    }
   | { type: "play" }
   | { type: "pause" }
   | { type: "step"; count: number }

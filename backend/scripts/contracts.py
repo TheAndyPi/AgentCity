@@ -38,7 +38,7 @@ def schema_bundle():
     )
     bundle["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     bundle["x-contract-version"] = "1.0.0"
-    bundle["x-contract-revision"] = 3
+    bundle["x-contract-revision"] = 4
     bundle["x-types"] = {model.__name__: mapping[(model, "validation")] for model in models}
     return bundle
 
@@ -47,7 +47,7 @@ def stream_schema():
     schema = TypeAdapter(c.ServerMessage).json_schema()
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     schema["x-contract-version"] = "1.0.0"
-    schema["x-contract-revision"] = 3
+    schema["x-contract-revision"] = 4
     return schema
 
 
@@ -59,7 +59,7 @@ def json_write(path, value):
 def check():
     manifest = json.loads((TARGET / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["contract_version"] == "1.0.0"
-    assert manifest["snapshot_revision"] == 3
+    assert manifest["snapshot_revision"] == 4
     for name, digest in manifest["sha256"].items():
         assert hashlib.sha256((TARGET / name).read_bytes()).hexdigest() == digest, (
             f"Frozen shared file changed: {name}"
@@ -101,7 +101,7 @@ def bootstrap(source):
         TARGET / "manifest.json",
         dict(
             contract_version="1.0.0",
-            snapshot_revision=3,
+            snapshot_revision=4,
             schema_draft="2020-12",
             status="frozen",
             sha256=hashes,

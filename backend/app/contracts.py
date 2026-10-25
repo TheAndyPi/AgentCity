@@ -884,6 +884,13 @@ class AddAgents(Model):
     ]
 
 
+class SetRelationship(Model):
+    type: Literal["set_relationship"]
+    agent_id: ID
+    target_id: ID
+    preset: Literal["lovers", "friends", "rivals", "acquaintances"]
+
+
 class OverrideAgent(Model):
     type: Literal["override_agent"]
     agent_id: ID
@@ -900,7 +907,17 @@ class Acknowledge(Model):
 
 
 CommandBody = Annotated[
-    Play | Pause | Step | SetSpeed | Save | Archive | Unarchive | AddAgents | OverrideAgent | Acknowledge,
+    Play
+    | Pause
+    | Step
+    | SetSpeed
+    | Save
+    | Archive
+    | Unarchive
+    | AddAgents
+    | SetRelationship
+    | OverrideAgent
+    | Acknowledge,
     Field(discriminator="type"),
 ]
 
